@@ -9,6 +9,7 @@ namespace Mediana.Codecs.Aac
         private const int ScaleCacheSlots = 8;
         private const int MaximumMoves = 32;
         private const int PairCandidates = 4;
+        private const int UnmeasuredDelta = int.MinValue;
         private readonly ReadOnlySpan<double> spectrum;
         private readonly ReadOnlySpan<double> powered;
         private readonly ReadOnlySpan<double> energy;
@@ -78,8 +79,8 @@ namespace Mediana.Codecs.Aac
                 channelBits[channel] = AacChannelEncoder.Count(bands.Slice(channel * channelBands, channelBands), bandsPerGroup, sectionBits);
                 currentBits += channelBits[channel];
             }
-            Span<int> candidateBits = stackalloc int[candidates.Length];
-            candidateBits.Fill(-1);
+            Span<int> candidateDeltas = stackalloc int[candidates.Length];
+            candidateDeltas.Fill(UnmeasuredDelta);
             bool includePlateaus = false;
             for (int move = 0; move < MaximumMoves * channels; move++)
             {
@@ -101,19 +102,18 @@ namespace Mediana.Codecs.Aac
                     int band = index / 2;
                     AacBandQuantization saved = bands[band];
                     int channel = band / channelBands;
-                    int count = candidateBits[index];
-                    if (count < 0)
+                    int extra = candidateDeltas[index];
+                    if (extra == UnmeasuredDelta)
                     {
-                        count = AacBandRate.CountReplacement(bands.Slice(channel * channelBands, channelBands),
-                            band % channelBands, candidate, channelBits[channel], bandsPerGroup, sectionBits);
-                        candidateBits[index] = count;
+                        extra = AacBandRate.ReplacementDelta(bands.Slice(channel * channelBands, channelBands),
+                            band % channelBands, candidate, bandsPerGroup, sectionBits);
+                        candidateDeltas[index] = extra;
                     }
-                    if (count == int.MaxValue)
+                    if (extra == int.MaxValue)
                     {
                         continue;
                     }
-                    count += currentBits - channelBits[channel];
-                    int extra = count - currentBits;
+                    int count = currentBits + extra;
                     double improvement = saved.Error - candidate.Error;
                     if (improvement > 0)
                     {
@@ -181,30 +181,31 @@ namespace Mediana.Codecs.Aac
                             if (bands[band].Book == 0)
                             {
                                 UpdateCandidates(band, scaleCache, includePlateaus);
-                                candidateBits[band * 2] = -1;
-                                candidateBits[band * 2 + 1] = -1;
+                                candidateDeltas[band * 2] = UnmeasuredDelta;
+                                candidateDeltas[band * 2 + 1] = UnmeasuredDelta;
                             }
                         }
                         continue;
                     }
                     return;
                 }
-                bands[first / 2] = candidates[first];
-                if (second >= 0)
+                int firstBandIndex = first / 2;
+                int change = candidateDeltas[first];
+                ApplyRateChange(firstBandIndex, candidates[first], candidateDeltas);
+                UpdateCandidates(firstBandIndex, scaleCache, includePlateaus);
+                if (second < 0)
                 {
-                    bands[second / 2] = candidates[second];
+                    channelBits[firstBandIndex / channelBands] += change;
+                    currentBits += change;
+                    continue;
                 }
-                UpdateCandidates(first / 2, scaleCache, includePlateaus);
-                InvalidateChannelCosts(first / 2, candidateBits);
-                UpdateChannelBits(first / 2, channelBits, ref currentBits);
-                if (second >= 0)
+                int secondBandIndex = second / 2;
+                ApplyRateChange(secondBandIndex, candidates[second], candidateDeltas);
+                UpdateCandidates(secondBandIndex, scaleCache, includePlateaus);
+                UpdateChannelBits(firstBandIndex, channelBits, ref currentBits);
+                if (secondBandIndex / channelBands != firstBandIndex / channelBands)
                 {
-                    UpdateCandidates(second / 2, scaleCache, includePlateaus);
-                    InvalidateChannelCosts(second / 2, candidateBits);
-                    if (second / 2 / channelBands != first / 2 / channelBands)
-                    {
-                        UpdateChannelBits(second / 2, channelBits, ref currentBits);
-                    }
+                    UpdateChannelBits(secondBandIndex, channelBits, ref currentBits);
                 }
             }
         }
@@ -218,11 +219,15 @@ namespace Mediana.Codecs.Aac
             channelBits[channel] = count;
         }
 
-        private void InvalidateChannelCosts(int band, scoped Span<int> candidateBits)
+        private void ApplyRateChange(int band, AacBandQuantization replacement, scoped Span<int> candidateDeltas)
         {
+            AacBandQuantization previous = bands[band];
+            bands[band] = replacement;
             int channelBands = boundaries.Length - 1;
-            int channel = band / channelBands;
-            candidateBits.Slice(channel * channelBands * 2, channelBands * 2).Fill(-1);
+            int channelStart = band - band % channelBands;
+            (int start, int length) = AacBandRate.ChangedRange(bands.Slice(channelStart, channelBands),
+                band - channelStart, previous, bandsPerGroup);
+            candidateDeltas.Slice((channelStart + start) * 2, length * 2).Fill(UnmeasuredDelta);
         }
 
         private void Fill(int scale, scoped Span<AacBandQuantization> scaleCache)
