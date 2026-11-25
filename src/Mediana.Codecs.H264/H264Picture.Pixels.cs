@@ -9,29 +9,29 @@ namespace Mediana.Codecs.H264
     {
         private WritableMediaBuffer? writablePixels;
         private MediaBuffer? publishedPixels;
-        private ReadOnlyMemory<byte> pixelMemory;
+        private Memory<byte> lumaPixels;
+        private Memory<byte> firstChromaPixels;
+        private Memory<byte> secondChromaPixels;
 
         public Span<byte> Plane(int index)
         {
-            ObjectDisposedException.ThrowIf(pixelMemory.IsEmpty, this);
+            ObjectDisposedException.ThrowIf(lumaPixels.IsEmpty, this);
             if (writablePixels is null)
             {
                 throw new InvalidOperationException("Published H.264 picture pixels cannot be modified.");
             }
-            (int offset, int length) = PlaneRange(index);
-            return writablePixels.Span.Slice(offset, length);
+            return GetPlane(index).Span;
         }
 
         public ReadOnlySpan<byte> ReadPlane(int index)
         {
-            ObjectDisposedException.ThrowIf(pixelMemory.IsEmpty, this);
-            (int offset, int length) = PlaneRange(index);
-            return pixelMemory.Span.Slice(offset, length);
+            ObjectDisposedException.ThrowIf(lumaPixels.IsEmpty, this);
+            return GetPlane(index).Span;
         }
 
         public MediaBuffer PublishPixels()
         {
-            ObjectDisposedException.ThrowIf(pixelMemory.IsEmpty, this);
+            ObjectDisposedException.ThrowIf(lumaPixels.IsEmpty, this);
             if (publishedPixels is null)
             {
                 publishedPixels = writablePixels!.Publish();
@@ -40,11 +40,11 @@ namespace Mediana.Codecs.H264
             return publishedPixels.Retain();
         }
 
-        private (int Offset, int Length) PlaneRange(int index) => index switch
+        private Memory<byte> GetPlane(int index) => index switch
         {
-            0 => (0, lumaBytes),
-            1 => (lumaBytes, chromaBytes),
-            2 => (lumaBytes + chromaBytes, chromaBytes),
+            0 => lumaPixels,
+            1 => firstChromaPixels,
+            2 => secondChromaPixels,
             _ => throw new ArgumentOutOfRangeException(nameof(index))
         };
     }

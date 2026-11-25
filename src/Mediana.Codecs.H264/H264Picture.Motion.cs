@@ -7,11 +7,11 @@ namespace Mediana.Codecs.H264
 {
     internal partial class H264Picture
     {
-        public Span<byte> ReferenceIndices(H264ReferenceList list) => storage.Span.Slice(MotionOffset(list), lumaBlocks);
+        public Span<byte> ReferenceIndices(H264ReferenceList list) => Metadata.Slice(MotionOffset(list), lumaBlocks);
         public Span<int> MotionX(H264ReferenceList list) => MemoryMarshal.Cast<byte, int>(
-            storage.Span.Slice(MotionOffset(list) + lumaBlocks, lumaBlocks * sizeof(int)));
+            Metadata.Slice(MotionOffset(list) + lumaBlocks, lumaBlocks * sizeof(int)));
         public Span<int> MotionY(H264ReferenceList list) => MemoryMarshal.Cast<byte, int>(
-            storage.Span.Slice(MotionOffset(list) + lumaBlocks * (1 + sizeof(int)), lumaBlocks * sizeof(int)));
+            Metadata.Slice(MotionOffset(list) + lumaBlocks * (1 + sizeof(int)), lumaBlocks * sizeof(int)));
 
         public H264MotionSample MotionAt(H264ReferenceList list, int x, int y)
         {
@@ -115,7 +115,7 @@ namespace Mediana.Codecs.H264
         }
 
         private Span<byte> MotionStorage(H264ReferenceList list) =>
-            storage.Span.Slice(MotionOffset(list), lumaBlocks * MotionBytesPerBlock);
+            Metadata.Slice(MotionOffset(list), lumaBlocks * MotionBytesPerBlock);
 
         private int MotionOffset(H264ReferenceList list)
         {
@@ -126,7 +126,7 @@ namespace Mediana.Codecs.H264
                 H264ReferenceList.L1 => throw new InvalidOperationException("This H.264 picture has no L1 motion storage."),
                 _ => throw new ArgumentOutOfRangeException(nameof(list))
             };
-            return ModesOffset + lumaBlocks + offset;
+            return modesOffset + lumaBlocks + offset;
         }
 
         private void ValidateMotionPartition(int x, int y, int width, int height, int reference)

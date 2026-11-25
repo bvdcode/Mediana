@@ -11,6 +11,7 @@ namespace Mediana.Codecs.H264
         public const byte Skipped = 27;
         public const byte Direct = 28;
         private readonly WritableMediaBuffer storage;
+        private Memory<byte> syntax;
         private readonly int count;
         private readonly int columns;
         private readonly int firstMacroblock;
@@ -23,12 +24,22 @@ namespace Mediana.Codecs.H264
             columns = picture.Sequence.WidthInMbs;
             count = picture.Layout.MacroblockCount;
             storage = allocator.Allocate(checked(count * 4));
+            syntax = storage.Memory;
         }
 
-        public Span<byte> Types => storage.Memory.Span[..count];
-        public Span<byte> Patterns => storage.Memory.Span.Slice(count, count);
-        public Span<byte> ChromaModes => storage.Memory.Span.Slice(count * 2, count);
-        public Span<byte> DcFlags => storage.Memory.Span.Slice(count * 3, count);
+        private Span<byte> Syntax
+        {
+            get
+            {
+                ObjectDisposedException.ThrowIf(syntax.IsEmpty, this);
+                return syntax.Span;
+            }
+        }
+
+        public Span<byte> Types => Syntax[..count];
+        public Span<byte> Patterns => Syntax.Slice(count, count);
+        public Span<byte> ChromaModes => Syntax.Slice(count * 2, count);
+        public Span<byte> DcFlags => Syntax.Slice(count * 3, count);
 
         public int Left(int address) => picture.Layout.MacroblockAdaptiveFrameField
             ? picture.Grid.Neighbour(address, -1, 0, 16, 16, firstMacroblock)?.Address ?? -1
@@ -140,6 +151,10 @@ namespace Mediana.Codecs.H264
             return Types[neighbour] == 25 || (DcFlags[neighbour] & (1 << plane)) != 0 ? 1 : 0;
         }
 
-        public void Dispose() => storage.Dispose();
+        public void Dispose()
+        {
+            syntax = default;
+            storage.Dispose();
+        }
     }
 }

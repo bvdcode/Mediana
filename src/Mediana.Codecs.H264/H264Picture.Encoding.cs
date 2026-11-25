@@ -7,12 +7,12 @@ namespace Mediana.Codecs.H264
     {
         public void ResetForEncoding()
         {
-            ObjectDisposedException.ThrowIf(pixelMemory.IsEmpty, this);
+            ObjectDisposedException.ThrowIf(lumaPixels.IsEmpty, this);
             if (writablePixels is null || referenceLists != 1)
             {
                 throw new InvalidOperationException("Only unpublished I/P reconstruction storage can be reused for encoding.");
             }
-            storage.Span.Clear();
+            Metadata.Clear();
             Modes.Fill(byte.MaxValue);
             ReferenceIndices(H264ReferenceList.L0).Fill(byte.MaxValue);
             FirstMacroblock = 0;

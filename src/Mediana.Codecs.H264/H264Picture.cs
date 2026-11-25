@@ -10,14 +10,15 @@ namespace Mediana.Codecs.H264
     internal partial class H264Picture : IDisposable
     {
         public const byte InterMode = 9;
+        private const int MotionBytesPerBlock = sizeof(byte) + 2 * sizeof(int);
         private readonly WritableMediaBuffer storage;
-        private readonly int lumaBytes;
-        private readonly int chromaBytes;
+        private readonly int modesOffset;
+        private readonly int quantizersOffset;
         private readonly int lumaBlocks;
         private readonly int chromaBlocks;
         private readonly int macroblocks;
         private readonly int referenceLists;
-        private const int MotionBytesPerBlock = sizeof(byte) + 2 * sizeof(int);
+        private Memory<byte> metadata;
 
         public H264Picture(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, H264SliceKind kind,
             H264PictureStructure structure = H264PictureStructure.Frame)
@@ -39,7 +40,7 @@ namespace Mediana.Codecs.H264
             Width = sequence.CodedWidth;
             Height = sequence.CodedHeight / (Layout.IsField ? 2 : 1);
             int lumaSamples = checked(Width * Height);
-            lumaBytes = checked(lumaSamples * SampleBytes);
+            int lumaBytes = checked(lumaSamples * SampleBytes);
             ChromaVerticalScale = sequence.ChromaFormat switch
             {
                 1 => 2,
@@ -53,7 +54,7 @@ namespace Mediana.Codecs.H264
             LumaMacroblockBytes = 256 * SampleBytes;
             ChromaMacroblockBytes = ChromaMacroblockSamples * SampleBytes;
             MacroblockBytes = MacroblockSamples * SampleBytes;
-            chromaBytes = lumaBytes / (ChromaHorizontalScale * ChromaVerticalScale);
+            int chromaBytes = lumaBytes / (ChromaHorizontalScale * ChromaVerticalScale);
             lumaBlocks = lumaSamples / 16;
             chromaBlocks = chromaBytes / (16 * SampleBytes);
             macroblocks = lumaSamples / 256;
@@ -63,9 +64,15 @@ namespace Mediana.Codecs.H264
             bool complete = false;
             try
             {
-                Grid = new(Layout, sequence.WidthInMbs, storage.Memory.Slice(metadataBytes, fieldPairBytes));
+                metadata = storage.Memory;
+                modesOffset = lumaBlocks + chromaBlocks * 2;
+                quantizersOffset = modesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);
+                Grid = new(Layout, sequence.WidthInMbs, metadata.Slice(metadataBytes, fieldPairBytes));
                 writablePixels = allocator.Allocate(checked(lumaBytes + chromaBytes * 2));
-                pixelMemory = writablePixels.Memory;
+                Memory<byte> pixels = writablePixels.Memory;
+                lumaPixels = pixels[..lumaBytes];
+                firstChromaPixels = pixels.Slice(lumaBytes, chromaBytes);
+                secondChromaPixels = pixels.Slice(lumaBytes + chromaBytes, chromaBytes);
                 complete = true;
             }
             finally
@@ -106,12 +113,19 @@ namespace Mediana.Codecs.H264
         public int VerticalScale(int plane) => plane == 0 ? 1 : ChromaVerticalScale;
         public bool HasBidirectionalMotion => referenceLists == 2;
         public int FirstMacroblock { get; set; }
-        private int ModesOffset => lumaBlocks + chromaBlocks * 2;
-        public Span<byte> Modes => storage.Span.Slice(ModesOffset, lumaBlocks);
-        private int QuantizersOffset => ModesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);
-        public Span<byte> Quantizers => storage.Span.Slice(QuantizersOffset, macroblocks);
+        public Span<byte> Modes => Metadata.Slice(modesOffset, lumaBlocks);
+        public Span<byte> Quantizers => Metadata.Slice(quantizersOffset, macroblocks);
         public Span<H264MacroblockFlags> MacroblockFlags =>
-            MemoryMarshal.Cast<byte, H264MacroblockFlags>(storage.Span.Slice(QuantizersOffset + macroblocks, macroblocks));
+            MemoryMarshal.Cast<byte, H264MacroblockFlags>(Metadata.Slice(quantizersOffset + macroblocks, macroblocks));
+
+        private Span<byte> Metadata
+        {
+            get
+            {
+                ObjectDisposedException.ThrowIf(metadata.IsEmpty, this);
+                return metadata.Span;
+            }
+        }
 
         public bool Uses8x8Transform(int address) => MacroblockFlags[address].HasFlag(H264MacroblockFlags.Transform8x8);
 
@@ -123,9 +137,9 @@ namespace Mediana.Codecs.H264
 
         public Span<byte> Counts(int index) => index switch
         {
-            0 => storage.Span[..lumaBlocks],
-            1 => storage.Span.Slice(lumaBlocks, chromaBlocks),
-            2 => storage.Span.Slice(lumaBlocks + chromaBlocks, chromaBlocks),
+            0 => Metadata[..lumaBlocks],
+            1 => Metadata.Slice(lumaBlocks, chromaBlocks),
+            2 => Metadata.Slice(lumaBlocks + chromaBlocks, chromaBlocks),
             _ => throw new ArgumentOutOfRangeException(nameof(index))
         };
 
@@ -232,7 +246,10 @@ namespace Mediana.Codecs.H264
 
         public void Dispose()
         {
-            pixelMemory = default;
+            lumaPixels = default;
+            firstChromaPixels = default;
+            secondChromaPixels = default;
+            metadata = default;
             writablePixels?.Dispose();
             publishedPixels?.Dispose();
             storage.Dispose();
