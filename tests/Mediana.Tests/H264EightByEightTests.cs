@@ -18,8 +18,12 @@ namespace Mediana.Tests
         {
             H264SequenceParameterSet sequence = new()
             {
-                WidthInMbs = 2, HeightInMapUnits = 2, FrameMbsOnly = true,
-                LumaBitDepth = depth, ChromaBitDepth = depth, ChromaFormat = 3
+                WidthInMbs = 2,
+                HeightInMapUnits = 2,
+                FrameMbsOnly = true,
+                LumaBitDepth = depth,
+                ChromaBitDepth = depth,
+                ChromaFormat = 3
             };
             MediaBufferAllocator allocator = new(65536);
             using H264Picture expected = new(sequence, allocator, H264SliceKind.I);
