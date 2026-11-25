@@ -27,8 +27,15 @@ namespace Mediana.Models.Mesh
                 using MeshBuffer<Vector3> faceAreas = new(source.TriangleCount, allocator);
                 CalculateFaces(faceNormals.Span, faceAreas.Span, token);
                 _normals = new(Indices.Length, allocator);
-                using MeshAdjacency? adjacency = options.SmoothNormals ? new(this, faceNormals.Span, allocator, token) : null;
-                CreateCornerNormals(faceNormals.Span, faceAreas.Span, adjacency, options.CreaseAngle, token);
+                if (options.SmoothNormals)
+                {
+                    float cosine = MathF.Cos((options.CreaseAngle * MathF.PI) / 180);
+                    MeshAdjacency.CreateNormals(Positions, Indices, faceNormals.Span, faceAreas.Span, Normals, cosine, allocator, token);
+                }
+                else
+                {
+                    CopyFaceNormals(faceNormals.Span, Normals, token);
+                }
                 if (options.UseSourceNormals && source.NormalData.Length > 0)
                 {
                     ApplySourceNormals(source.NormalData, rotation, token);
@@ -57,24 +64,26 @@ namespace Mediana.Models.Mesh
             double extent = Math.Max((double)maximum.X - minimum.X,
                 Math.Max((double)maximum.Y - minimum.Y, (double)maximum.Z - minimum.Z));
             if (extent == 0) { throw new ArgumentException("The mesh has no spatial extent.", nameof(source)); }
-            for (int index = 0; index < Positions.Length; index++)
+            Span<Vector3> positions = Positions;
+            for (int index = 0; index < positions.Length; index++)
             {
                 if ((index & 4095) == 0) { token.ThrowIfCancellationRequested(); }
                 Vector3 vertex = source.VertexData[index];
                 Vector3 normalized = new((float)(((vertex.X - centerX) * 2) / extent),
                     (float)(((vertex.Y - centerY) * 2) / extent), (float)(((vertex.Z - centerZ) * 2) / extent));
-                Positions[index] = Vector3.Transform(normalized, rotation);
+                positions[index] = Vector3.Transform(normalized, rotation);
             }
         }
 
         private void CalculateFaces(Span<Vector3> faceNormals, Span<Vector3> faceAreas, CancellationToken token)
         {
+            ReadOnlySpan<Vector3> positions = Positions;
             bool hasSurface = false;
             for (int face = 0; face < faceNormals.Length; face++)
             {
                 token.ThrowIfCancellationRequested();
                 int corner = face * 3;
-                Vector3 a = Positions[Indices[corner]], b = Positions[Indices[corner + 1]], c = Positions[Indices[corner + 2]];
+                Vector3 a = positions[Indices[corner]], b = positions[Indices[corner + 1]], c = positions[Indices[corner + 2]];
                 Vector3 area = Vector3.Cross(b - a, c - a);
                 if (area.LengthSquared() < 1e-24f) { continue; }
                 hasSurface = true;
@@ -84,27 +93,24 @@ namespace Mediana.Models.Mesh
             if (!hasSurface) { throw new ArgumentException("The mesh contains no nondegenerate triangles."); }
         }
 
-        private void CreateCornerNormals(ReadOnlySpan<Vector3> faceNormals, ReadOnlySpan<Vector3> faceAreas,
-            MeshAdjacency? adjacency, float creaseAngle, CancellationToken token)
+        private static void CopyFaceNormals(ReadOnlySpan<Vector3> faceNormals, Span<Vector3> normals, CancellationToken token)
         {
-            float cosine = MathF.Cos((creaseAngle * MathF.PI) / 180);
-            for (int corner = 0; corner < Indices.Length; corner++)
+            for (int corner = 0; corner < normals.Length; corner++)
             {
                 if ((corner & 4095) == 0) { token.ThrowIfCancellationRequested(); }
-                Vector3 normal = faceNormals[corner / 3];
-                Normals[corner] = normal == Vector3.Zero || adjacency is null ? normal
-                    : adjacency.Smooth(corner, faceNormals, faceAreas, cosine);
+                normals[corner] = faceNormals[corner / 3];
             }
         }
 
         private void ApplySourceNormals(ReadOnlySpan<Vector3> sourceNormals, Quaternion rotation, CancellationToken token)
         {
-            for (int corner = 0; corner < Normals.Length; corner++)
+            Span<Vector3> normals = Normals;
+            for (int corner = 0; corner < normals.Length; corner++)
             {
                 if ((corner & 4095) == 0) { token.ThrowIfCancellationRequested(); }
-                if (sourceNormals[corner] != Vector3.Zero && Normals[corner] != Vector3.Zero)
+                if (sourceNormals[corner] != Vector3.Zero && normals[corner] != Vector3.Zero)
                 {
-                    Normals[corner] = Vector3.Transform(GeometryMath.Normalize(sourceNormals[corner]), rotation);
+                    normals[corner] = Vector3.Transform(GeometryMath.Normalize(sourceNormals[corner]), rotation);
                 }
             }
         }

@@ -47,6 +47,25 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void EqualDepthPreservesFirstTriangleNormalsAcrossTheRow()
+        {
+            Vector3[] vertices = [new(-1, -1, 0), new(1, -1, 0), new(0, 1, 0)];
+            TriangleMesh first = new(vertices, [0, 1, 2], [Vector3.UnitZ, Vector3.UnitZ, Vector3.UnitZ]);
+            TriangleMesh second = new(vertices, [0, 1, 2], [Vector3.UnitX, Vector3.UnitX, Vector3.UnitX]);
+            TriangleMesh both = new(vertices, [0, 1, 2, 0, 1, 2], [.. first.CornerNormals.Span, .. second.CornerNormals.Span]);
+            MeshRenderOptions options = new()
+            {
+                Width = 67, Height = 39, Supersampling = 1, CameraDirection = Vector3.UnitZ, CameraUp = Vector3.UnitY,
+                Shadows = false, AmbientOcclusion = false
+            };
+            using PixelBuffer expected = MeshRenderer.Render(first, options);
+            using PixelBuffer other = MeshRenderer.Render(second, options);
+            using PixelBuffer actual = MeshRenderer.Render(both, options);
+            Assert.NotEqual(expected[33, 19], other[33, 19]);
+            Assert.True(expected.Pixels.Span.SequenceEqual(actual.Pixels.Span));
+        }
+
+        [Fact]
         public void FramingHandlesAspectRatioAndVerySmallOrLargeCoordinates()
         {
             Vector3[] vertices = [new(-1, -1, 0), new(1, -1, 0), new(0, 1, 1)];
@@ -114,6 +133,33 @@ namespace Mediana.Tests
             });
             Assert.Equal(background, image[0, 0]);
             Assert.Equal(255, image[24, 24].A);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(3)]
+        public void OcclusionOutsideTheImageMatchesEmptyDepth(int supersampling)
+        {
+            TriangleMesh surface = new(
+                [new(-1, -1, 0), new(1, -1, 0), new(1, 1, 0), new(-1, 1, 0),
+                 new(-1, 0.5f, 0.1f), new(-0.5f, 0.5f, 0.1f), new(-0.5f, 1, 0.1f), new(-1, 1, 0.1f)],
+                [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
+            MeshRenderOptions Options(int size, float padding, bool occlusion) => new()
+            {
+                Width = size, Height = size, Padding = padding, Supersampling = supersampling,
+                CameraDirection = Vector3.UnitZ, CameraUp = Vector3.UnitY, Shadows = false, AmbientOcclusion = occlusion
+            };
+            using PixelBuffer cropped = MeshRenderer.Render(surface, Options(64, 0, true));
+            using PixelBuffer padded = MeshRenderer.Render(surface, Options(128, 0.25f, true));
+            using PixelBuffer plain = MeshRenderer.Render(surface, Options(64, 0, false));
+            Assert.True(DarkerPixels(plain, cropped) > 0);
+            for (int y = 0; y < cropped.Height; y++)
+            {
+                for (int x = 0; x < cropped.Width; x++)
+                {
+                    Assert.Equal(padded[x + 32, y + 32], cropped[x, y]);
+                }
+            }
         }
 
         [Fact]
@@ -186,6 +232,31 @@ namespace Mediana.Tests
             using PixelBuffer b = MeshRenderer.Render(unusualNormals, generated);
             Assert.Equal(a.Pixels.ToArray(), b.Pixels.ToArray());
             Assert.Throws<ArgumentException>(() => MeshRenderer.Render(source, new MeshRenderOptions { ModelRotation = new Quaternion() }));
+        }
+
+        [Theory]
+        [InlineData(64, false)]
+        [InlineData(65, true)]
+        public void SmoothingUsesFaceNormalsBeyondTheNeighborLimit(int faces, bool matchesFlat)
+        {
+            Vector3[] vertices = new Vector3[faces * 3];
+            for (int face = 0; face < faces; face++)
+            {
+                float angle = face * MathF.Tau / faces;
+                float end = (face + 0.8f) * MathF.Tau / faces;
+                vertices[face * 3] = Vector3.UnitZ;
+                vertices[(face * 3) + 1] = new(MathF.Cos(angle), MathF.Sin(angle), 0);
+                vertices[(face * 3) + 2] = new(MathF.Cos(end), MathF.Sin(end), 0);
+            }
+            TriangleMesh fan = new(vertices, Enumerable.Range(0, vertices.Length).ToArray());
+            MeshRenderOptions Options(bool smooth) => new()
+            {
+                Width = 128, Height = 128, Supersampling = 1, Shadows = false, AmbientOcclusion = false,
+                SmoothNormals = smooth, CreaseAngle = 180, CameraDirection = Vector3.UnitZ, CameraUp = Vector3.UnitY
+            };
+            using PixelBuffer smooth = MeshRenderer.Render(fan, Options(true));
+            using PixelBuffer flat = MeshRenderer.Render(fan, Options(false));
+            Assert.Equal(matchesFlat, smooth.Pixels.Span.SequenceEqual(flat.Pixels.Span));
         }
 
         private static int DarkerPixels(PixelBuffer reference, PixelBuffer shaded)
