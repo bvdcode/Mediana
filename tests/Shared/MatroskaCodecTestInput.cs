@@ -35,7 +35,7 @@ namespace Mediana.Tests
 
             foreach (MatroskaTrack native in new[]
             {
-                AudioTrack(asc) with { CodecId = "A_OPUS" },
+                AudioTrack(asc) with { CodecId = "A_VORBIS" },
                 AudioTrack(asc) with { CodecId = "mp3" },
                 AudioTrack(asc) with { CodecId = "A_AAC/MPEG4/LC" },
                 AudioTrack(asc) with { ContentEncodings = new(0x6D80, 0, 0) },
@@ -52,10 +52,21 @@ namespace Mediana.Tests
             Require(allocator.AllocatedBytes == 0);
             await using (EbmlElementTestSource emptySource = new(Data([])))
             {
-                MatroskaTrack empty = AudioTrack([]) with { CodecId = "A_OPUS", CodecPrivate = null };
+                MatroskaTrack empty = AudioTrack([]) with { CodecId = "A_VORBIS", CodecPrivate = null };
                 using MatroskaPacketIndex emptyIndex = await BuildAsync(emptySource, allocator, [empty]);
                 IReadOnlyList<MatroskaCodecConfiguration> result = await ReadCodecsAsync(emptySource, allocator, [empty], emptyIndex);
                 Require(result[0].Stream.Configuration.IsEmpty && result[0].Stream.Format == MatroskaStreamFormats.StoredFrames);
+            }
+            Require(allocator.AllocatedBytes == 0);
+
+            byte[] opusHeader = Convert.FromHexString("4F707573486561640101000080BB0000000000");
+            await using (EbmlElementTestSource opusSource = new(Data(opusHeader)))
+            {
+                MatroskaTrack opus = AudioTrack(opusHeader) with { CodecId = "A_OPUS" };
+                using MatroskaPacketIndex opusIndex = await BuildAsync(opusSource, allocator, [opus]);
+                IReadOnlyList<MatroskaCodecConfiguration> mapped = await ReadCodecsAsync(opusSource, allocator, [opus], opusIndex);
+                Require(mapped[0].Stream.CodecId == OpusConfiguration.CodecId && mapped[0].Stream.Format == StreamFormats.Opus);
+                Require(mapped[0].Stream.Configuration.Span.SequenceEqual(opusHeader));
             }
             Require(allocator.AllocatedBytes == 0);
 

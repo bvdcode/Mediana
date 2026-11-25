@@ -4,6 +4,7 @@
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
+using Mediana.Formats;
 using Mediana.IO;
 
 namespace Mediana.Containers.Matroska
@@ -114,19 +115,24 @@ namespace Mediana.Containers.Matroska
         {
             MatroskaIndexedBlock block = index.GetBlock(address.BlockIndex);
             MatroskaBlockExtensions? extra = index.GetExtensions(address.BlockIndex);
-            if (((block.Flags & 8) != 0 && configurations[block.StreamIndex].Stream.CodecId is not ("vp8" or "vp9")) ||
-                extra?.CodecState is not null || extra?.BlockAdditions is not null ||
-                extra?.DiscardPaddingNanoseconds is not (null or 0))
+            MatroskaCodecConfiguration configuration = configurations[block.StreamIndex];
+            if (((block.Flags & 8) != 0 && configuration.Stream.CodecId is not ("vp8" or "vp9")) ||
+                extra?.CodecState is not null || extra?.BlockAdditions is not null)
             {
-                throw new NotSupportedException("Matroska invisible frames, codec state, block additions and discard padding require additional packet semantics.");
+                throw new NotSupportedException("Matroska invisible frames, codec state and block additions require additional packet semantics.");
+            }
+            if (extra?.DiscardPaddingNanoseconds is long padding && padding != 0 &&
+                (configuration.Stream.Format != StreamFormats.Opus || padding < 0))
+            {
+                throw new NotSupportedException("The Matroska packet uses an unsupported discard padding mode.");
             }
             MatroskaFrameRange frame = await ReadFrameRangeAsync(address, block, token).ConfigureAwait(false);
             MatroskaPacketTiming timing = GetTiming(address);
             using WritableMediaBuffer writable = allocator.Allocate(Math.Max(1, frame.Length));
             await source.ReadExactlyAtAsync(frame.Offset, writable.Memory[..frame.Length], token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
-            configurations[block.StreamIndex].ValidatePacket(writable.Memory.Span[..frame.Length]);
-            if (configurations[block.StreamIndex].FrameDuration is null && audioTiming?.HasStream(block.StreamIndex) == true)
+            configuration.ValidatePacket(writable.Memory.Span[..frame.Length]);
+            if (configuration.FrameDuration is null && audioTiming?.HasStream(block.StreamIndex) == true)
             {
                 audioTiming.ValidatePacket(block.StreamIndex, index.GetPacketIndex(address),
                     writable.Memory.Span[..frame.Length], tracks[block.StreamIndex]);
@@ -231,8 +237,9 @@ namespace Mediana.Containers.Matroska
                 {
                     pts = exact.PresentationTime;
                 }
-                duration = new(exact.Samples, new(1, exact.SampleRate));
-                if (extra?.DurationTicks is ulong declared && exact.IsFinalFrameSetInBlock)
+                duration = new(exact.PresentedSamples, new(1, exact.SampleRate));
+                if (extra?.DurationTicks is ulong declared && exact.IsFinalFrameSetInBlock &&
+                    configurations[block.StreamIndex].Stream.Format != StreamFormats.Opus)
                 {
                     MediaDuration whole = clock.GetTrackDuration(declared);
                     MediaTimestamp start = new(exact.PrecedingSamples, new(1, exact.SampleRate));
