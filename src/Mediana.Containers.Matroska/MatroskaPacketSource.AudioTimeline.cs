@@ -40,7 +40,8 @@ namespace Mediana.Containers.Matroska
                     if (!audio.IsDependent)
                     {
                         independent = timestamp;
-                        next = AddExactDuration(timestamp, timing.Duration!.Value);
+                        MediaDuration period = configurations[stream].FrameDuration ?? timing.Duration!.Value;
+                        next = AddExactDuration(timestamp, period);
                     }
                     previousBlock = address.BlockIndex;
                 }

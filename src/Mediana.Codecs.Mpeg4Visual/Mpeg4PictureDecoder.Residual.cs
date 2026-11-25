@@ -114,10 +114,10 @@ namespace Mediana.Codecs.Mpeg4Visual
             { coefficients[63] ^= 1; nonzero = CoefficientMask(nonzero, 63, coefficients[63]); }
             return nonzero;
         }
-        private void ReadResynchronization(ref Mpeg4VisualBitReader bits, Mpeg4VopHeader header, int mb, ref int quantizer, ref int bound)
+        private void ReadResynchronization(ref Mpeg4VisualBitReader bits, Mpeg4VopHeader header, int mb, ref int quantizer,
+            ref int bound, bool implicitSkip = false)
         {
             if (config.ResyncMarkerDisabled) { return; }
-            int alignment = 8 - (int)(bits.BitPosition & 7);
             int length = 17 + (header.Type switch
             {
                 Mpeg4VopType.Intra => 0,
@@ -126,12 +126,10 @@ namespace Mediana.Codecs.Mpeg4Visual
                 Mpeg4VopType.Sprite => throw new NotSupportedException("Sprite resynchronization is not supported."),
                 _ => throw new InvalidDataException("Invalid MPEG-4 Visual picture type.")
             });
-            if (bits.RemainingBits < alignment + length || bits.Peek(alignment) != (1 << (alignment - 1)) - 1) { return; }
-            Mpeg4VisualBitReader look = bits; look.Skip(alignment);
-            if (look.Read(length) != 1) { return; }
-            bits = look;
-            int numberBits = Math.Max(1, System.Numerics.BitOperations.Log2((uint)(mbWidth * mbHeight - 1)) + 1);
-            if (bits.Read(numberBits) != mb) { throw new InvalidDataException("The MPEG-4 Visual video-packet macroblock address is inconsistent."); }
+            if (!TryEnterVideoPacket(ref bits, length, mb, mbWidth * mbHeight, implicitSkip))
+            {
+                return;
+            }
             quantizer = bits.Read(config.QuantizerBits);
             if (quantizer == 0) { throw new InvalidDataException("The MPEG-4 Visual video-packet quantizer is zero."); }
             if (bits.Flag())
@@ -146,6 +144,34 @@ namespace Mediana.Codecs.Mpeg4Visual
                 { throw new InvalidDataException("The MPEG-4 Visual video-packet header contradicts its picture header."); }
             }
             bound = mb;
+        }
+
+        internal static bool TryEnterVideoPacket(ref Mpeg4VisualBitReader bits, int markerLength, int macroblock,
+            int macroblockCount, bool implicitSkip)
+        {
+            int alignment = 8 - (int)(bits.BitPosition & 7);
+            if (bits.RemainingBits < alignment + markerLength || bits.Peek(alignment) != (1 << (alignment - 1)) - 1)
+            {
+                return false;
+            }
+            Mpeg4VisualBitReader next = bits;
+            next.Skip(alignment);
+            if (next.Read(markerLength) != 1)
+            {
+                return false;
+            }
+            int addressBits = Math.Max(1, BitOperations.Log2((uint)(macroblockCount - 1)) + 1);
+            int address = next.Read(addressBits);
+            if (address != macroblock)
+            {
+                if (implicitSkip && address > macroblock && address < macroblockCount)
+                {
+                    return false;
+                }
+                throw new InvalidDataException("The MPEG-4 Visual video-packet macroblock address is inconsistent.");
+            }
+            bits = next;
+            return true;
         }
     }
 }

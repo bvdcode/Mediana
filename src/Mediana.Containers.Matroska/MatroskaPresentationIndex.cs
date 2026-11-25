@@ -6,20 +6,23 @@ using System.Runtime.InteropServices;
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
+using Mediana.Formats;
 using Mediana.IO;
 
 namespace Mediana.Containers.Matroska
 {
-    /// <summary>Allocator-owned displayed-picture metadata. Implicit display extents reach the next visible PTS;
-    /// explicit BlockDuration preserves breaks. Stored packet timestamps and durations remain unchanged.</summary>
+    /// <summary>Allocator-owned displayed-picture metadata. Implicit display extents reach the next visible PTS.
+    /// Explicit BlockDuration preserves breaks. The decode clock for copy is independent of stored packet timestamps.</summary>
     internal class MatroskaPresentationIndex : IDisposable
     {
         private readonly WritableMediaBuffer?[] storage;
+        private readonly WritableMediaBuffer?[] decodeTimes;
         private readonly int[] counts;
 
         private MatroskaPresentationIndex(int tracks)
         {
             storage = new WritableMediaBuffer?[tracks];
+            decodeTimes = new WritableMediaBuffer?[tracks];
             counts = new int[tracks];
         }
 
@@ -64,7 +67,8 @@ namespace Mediana.Containers.Matroska
                         ContainerPacketTiming timing = packets.GetPacketTiming(stream, packet, token);
                         result.Units(stream)[result.counts[stream]++] = new(packet, 0, timing.PresentationTime, timing.Duration);
                     }
-                    result.ResolveDurations(stream, index, packets, token);
+                    result.ResolveDurations(stream, index, packets, configuration.Format == StreamFormats.Avc &&
+                        result.counts[stream] == packetCount, token);
                 }
                 success = true;
                 return result;
@@ -75,14 +79,21 @@ namespace Mediana.Containers.Matroska
             }
         }
 
-        private void ResolveDurations(int stream, MatroskaPacketIndex index, MatroskaPacketSource packets, CancellationToken token)
+        private void ResolveDurations(int stream, MatroskaPacketIndex index, MatroskaPacketSource packets,
+            bool completeAvcPictures, CancellationToken token)
         {
             Span<ContainerVideoPresentationUnit> units = Units(stream)[..counts[stream]];
             units.Sort(static (left, right) => Nullable.Compare(left.PresentationTime, right.PresentationTime));
+            int decodeLead = 0;
             for (int position = 0; position < units.Length; position++)
             {
                 token.ThrowIfCancellationRequested();
                 ContainerVideoPresentationUnit unit = units[position];
+                if (completeAvcPictures)
+                {
+                    // Shifting the display clock by this displacement keeps each DTS at or before its PTS.
+                    decodeLead = Math.Max(decodeLead, checked((int)unit.PacketIndex) - position);
+                }
                 MatroskaPacketAddress address = index.Locate(stream, unit.PacketIndex);
                 MediaDuration? duration = packets.GetExplicitPresentationDuration(address);
                 if (position + 1 < units.Length &&
@@ -94,8 +105,31 @@ namespace Mediana.Containers.Matroska
                 }
                 units[position] = unit with { Duration = duration ?? unit.Duration };
             }
+            if (completeAvcPictures)
+            {
+                BuildDecodeClock(stream, index, units, decodeLead, token);
+            }
             units.Sort(static (left, right) => left.PacketIndex.CompareTo(right.PacketIndex));
         }
+
+        private void BuildDecodeClock(int stream, MatroskaPacketIndex index, ReadOnlySpan<ContainerVideoPresentationUnit> displayOrder,
+            int decodeLead, CancellationToken token)
+        {
+            WritableMediaBuffer buffer = index.AllocatePacketMetadataStorage(checked(displayOrder.Length * sizeof(long)));
+            decodeTimes[stream] = buffer;
+            Span<long> output = MemoryMarshal.Cast<byte, long>(buffer.Span);
+            long origin = displayOrder[0].PresentationTime!.Value.Value;
+            Int128 step = decodeLead == 0 ? 0 : (Int128)displayOrder[1].PresentationTime!.Value.Value - origin;
+            for (int packet = 0; packet < output.Length; packet++)
+            {
+                token.ThrowIfCancellationRequested();
+                int display = packet - decodeLead;
+                output[packet] = display >= 0 ? displayOrder[display].PresentationTime!.Value.Value : checked((long)(origin + display * step));
+            }
+        }
+
+        public MediaTimestamp? GetDecodeTime(int stream, long packet) => decodeTimes[stream] is WritableMediaBuffer buffer
+            ? new MediaTimestamp(MemoryMarshal.Cast<byte, long>(buffer.Span)[checked((int)packet)], MatroskaTrackClock.TimeBase) : null;
 
         public int GetCount(int stream)
         {
@@ -130,6 +164,7 @@ namespace Mediana.Containers.Matroska
 
         public void Dispose()
         {
+            foreach (WritableMediaBuffer? buffer in decodeTimes) { buffer?.Dispose(); }
             foreach (WritableMediaBuffer? buffer in storage) { buffer?.Dispose(); }
         }
     }

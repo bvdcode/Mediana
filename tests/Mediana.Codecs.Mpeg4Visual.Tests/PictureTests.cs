@@ -9,6 +9,26 @@ namespace Mediana.Codecs.Mpeg4Visual.Tests
 {
     public class PictureTests
     {
+        [Fact]
+        public void ResynchronizationMarkerWaitsForImplicitlySkippedMacroblocks()
+        {
+            byte[] packet = [0x7f, 0, 0, 0x62, 0x80];
+            Mpeg4VisualBitReader bits = new(packet);
+            Assert.False(Mpeg4PictureDecoder.TryEnterVideoPacket(ref bits, 18, 0, 4, true));
+            Assert.False(Mpeg4PictureDecoder.TryEnterVideoPacket(ref bits, 18, 1, 4, true));
+            Assert.Equal(0, bits.BitPosition);
+            Assert.True(Mpeg4PictureDecoder.TryEnterVideoPacket(ref bits, 18, 2, 4, true));
+            Assert.Equal(28, bits.BitPosition);
+            Assert.Equal(5, bits.Read(5));
+            Assert.Throws<InvalidDataException>(() => EnterBeforeAddress(packet));
+
+            static void EnterBeforeAddress(byte[] data)
+            {
+                Mpeg4VisualBitReader coded = new(data);
+                Mpeg4PictureDecoder.TryEnterVideoPacket(ref coded, 18, 1, 4, false);
+            }
+        }
+
         [Theory]
         [InlineData("simple")]
         [InlineData("bframes")]

@@ -13,22 +13,8 @@ namespace Mediana.Containers.Matroska
         public override VideoColorInfo Resolve(VideoColorInfo codecColor)
         {
             ArgumentNullException.ThrowIfNull(codecColor);
-            if (Settings.Primaries > byte.MaxValue || Settings.TransferCharacteristics > byte.MaxValue ||
-                Settings.MatrixCoefficients > byte.MaxValue || Settings.Range > 2 ||
-                Settings.ChromaSitingHorz > 2 || Settings.ChromaSitingVert > 2)
-            {
-                throw new NotSupportedException("The Matroska Colour description contains unsupported codes.");
-            }
-            CicpColorDescription cicp = new((int)Settings.Primaries, (int)Settings.TransferCharacteristics,
-                (int)Settings.MatrixCoefficients);
+            CicpColorDescription cicp = ReadCicp();
             VideoColorInfo described = cicp.Resolve(codecColor);
-            ColorRange range = Settings.Range switch
-            {
-                0 => codecColor.Range,
-                1 => ColorRange.Limited,
-                2 => ColorRange.Full,
-                _ => throw new NotSupportedException("The Matroska color range is unsupported.")
-            };
             (ulong horizontal, ulong vertical) = codecColor.ChromaLocation switch
             {
                 ChromaLocation.Unspecified => (0UL, 0UL),
@@ -61,7 +47,33 @@ namespace Mediana.Containers.Matroska
             };
             return new(Settings.Primaries == 2 ? codecColor.Primaries : described.Primaries,
                 Settings.TransferCharacteristics == 2 ? codecColor.Transfer : described.Transfer,
-                Settings.MatrixCoefficients == 2 ? codecColor.Matrix : described.Matrix, range, location);
+                Settings.MatrixCoefficients == 2 ? codecColor.Matrix : described.Matrix, described.Range, location);
+        }
+
+        public override CicpColorDescription ResolveCicp(CicpColorDescription codecColor)
+        {
+            ArgumentNullException.ThrowIfNull(codecColor);
+            CicpColorDescription source = ReadCicp();
+            return new(source.Primaries == 2 ? codecColor.Primaries : source.Primaries,
+                source.Transfer == 2 ? codecColor.Transfer : source.Transfer,
+                source.Matrix == 2 ? codecColor.Matrix : source.Matrix, source.FullRange ?? codecColor.FullRange);
+        }
+
+        private CicpColorDescription ReadCicp()
+        {
+            if (Settings.Primaries > byte.MaxValue || Settings.TransferCharacteristics > byte.MaxValue ||
+                Settings.MatrixCoefficients > byte.MaxValue || Settings.ChromaSitingHorz > 2 || Settings.ChromaSitingVert > 2)
+            {
+                throw new NotSupportedException("The Matroska Colour description contains unsupported codes.");
+            }
+            bool? fullRange = Settings.Range switch
+            {
+                0 => null,
+                1 => false,
+                2 => true,
+                _ => throw new NotSupportedException("The Matroska color range is unsupported.")
+            };
+            return new((int)Settings.Primaries, (int)Settings.TransferCharacteristics, (int)Settings.MatrixCoefficients, fullRange);
         }
     }
 }

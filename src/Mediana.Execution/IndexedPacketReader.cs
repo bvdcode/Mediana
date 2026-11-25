@@ -12,15 +12,17 @@ namespace Mediana.Execution
     {
         private readonly IIndexedContainerReader source;
         private readonly IIndexedPresentationTimingReader? presentationTiming;
+        private readonly IIndexedDecodeTimingReader? decodeTiming;
         private readonly int streamIndex;
         private readonly SemaphoreSlim? gate;
         private long position;
 
         public IndexedPacketReader(IIndexedContainerReader source, int streamIndex, SemaphoreSlim? gate = null,
-            bool usePresentationTiming = true)
+            bool usePresentationTiming = true, bool useDecodeTiming = false)
         {
             this.source = source;
             presentationTiming = usePresentationTiming ? source as IIndexedPresentationTimingReader : null;
+            decodeTiming = useDecodeTiming ? source as IIndexedDecodeTimingReader : null;
             this.streamIndex = streamIndex;
             this.gate = gate;
             Count = source.GetPacketCount(streamIndex);
@@ -52,7 +54,15 @@ namespace Mediana.Execution
             try
             {
                 MediaDuration? duration = presentationTiming?.GetPresentationDuration(streamIndex, packetIndex, cancellationToken);
+                MediaTimestamp? decodeTime = decodeTiming?.GetDecodeTime(streamIndex, packetIndex, cancellationToken);
                 MediaPacket packet = await source.ReadPacketAtAsync(streamIndex, packetIndex, cancellationToken).ConfigureAwait(false);
+                if (packet.DecodeTime is null && decodeTime is MediaTimestamp time)
+                {
+                    using (packet)
+                    {
+                        return packet.RetainWithTiming(packet.PresentationTime, time, duration ?? packet.Duration);
+                    }
+                }
                 return presentationTiming is null ? packet : PacketPresentationTiming.Apply(packet, duration);
             }
             finally

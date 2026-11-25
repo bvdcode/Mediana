@@ -36,7 +36,10 @@ namespace Mediana.Tests
                 {
                     using (frame)
                     {
-                        Require(position < audioTimes.Count && frame.Timestamp == audioTimes[position++]);
+                        Require(position < audioTimes.Count && frame.Timestamp is not null && audioTimes[position] is not null);
+                        MediaTimestamp declared = audioTimes[position++]!.Value.Rescale(MatroskaTrackClock.TimeBase, TimestampRounding.NearestEven);
+                        MediaTimestamp decoded = frame.Timestamp!.Value.Rescale(MatroskaTrackClock.TimeBase, TimestampRounding.NearestEven);
+                        Require(Int128.Abs((Int128)declared.Value - decoded.Value) <= 1_000_000);
                         ReadOnlyMemory<byte> plane = frame.GetPlane(0);
                         Require(plane.Span.SequenceEqual(expectedAudio.AsSpan(offset, plane.Length)));
                         offset += plane.Length;

@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using static Mediana.Tests.AvcFramingTestData;
+using Mediana.Containers.Matroska;
 using Mediana.Containers.MpegTs;
 using Mediana.Core;
 using Mediana.Core.Memory;
@@ -67,6 +68,29 @@ namespace Mediana.Tests
                 Assert.All(colors, color => Assert.Equal((2, 2, 2), (color.ColorPrimaries, color.TransferCharacteristics, color.MatrixCoefficients)));
             }
             Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void MatroskaColourRewritesOnlyDeclaredCicpComponentsAndChromaAxes(bool hasVui)
+        {
+            byte[] sequence = hasVui
+                ? H264MetadataTestInput.Sequence(vui: "00 1 101 0 1 00000111 00001110 00000110 1 010 011 00000")
+                : H264MetadataTestInput.Sequence();
+            byte[] configuration = H264MetadataTestInput.Configuration([sequence], [H264MetadataTestInput.Picture()]);
+            MatroskaColorDescription color = new(new() { MatrixCoefficients = 9, Range = 2, ChromaSitingHorz = 2 });
+            MediaBufferAllocator allocator = new(8192);
+            AvcAnnexBConverter converter = new(configuration, color, allocator);
+            using MediaBuffer packet = converter.Convert(Packet(4, [0x65, 0x88]), allocator, 4096, out _);
+            byte[] sps = Nals(packet.Memory.Span).Single(nal => (nal[0] & 31) == 7);
+            H264VuiParameters vui = H264SequenceParser.Parse(sps).Vui!;
+            Assert.Equal(hasVui ? 7 : 2, vui.ColorPrimaries);
+            Assert.Equal(hasVui ? 14 : 2, vui.TransferCharacteristics);
+            Assert.Equal(9, vui.MatrixCoefficients);
+            Assert.True(vui.FullRange);
+            Assert.Equal(1, vui.ChromaLocationTop);
+            Assert.Equal(hasVui ? 3 : 1, vui.ChromaLocationBottom);
         }
 
         [Fact]

@@ -20,17 +20,10 @@ namespace Mediana.Formats.Video
             MediaBufferAllocator? allocator = null, int maximumParameterSetBytes = ushort.MaxValue,
             VideoAspectRatioDescription? aspectRatioDescription = null)
         {
-            CicpColorDescription? color = colorDescription switch
-            {
-                null => null,
-                CicpColorDescription cicp => cicp,
-                _ => throw new NotSupportedException("The source color description cannot be represented in H.264 SPS parameters.")
-            };
-            if (color is not null || aspectRatioDescription is not null)
+            if (colorDescription is not null || aspectRatioDescription is not null)
             {
                 ArgumentNullException.ThrowIfNull(allocator);
                 ArgumentOutOfRangeException.ThrowIfLessThan(maximumParameterSetBytes, 8);
-                color?.Resolve(new VideoColorInfo());
             }
             configuration = configuration.ToArray();
             ReadOnlySpan<byte> data = configuration.Span;
@@ -44,13 +37,13 @@ namespace Mediana.Formats.Video
                 throw new InvalidDataException("The AVC NAL length size is reserved.");
             }
             int offset = 6;
-            ReadParameters(configuration, ref offset, data[5] & 31, 7, color, aspectRatioDescription, allocator, maximumParameterSetBytes);
+            ReadParameters(configuration, ref offset, data[5] & 31, 7, colorDescription, aspectRatioDescription, allocator, maximumParameterSetBytes);
             if (offset >= data.Length)
             {
                 throw new InvalidDataException("The AVC picture parameter count is missing.");
             }
             int pictureCount = data[offset++];
-            ReadParameters(configuration, ref offset, pictureCount, 8, color, aspectRatioDescription, allocator, maximumParameterSetBytes);
+            ReadParameters(configuration, ref offset, pictureCount, 8, colorDescription, aspectRatioDescription, allocator, maximumParameterSetBytes);
             if (offset < data.Length)
             {
                 if (data[1] is not (100 or 110 or 122 or 144) || data.Length - offset < 4 ||
@@ -144,7 +137,7 @@ namespace Mediana.Formats.Video
         }
 
         private void ReadParameters(ReadOnlyMemory<byte> data, ref int offset, int count, int type,
-            CicpColorDescription? color, VideoAspectRatioDescription? aspectRatio, MediaBufferAllocator? allocator, int maximumBytes)
+            VideoColorDescription? color, VideoAspectRatioDescription? aspectRatio, MediaBufferAllocator? allocator, int maximumBytes)
         {
             if (count == 0)
             {

@@ -126,7 +126,7 @@ namespace Mediana.Containers.Matroska
             await source.ReadExactlyAtAsync(frame.Offset, writable.Memory[..frame.Length], token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
             configurations[block.StreamIndex].ValidatePacket(writable.Memory.Span[..frame.Length]);
-            if (audioTiming?.HasStream(block.StreamIndex) == true)
+            if (configurations[block.StreamIndex].FrameDuration is null && audioTiming?.HasStream(block.StreamIndex) == true)
             {
                 audioTiming.ValidatePacket(block.StreamIndex, index.GetPacketIndex(address),
                     writable.Memory.Span[..frame.Length], tracks[block.StreamIndex]);
@@ -243,7 +243,7 @@ namespace Mediana.Containers.Matroska
                         new MediaTimeRange(start.ReduceClock(), finish.ReduceClock()).Duration;
                 }
             }
-            bool keyFrame = audio is MatroskaAudioFrameTiming indexedAudio ? !indexedAudio.IsDependent :
+            bool keyFrame = audio is MatroskaAudioFrameTiming indexedAudio && configurations[block.StreamIndex].FrameDuration is null ? !indexedAudio.IsDependent :
                 block.IsSimpleBlock ? (block.Flags & 0x80) != 0 : !block.HasReferences;
             return new(pts, duration, keyFrame);
         }

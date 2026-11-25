@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Core.Video;
+
 namespace Mediana.Formats.Video
 {
     public record H264VuiParameters
@@ -25,5 +27,28 @@ namespace Mediana.Formats.Video
         public int MaxMotionLengthVertical { get; init; } = 15;
         public int? MaxReorderFrames { get; init; }
         public int? MaxDecodedFrameBuffering { get; init; }
+
+        /// <summary>Converts a chroma sample location code into its spatial position.</summary>
+        public static ChromaLocation GetChromaLocation(int code) => code switch
+        {
+            0 => ChromaLocation.Left,
+            1 => ChromaLocation.Center,
+            2 => ChromaLocation.TopLeft,
+            3 => ChromaLocation.Top,
+            4 => ChromaLocation.BottomLeft,
+            5 => ChromaLocation.Bottom,
+            _ => throw new InvalidDataException("Invalid H.264 chroma location code.")
+        };
+
+        internal static int GetChromaLocationCode(ChromaLocation location) => location switch
+        {
+            ChromaLocation.Left => 0,
+            ChromaLocation.Center => 1,
+            ChromaLocation.TopLeft => 2,
+            ChromaLocation.Top => 3,
+            ChromaLocation.BottomLeft => 4,
+            ChromaLocation.Bottom => 5,
+            _ => throw new NotSupportedException("The source chroma location cannot be represented in H.264 SPS parameters.")
+        };
     }
 }

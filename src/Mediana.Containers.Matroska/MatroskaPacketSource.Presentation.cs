@@ -23,6 +23,17 @@ namespace Mediana.Containers.Matroska
 
         public AudioStreamMetadata? GetStreamMetadata(int stream) => audioTiming?.GetMetadata(stream);
 
+        internal MediaTimestamp? GetDecodeTime(int stream, long packet, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            MatroskaPacketAddress address = index.Locate(stream, packet);
+            if (configurations[stream].Stream.Kind == MediaKind.Audio && configurations[stream].FrameDuration is not null)
+            {
+                return GetTiming(address).PresentationTime;
+            }
+            return presentation?.GetDecodeTime(stream, packet);
+        }
+
         public long GetPresentationUnitCount(int stream)
         {
             EnsurePresentationStream(stream);

@@ -13,7 +13,7 @@ using Mediana.Core.Timing;
 
 namespace Mediana.Containers.Matroska
 {
-    /// <summary>Exact self-describing audio clocks, obtained from bounded frame prefixes without decoding payloads.</summary>
+    /// <summary>Exact audio clocks from codec configuration or bounded frame prefixes.</summary>
     internal partial class MatroskaAudioTimingIndex : IDisposable
     {
         private readonly WritableMediaBuffer?[] storage;
@@ -29,7 +29,7 @@ namespace Mediana.Containers.Matroska
             bool required = false;
             foreach (MatroskaCodecConfiguration configuration in configurations)
             {
-                if (RequiresTiming(configuration.Stream))
+                if (RequiresTiming(configuration))
                 { required = true; break; }
             }
             if (!required) { return null; }
@@ -41,8 +41,14 @@ namespace Mediana.Containers.Matroska
                 using WritableMediaBuffer prefix = allocator.Allocate(Math.Max(Eac3FrameMetadata.MaximumPrefixBytes, DtsFrameHeader.MaximumHeaderBytes));
                 for (int stream = 0; stream < tracks.Count; stream++)
                 {
-                    string codec = configurations[stream].Stream.CodecId;
-                    if (!RequiresTiming(configurations[stream].Stream)) { continue; }
+                    MatroskaCodecConfiguration configuration = configurations[stream];
+                    string codec = configuration.Stream.CodecId;
+                    if (!RequiresTiming(configuration)) { continue; }
+                    if (configuration.FrameDuration is MediaDuration period)
+                    {
+                        result.IndexFixedStream(stream, index, period, token);
+                        continue;
+                    }
                     if (codec == DtsFrameHeader.CodecId)
                     {
                         await result.ReadDtsStreamAsync(stream, source, index, blocks, tracks[stream].Audio!.Value, prefix.Memory, token).ConfigureAwait(false);
@@ -50,10 +56,7 @@ namespace Mediana.Containers.Matroska
                     }
                     long count = index.GetPacketCount(stream);
                     if (count == 0) { continue; }
-                    int entryBytes = Unsafe.SizeOf<MatroskaAudioFrameTiming>();
-                    if (count > int.MaxValue / entryBytes)
-                    { throw new NotSupportedException("The Matroska audio timing index exceeds the maximum managed workspace size."); }
-                    result.storage[stream] = index.AllocatePacketMetadataStorage(checked((int)count * entryBytes));
+                    result.AllocateEntries(stream, index, count);
                     MatroskaAc3Programme programme = new(codec, tracks[stream].Audio!.Value);
                     int cachedBlock = -1, preceding = 0, groupOffset = 0, blockRate = 0;
                     long lastIndependent = -1;
@@ -127,8 +130,39 @@ namespace Mediana.Containers.Matroska
             timing = timing with { PresentationTime = timestamp };
         }
 
-        private static bool RequiresTiming(EncodedStreamInfo stream) =>
-            stream.Format == StreamFormats.Ac3 || stream.Format == StreamFormats.Eac3Syncframe || stream.Format == StreamFormats.Dts;
+        private static bool RequiresTiming(MatroskaCodecConfiguration configuration) =>
+            configuration.Stream.Format == StreamFormats.Ac3 || configuration.Stream.Format == StreamFormats.Eac3Syncframe ||
+            configuration.Stream.Format == StreamFormats.Dts ||
+            (configuration.Stream.Kind == MediaKind.Audio && configuration.FrameDuration is not null);
+
+        private void IndexFixedStream(int stream, MatroskaPacketIndex index, MediaDuration period, CancellationToken token)
+        {
+            long count = index.GetPacketCount(stream);
+            if (count == 0)
+            {
+                return;
+            }
+            AllocateEntries(stream, index, count);
+            int samples = checked((int)(period.Value * period.TimeBase.Numerator));
+            Span<MatroskaAudioFrameTiming> entries = Entries(stream);
+            for (int packet = 0; packet < entries.Length; packet++)
+            {
+                token.ThrowIfCancellationRequested();
+                MatroskaPacketAddress address = index.Locate(stream, packet);
+                bool lastInBlock = address.FrameIndex == index.GetBlock(address.BlockIndex).FrameCount - 1;
+                entries[packet] = new(period.TimeBase.Denominator, samples, checked(samples * address.FrameIndex), 0, 0, lastInBlock);
+            }
+        }
+
+        private void AllocateEntries(int stream, MatroskaPacketIndex index, long count)
+        {
+            int entryBytes = Unsafe.SizeOf<MatroskaAudioFrameTiming>();
+            if (count > int.MaxValue / entryBytes)
+            {
+                throw new NotSupportedException("The Matroska audio timing index exceeds the maximum managed workspace size.");
+            }
+            storage[stream] = index.AllocatePacketMetadataStorage(checked((int)count * entryBytes));
+        }
 
         public void ValidatePacket(int stream, long packet, ReadOnlySpan<byte> data, MatroskaTrack track)
         {
