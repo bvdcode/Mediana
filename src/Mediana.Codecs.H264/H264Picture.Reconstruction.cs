@@ -40,6 +40,30 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        internal void WriteIntra16DcOnly(int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> dc)
+        {
+            (int offset, int stride) = SampleLocation(0, x, y);
+            Span<byte> pixels = Plane(0)[offset..];
+            if (dc.IsEmpty)
+            {
+                H264BlockRows.Copy(prediction, 16, pixels, stride, 16, 16);
+            }
+            else
+            {
+                H264Intra16Reconstruction.WriteDcRows(prediction, 16, pixels, stride, dc, inPlace: false);
+            }
+
+            Span<byte> modes = Modes;
+            Span<byte> counts = Counts(0);
+            int start = BlockIndex(0, x, y);
+            int blocksPerRow = Width / 4;
+            for (int row = 0; row < 4; row++)
+            {
+                modes.Slice(start + row * blocksPerRow, 4).Fill(2);
+                counts.Slice(start + row * blocksPerRow, 4).Clear();
+            }
+        }
+
         public void WriteInterPrediction(int x, int y, ReadOnlySpan<byte> prediction)
         {
             int offset = 0;

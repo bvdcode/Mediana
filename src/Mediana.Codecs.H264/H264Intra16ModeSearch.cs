@@ -12,6 +12,7 @@ namespace Mediana.Codecs.H264
             return Select(source, target, x, y, prediction, out _);
         }
 
+        /// <summary>When the minimum is zero, the prediction span contains the selected luma samples.</summary>
         public static int Select(H264SourceMacroblock source, H264Picture target, int x, int y, Span<byte> prediction, out int minimum)
         {
             if (Vector128.IsHardwareAccelerated && target.SampleBytes == 1 && !target.Layout.MacroblockAdaptiveFrameField)

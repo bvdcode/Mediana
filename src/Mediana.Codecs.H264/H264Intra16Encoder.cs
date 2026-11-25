@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.Intrinsics;
+
 namespace Mediana.Codecs.H264
 {
     internal static class H264Intra16Encoder
@@ -28,9 +30,19 @@ namespace Mediana.Codecs.H264
         }
 
         public static void WriteCabac(H264CabacEncodingSyntax syntax, H264SourceMacroblock source, H264Picture target,
-            int address, int x, int y, int quantizer, int mode, int chromaMode, ReadOnlySpan<byte> prediction, Span<int> coefficients)
+            int address, int x, int y, int quantizer, int mode, int chromaMode, ReadOnlySpan<byte> prediction,
+            Span<int> coefficients, bool lumaMatchesPrediction)
         {
-            int intraPattern = AnalyzePrediction(source, quantizer, prediction, coefficients);
+            int intraPattern;
+            if (lumaMatchesPrediction)
+            {
+                coefficients[..256].Clear();
+                intraPattern = H264ChromaEncoder.Analyze(source.Chroma, quantizer, prediction[256..], coefficients[256..]) << 4;
+            }
+            else
+            {
+                intraPattern = AnalyzePrediction(source, quantizer, prediction, coefficients);
+            }
             syntax.WriteIntra16Type(address, mode, intraPattern);
             syntax.WriteChromaMode(address, chromaMode);
             syntax.WriteQuantizerDelta(0);
@@ -74,12 +86,41 @@ namespace Mediana.Codecs.H264
             ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients) where TSyntax : IH264EncodingSyntax
         {
             ReadOnlySpan<int> dc = coefficients.Slice(240, 16);
-            if (!syntax.TryWriteResidual(H264ResidualCategory.Intra16LumaDc, 0, x, y, dc, out _))
+            if (!syntax.TryWriteResidual(H264ResidualCategory.Intra16LumaDc, 0, x, y, dc, out int dcCount))
             {
                 return false;
             }
             Span<int> rawDc = stackalloc int[16];
-            H264InverseTransform.LumaDc(dc, qp, rawDc);
+            if ((pattern & 15) == 0 && target.SampleBytes == 1 &&
+                !target.Layout.IsField && !target.Layout.MacroblockAdaptiveFrameField && Vector128.IsHardwareAccelerated)
+            {
+                if (dcCount == 0)
+                {
+                    H264InverseTransform.ValidateQp(qp);
+                    target.WriteIntra16DcOnly(x, y, prediction[..256], []);
+                }
+                else
+                {
+                    H264InverseTransform.LumaDc(dc, qp, rawDc);
+                    target.WriteIntra16DcOnly(x, y, prediction[..256], rawDc);
+                }
+            }
+            else
+            {
+                H264InverseTransform.LumaDc(dc, qp, rawDc);
+                if (!TryWriteLumaBlocks(syntax, target, x, y, qp, pattern, prediction, coefficients, rawDc))
+                {
+                    return false;
+                }
+            }
+            target.Quantizers[y / 16 * target.Sequence.WidthInMbs + x / 16] = (byte)qp;
+            return H264ChromaEncoder.TryWrite(syntax, target, x / 2, y / 2, qp, pattern >> 4, prediction[256..], coefficients[256..]);
+        }
+
+        private static bool TryWriteLumaBlocks<TSyntax>(TSyntax syntax, H264Picture target, int x, int y, int qp,
+            int pattern, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients, ReadOnlySpan<int> rawDc)
+            where TSyntax : IH264EncodingSyntax
+        {
             for (int index = 0; index < 16; index++)
             {
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
@@ -95,8 +136,7 @@ namespace Mediana.Codecs.H264
                 target.Reconstruct4x4(0, x + blockX, y + blockY, prediction[(blockY * 16 + blockX)..], 16,
                     levels, qp, rawDc[blockY / 4 * 4 + blockX / 4]);
             }
-            target.Quantizers[y / 16 * target.Sequence.WidthInMbs + x / 16] = (byte)qp;
-            return H264ChromaEncoder.TryWrite(syntax, target, x / 2, y / 2, qp, pattern >> 4, prediction[256..], coefficients[256..]);
+            return true;
         }
     }
 }

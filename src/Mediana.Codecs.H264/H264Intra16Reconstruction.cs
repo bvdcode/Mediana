@@ -96,6 +96,12 @@ namespace Mediana.Codecs.H264
                 AddDcScalar(pixels, stride, maximum, dc);
                 return;
             }
+            WriteDcRows(pixels, stride, pixels, stride, dc, inPlace: true);
+        }
+
+        internal static void WriteDcRows(ReadOnlySpan<byte> predictor, int predictorStride, Span<byte> pixels,
+            int stride, ReadOnlySpan<int> dc, bool inPlace)
+        {
             for (int row = 0; row < 16; row += 4)
             {
                 int d0 = RoundDc(dc[row]);
@@ -104,6 +110,11 @@ namespace Mediana.Codecs.H264
                 int d3 = RoundDc(dc[row + 3]);
                 if ((d0 | d1 | d2 | d3) == 0)
                 {
+                    if (!inPlace)
+                    {
+                        H264BlockRows.Copy(predictor[(row * predictorStride)..], predictorStride,
+                            pixels[(row * stride)..], stride, 16, 4);
+                    }
                     continue;
                 }
                 Vector128<byte> add = Vector128.Create(Repeat(d0), Repeat(d1), Repeat(d2), Repeat(d3)).AsByte();
@@ -111,7 +122,7 @@ namespace Mediana.Codecs.H264
                 for (int line = row; line < row + 4; line++)
                 {
                     Span<byte> destination = pixels[(line * stride)..];
-                    Vector128<byte> prediction = MemoryMarshal.Read<Vector128<byte>>(destination);
+                    Vector128<byte> prediction = MemoryMarshal.Read<Vector128<byte>>(predictor[(line * predictorStride)..]);
                     Vector128<byte> result = Vector128.AddSaturate(Vector128.SubtractSaturate(prediction, subtract), add);
                     MemoryMarshal.Write(destination, in result);
                 }

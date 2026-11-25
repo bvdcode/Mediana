@@ -28,9 +28,14 @@ namespace Mediana.Codecs.H264
             {
                 return false;
             }
-            target.PredictMacroblock(0, x, y, mode, intra[..256]);
+            bool lumaMatchesPrediction = luma == 0;
+            if (!lumaMatchesPrediction)
+            {
+                target.PredictMacroblock(0, x, y, mode, intra[..256]);
+            }
             syntax.WriteSkip(address, false);
-            H264Intra16Encoder.WriteCabac(syntax, source, target, address, x, y, qp, mode, chromaMode, intra, coefficients);
+            H264Intra16Encoder.WriteCabac(syntax, source, target, address, x, y, qp, mode, chromaMode, intra,
+                coefficients, lumaMatchesPrediction);
             return true;
         }
 

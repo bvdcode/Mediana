@@ -45,6 +45,10 @@ namespace Mediana.Tests
                 }
                 Assert.Equal(expected, H264Intra16ModeSearch.Select(source, picture, x, y, prediction, out int actualMinimum));
                 Assert.Equal(minimum, actualMinimum);
+                if (actualMinimum == 0)
+                {
+                    Assert.True(source.Luma.SequenceEqual(prediction));
+                }
             }
         }
     }
