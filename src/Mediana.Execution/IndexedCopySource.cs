@@ -35,7 +35,7 @@ namespace Mediana.Execution
             ArgumentOutOfRangeException.ThrowIfNegative(packetCount);
             EncodedStreamInfo original = reader.Streams.SingleOrDefault(item => item.StreamIndex == inputStreamIndex)
                 ?? throw new ArgumentOutOfRangeException(nameof(inputStreamIndex));
-            packets = new(reader, inputStreamIndex, indexedReadGate, usePresentationTiming: false);
+            packets = new(reader, inputStreamIndex, indexedReadGate, usePresentationTiming: false, useDecodeTiming: true);
             long count = packets.Count;
             if (firstPacket > count || packetCount > count - firstPacket) { throw new ArgumentOutOfRangeException(nameof(packetCount)); }
             MediaDuration? codedDuration = null;

@@ -8,9 +8,10 @@ using Mediana.Core.Timing;
 namespace Mediana.Containers.Matroska
 {
     /// <summary>Indexes one known-length Matroska Segment. Borrows its random-access source.
-    /// Packets follow stored Block order, with exact rounded PTS and no inferred DTS.
+    /// Packets follow stored Block order, with a separate decode clock available for compatible indexed copy.
     /// Returned packets and metadata survive reader disposal. Operations and disposal cannot overlap.</summary>
-    public partial class MatroskaReader : IIndexedVideoPresentationReader, IIndexedPresentationTimingReader, IContainerAttachmentReader
+    public partial class MatroskaReader : IIndexedVideoPresentationReader, IIndexedPresentationTimingReader,
+        IIndexedDecodeTimingReader, IContainerAttachmentReader
     {
         private readonly MatroskaPacketIndex index;
         private readonly MatroskaPacketSource packets;
@@ -89,6 +90,20 @@ namespace Mediana.Containers.Matroska
                 return packets.GetPacketTiming(streamIndex, packetIndex, cancellationToken);
             }
             finally { Volatile.Write(ref busy, 0); }
+        }
+
+        public MediaTimestamp? GetDecodeTime(int streamIndex, long packetIndex, CancellationToken cancellationToken = default)
+        {
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                return packets.GetDecodeTime(streamIndex, packetIndex, cancellationToken);
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
         }
 
         public ContainerSeekPoint? FindSeekPoint(int streamIndex, MediaTimestamp target, long beforePacketIndex,

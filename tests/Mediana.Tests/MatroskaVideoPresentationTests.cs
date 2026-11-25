@@ -19,6 +19,29 @@ namespace Mediana.Tests
 {
     public class MatroskaVideoPresentationTests
     {
+        [Fact]
+        public async Task IndexedAvcDecodeClockOrdersBFramesWithoutAlteringStoredPacketTiming()
+        {
+            string path = Path.Combine(AppContext.BaseDirectory, "Data", "Matroska", "avc-aac-attachment.mkv");
+            await using TrackingRandomAccessSource source = new(await File.ReadAllBytesAsync(path));
+            MediaBufferAllocator allocator = new(4 * 1024 * 1024);
+            await using (MatroskaReader reader = await MatroskaReader.OpenAsync(source, allocator))
+            {
+                long[] decodeMilliseconds = [-179, 21, 221, 421, 621, 821, 1021, 1221];
+                Assert.Equal(decodeMilliseconds.Length, reader.GetPacketCount(0));
+                source.Reads.Clear();
+                for (int packet = decodeMilliseconds.Length - 1; packet >= 0; packet--)
+                {
+                    MediaTimestamp expected = new(decodeMilliseconds[packet], new(1, 1000));
+                    Assert.Equal(expected, reader.GetDecodeTime(0, packet));
+                    Assert.Null(reader.GetPacketTiming(0, packet).DecodeTime);
+                    Assert.True(expected.CompareTo(reader.GetPacketTiming(0, packet).PresentationTime!.Value) <= 0);
+                }
+                Assert.Empty(source.Reads);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
         [Theory]
         [InlineData("Vp8", "motion", 24)]
         [InlineData("Vp8", "altref", 72)]

@@ -99,9 +99,48 @@ namespace Mediana
             if (selected.Length == 0) { throw new NotSupportedException("The input contains no selected audio or video streams."); }
             using CountingWriteStream output = new(destination);
             await using IContainerWriter writer = CreateContainerWriter(containerFormatId, output, selected, allocator);
-            return await MediaOperations.CopyAsync(reader, writer, selected.Select(stream => stream.StreamIndex).ToArray(),
-                update => progress?.Invoke(new(update.ProcessedDuration, output.BytesWritten, update.IsComplete, reader.Info.DeclaredDuration)),
-                cancellationToken).ConfigureAwait(false);
+            int[] indices = selected.Select(stream => stream.StreamIndex).ToArray();
+            if (reader.Reader is IIndexedDecodeTimingReader indexed && indices.All(index =>
+                indexed.GetPacketCount(index) == 0 || indexed.GetDecodeTime(index, 0, cancellationToken) is not null))
+            {
+                return await RemuxIndexedAsync(indexed, writer, indices, new MediaReadBudget(reader.Options.MaxPacketReads),
+                    Report, cancellationToken).ConfigureAwait(false);
+            }
+            return await MediaOperations.CopyAsync(reader, writer, indices, Report, cancellationToken).ConfigureAwait(false);
+
+            void Report(MediaOperationProgress update) => progress?.Invoke(new(update.ProcessedDuration, output.BytesWritten,
+                update.IsComplete, reader.Info.DeclaredDuration));
+        }
+
+        private static async Task<MediaOperationProgress> RemuxIndexedAsync(IIndexedContainerReader reader, IContainerWriter writer,
+            int[] streams, MediaReadBudget budget, Action<MediaOperationProgress> progress, CancellationToken token)
+        {
+            List<IEncodedPacketSource> sources = new(streams.Length);
+            try
+            {
+                foreach (int stream in streams)
+                {
+                    sources.Add(new IndexedCopySource(reader, stream, stream, 0, reader.GetPacketCount(stream), budget));
+                }
+                long packets = 0;
+                long bytes = 0;
+                await MediaPacketMerge.WriteAsync(sources, writer, packet =>
+                {
+                    packets = checked(packets + 1);
+                    bytes = checked(bytes + packet.Data.Length);
+                    progress(new(0, packets, bytes, null, false));
+                }, token).ConfigureAwait(false);
+                MediaOperationProgress result = new(0, packets, bytes, null, true);
+                progress(result);
+                return result;
+            }
+            finally
+            {
+                foreach (IEncodedPacketSource source in sources)
+                {
+                    await source.DisposeAsync().ConfigureAwait(false);
+                }
+            }
         }
     }
 }
