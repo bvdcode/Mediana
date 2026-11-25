@@ -96,9 +96,10 @@ namespace Mediana.Formats.Video
             int aspectEnd = -1;
             int signalStart = -1;
             int signalEnd = -1;
+            int chromaEnd = -1;
             H264VuiParameters? vui = bits.ReadFlag()
-                ? H264VuiParser.Parse(ref bits, references, out aspectEnd, out signalStart, out signalEnd) : null;
-            vuiSyntax = new(vuiFlag, aspectEnd, signalStart, signalEnd, bits.BitPosition);
+                ? H264VuiParser.Parse(ref bits, references, out aspectEnd, out signalStart, out signalEnd, out chromaEnd) : null;
+            vuiSyntax = new(vuiFlag, aspectEnd, signalStart, signalEnd, chromaEnd, bits.BitPosition);
             bits.ReadTrailingBits();
             int chromaArray = sequence.SeparateColourPlane ? 0 : sequence.ChromaFormat;
             int cropUnitX = chromaArray switch

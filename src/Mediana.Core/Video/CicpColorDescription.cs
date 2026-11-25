@@ -25,6 +25,8 @@ namespace Mediana.Core.Video
         public int Matrix { get; }
         public bool? FullRange { get; }
 
+        public override CicpColorDescription ResolveCicp(CicpColorDescription codecColor) => this;
+
         public override VideoColorInfo Resolve(VideoColorInfo codecColor)
         {
             ArgumentNullException.ThrowIfNull(codecColor);

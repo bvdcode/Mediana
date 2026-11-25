@@ -49,12 +49,19 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task UnrepresentableStreamCopyPublishesNothing()
+        public async Task StreamCopyPublishesMpegTsFromMatroska()
         {
             string output = Path.Combine(directory, "output.ts");
-            (int code, _, _) = await CliTests.RunAsync(["-i", Data, output]);
-            Assert.Equal(CliExitCodes.Unsupported, code);
-            Assert.Empty(Directory.GetFiles(directory));
+            (int code, _, string error) = await CliTests.RunAsync(["-i", Data, output]);
+            Assert.True(code == 0, error);
+            byte[] packets = await File.ReadAllBytesAsync(output);
+            Assert.NotEmpty(packets);
+            Assert.Equal(0, packets.Length % 188);
+            for (int offset = 0; offset < packets.Length; offset += 188)
+            {
+                Assert.Equal(0x47, packets[offset]);
+            }
+            Assert.Single(Directory.GetFiles(directory));
         }
 
         public void Dispose()

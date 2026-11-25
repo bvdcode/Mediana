@@ -3,5 +3,5 @@
 
 namespace Mediana.Formats.Video
 {
-    internal readonly record struct H264VuiSyntax(int VuiFlag, int AspectEnd, int SignalStart, int SignalEnd, int PayloadEnd);
+    internal readonly record struct H264VuiSyntax(int VuiFlag, int AspectEnd, int SignalStart, int SignalEnd, int ChromaEnd, int PayloadEnd);
 }

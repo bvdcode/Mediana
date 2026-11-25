@@ -45,7 +45,7 @@ namespace Mediana.Codecs.H264
             VideoColorInfo color = ReadColor(vui, !rgb && topLocation == bottomLocation ? topLocation : null);
             if (scanMode != VideoScanMode.Progressive && !rgb)
             {
-                color = color with { FieldChromaLocations = new(Location(topLocation), Location(bottomLocation)) };
+                color = color with { FieldChromaLocations = new(H264VuiParameters.GetChromaLocation(topLocation), H264VuiParameters.GetChromaLocation(bottomLocation)) };
             }
             return new VideoFormat(sequence.Width, height, pixels, color, aspect, colorDescription, scanMode, sequence.Height);
         }
@@ -60,7 +60,7 @@ namespace Mediana.Codecs.H264
             ChromaLocation chromaLocation = location switch
             {
                 null => ChromaLocation.Unspecified,
-                int code => Location(code)
+                int code => H264VuiParameters.GetChromaLocation(code)
             };
             ColorRange range = vui.FullRange switch
             {
@@ -70,16 +70,5 @@ namespace Mediana.Codecs.H264
             return new VideoColorInfo(CicpColorimetry.GetPrimaries(vui.ColorPrimaries), CicpColorimetry.GetTransfer(vui.TransferCharacteristics),
                 CicpColorimetry.GetMatrix(vui.MatrixCoefficients), range, chromaLocation);
         }
-
-        private static ChromaLocation Location(int code) => code switch
-        {
-            0 => ChromaLocation.Left,
-            1 => ChromaLocation.Center,
-            2 => ChromaLocation.TopLeft,
-            3 => ChromaLocation.Top,
-            4 => ChromaLocation.BottomLeft,
-            5 => ChromaLocation.Bottom,
-            _ => throw new InvalidDataException("Invalid H.264 chroma location code.")
-        };
     }
 }
