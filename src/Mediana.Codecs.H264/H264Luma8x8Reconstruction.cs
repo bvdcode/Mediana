@@ -12,8 +12,7 @@ namespace Mediana.Codecs.H264
             H264InverseTransform.ValidateQp(qp, target.Sequence.LumaBitDepth);
             bool field = target.IsFieldMacroblock(x, y);
             Span<int> coefficients = stackalloc int[64];
-            Span<int> residual = stackalloc int[64];
-            Span<byte> prediction = stackalloc byte[64 * target.SampleBytes];
+            Span<byte> prediction = intra ? stackalloc byte[64 * target.SampleBytes] : [];
             for (int index = 0; index < 4; index++)
             {
                 int blockX = x + index % 2 * 8;
@@ -51,8 +50,7 @@ namespace Mediana.Codecs.H264
                     target.WriteConstant8x8(plane, blockX, blockY, predicted, predictionStride, delta);
                     continue;
                 }
-                H264InverseTransform8x8.Residual(coefficients, qp, residual, target.Sequence.LumaBitDepth, field: field);
-                target.WriteLuma8x8(blockX, blockY, predicted, predictionStride, residual, plane);
+                target.ReconstructLuma8x8(plane, blockX, blockY, predicted, predictionStride, coefficients, qp, field);
             }
         }
     }
