@@ -149,8 +149,9 @@ namespace Mediana.Streaming.Hls
         public ValueTask<HlsMediaSegment> WriteSegmentAsync(int number, Stream destination, CancellationToken cancellationToken = default) =>
             WriteSegmentAsync(number, destination, false, cancellationToken);
 
-        /// <summary>Optionally prepare one following video frame while encoding its predecessor.
-        /// Both stages finish before control returns to the packet writer.</summary>
+        /// <summary>Optionally overlap video preparation and encoding with bounded lookahead.
+        /// The queues can retain two prepared frames and one encoded video packet against the allocator budget.
+        /// All processing stages are joined before this operation returns.</summary>
         public async ValueTask<HlsMediaSegment> WriteSegmentAsync(int number, Stream destination, bool overlapVideoPreparation,
             CancellationToken cancellationToken)
         {
@@ -166,7 +167,7 @@ namespace Mediana.Streaming.Hls
                 HlsVideoWindow window = Windows[number];
                 List<MediaTrackRequest> requests = [new VideoEncodingRequest(inputStream.StreamIndex, track.Stream.StreamIndex,
                     new H264EncoderFactory(options), preparationOptions, track.TimeBase, VideoIntervalAlignment.CompleteFrames)
-                    { OverlapPreparation = overlapVideoPreparation }];
+                    { BufferPreparedFrames = overlapVideoPreparation }];
                 if (audio?.CreateRequest(window) is MediaTrackRequest audioRequest) { requests.Add(audioRequest); }
                 await using MediaProcessingSession processing = await engine.OpenProcessingAsync(reader, requests, allocator,
                     new() { Selection = new(window.Start, window.End) }, cancellationToken).ConfigureAwait(false);

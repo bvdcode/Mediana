@@ -24,6 +24,7 @@ namespace Mediana
 
         /// <summary>Prepare up to one following frame concurrently with encoding the current frame.</summary>
         public bool OverlapPreparation { get; init; }
+        internal bool BufferPreparedFrames { get; init; }
         public IVideoEncoderFactory Encoder { get; }
         public VideoPreparationOptions Preparation { get; }
         /// <summary>An explicit exact output clock. Null derives it from indexed times and selected bounds.

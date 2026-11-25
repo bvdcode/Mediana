@@ -18,8 +18,8 @@ namespace Mediana
             try
             {
                 IRandomAccessInspector? inspector = (factory as IRandomAccessDecoderFactory)?.CreateRandomAccessInspector(stream);
-                MediaDecodePipeline<TFrame> pipeline = new(input.Reader, decoder, stream.StreamIndex,
-                    randomAccessInspector: inspector, sharedReadBudget: input.Budget);
+                MediaDecodePipeline<TFrame> pipeline = new(input.Reader, decoder, stream.StreamIndex, null,
+                    inspector, input.Budget, input.IndexedReadGate);
                 input.Resources.Own(pipeline);
                 owned = true;
                 return pipeline;

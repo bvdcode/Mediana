@@ -29,7 +29,8 @@ namespace Mediana
                 range = await IndexedCopyPlanner.CreateAsync(timing, stream.StreamIndex, selection, request.Alignment,
                     inspector, input.Budget, token).ConfigureAwait(false);
             }
-            IndexedCopySource source = new(input.Reader, stream.StreamIndex, request.OutputStreamIndex, range.FirstPacket, range.PacketCount, input.Budget);
+            IndexedCopySource source = new(input.Reader, stream.StreamIndex, request.OutputStreamIndex, range.FirstPacket,
+                range.PacketCount, input.Budget, input.IndexedReadGate);
             return new(source, () => new(stream.StreamIndex, source.Stream, 0, 0, 0, 0, null, null));
         }
     }

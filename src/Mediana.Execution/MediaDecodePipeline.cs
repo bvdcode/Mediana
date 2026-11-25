@@ -32,6 +32,13 @@ namespace Mediana.Execution
         public MediaDecodePipeline(IContainerReader reader, IMediaCodec<MediaPacket, TFrame> decoder,
             int streamIndex, long? maxPacketReads = null, IRandomAccessInspector? randomAccessInspector = null,
             MediaReadBudget? sharedReadBudget = null)
+            : this(reader, decoder, streamIndex, maxPacketReads, randomAccessInspector, sharedReadBudget, null)
+        {
+        }
+
+        internal MediaDecodePipeline(IContainerReader reader, IMediaCodec<MediaPacket, TFrame> decoder,
+            int streamIndex, long? maxPacketReads, IRandomAccessInspector? randomAccessInspector,
+            MediaReadBudget? sharedReadBudget, SemaphoreSlim? indexedReadGate)
         {
             ArgumentNullException.ThrowIfNull(reader);
             ArgumentNullException.ThrowIfNull(decoder);
@@ -41,7 +48,7 @@ namespace Mediana.Execution
                 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
             }
             this.reader = reader is IIndexedContainerReader indexed
-                ? new IndexedPacketReader(indexed, streamIndex) : reader;
+                ? new IndexedPacketReader(indexed, streamIndex, indexedReadGate) : reader;
             this.decoder = decoder;
             this.streamIndex = streamIndex;
             this.maxPacketReads = maxPacketReads;
