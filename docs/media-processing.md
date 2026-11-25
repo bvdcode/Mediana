@@ -77,6 +77,10 @@ the operation interval, for example to include initial audio preroll.
 Whole-track copy retains every encoded sample; container edit trimming is an
 encoding operation and is not silently applied to compressed packets.
 
+Set `VideoEncodingRequest.OverlapPreparation` to `true` to decode and prepare one
+following frame while the encoder accepts the current frame on a worker. Container
+reads remain serialized. Cancellation joins both stages and releases any prepared frame.
+
 ## Clocks, delay and ownership
 
 The packet merge holds at most one pending encoded packet per track and orders

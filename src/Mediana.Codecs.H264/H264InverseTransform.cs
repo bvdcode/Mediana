@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.H264
 {
-    internal static class H264InverseTransform
+    internal static partial class H264InverseTransform
     {
         private static ReadOnlySpan<int> ScaleEven => [10, 11, 13, 14, 16, 18];
         private static ReadOnlySpan<int> ScaleOdd => [16, 18, 20, 23, 25, 29];
@@ -38,19 +38,15 @@ namespace Mediana.Codecs.H264
             }
             int scanOffset = scaledDc is null ? 0 : 1;
             ReadOnlySpan<int> scan = H264CoefficientScans.FourByFour(field);
+            int scaleIndex = qp % 6;
+            int shift = qp / 6;
+            int mixed = ScaleMixed[scaleIndex] << shift;
+            ReadOnlySpan<int> scales = [ScaleEven[scaleIndex] << shift, mixed, mixed, ScaleOdd[scaleIndex] << shift];
             for (int index = 0; index < scanned.Length; index++)
             {
                 int position = scan[index + scanOffset];
-                int row = position / 4;
-                int column = position % 4;
-                int scale = ((row & 1), (column & 1)) switch
-                {
-                    (0, 0) => ScaleEven[qp % 6],
-                    (1, 1) => ScaleOdd[qp % 6],
-                    (0, 1) or (1, 0) => ScaleMixed[qp % 6],
-                    _ => throw new InvalidOperationException()
-                };
-                values[position] = ((long)scanned[index] * scale) << (qp / 6);
+                int parity = (position & 1) | ((position >> 1) & 2);
+                values[position] = (long)scanned[index] * scales[parity];
             }
             for (int row = 0; row < 4; row++)
             {

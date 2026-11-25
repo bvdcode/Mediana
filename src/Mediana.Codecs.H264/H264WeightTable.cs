@@ -48,9 +48,21 @@ namespace Mediana.Codecs.H264
             return new H264WeightTable(lumaDenominator, chromaDenominator, Array.AsReadOnly(weights));
         }
 
+        public bool IsIdentity(int reference)
+        {
+            H264PredictionWeight entry = Entries[reference];
+            int chroma = 1 << ChromaDenominator;
+            return entry.LumaWeight == 1 << LumaDenominator && entry.CbWeight == chroma && entry.CrWeight == chroma
+                && (entry.LumaOffset | entry.CbOffset | entry.CrOffset) == 0;
+        }
+
         public void Apply(int reference, int plane, Span<byte> samples, int bitDepth = 8)
         {
             (int weight, int offset, int denominator) = Get(reference, plane);
+            if (bitDepth == 8 && offset == 0 && weight == 1 << denominator)
+            {
+                return;
+            }
             int rounding = denominator == 0 ? 0 : 1 << (denominator - 1);
             if (bitDepth > 8)
             {

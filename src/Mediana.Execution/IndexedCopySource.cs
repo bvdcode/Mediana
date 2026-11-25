@@ -11,7 +11,7 @@ namespace Mediana.Execution
     /// Borrows the indexed reader; range selection must already establish dependency and presentation boundaries.</summary>
     public class IndexedCopySource : IEncodedPacketSource
     {
-        private readonly IIndexedContainerReader reader;
+        private readonly IndexedPacketReader packets;
         private readonly int inputStreamIndex;
         private readonly long end;
         private readonly MediaReadBudget? budget;
@@ -23,19 +23,25 @@ namespace Mediana.Execution
 
         public IndexedCopySource(IIndexedContainerReader reader, int inputStreamIndex, int outputStreamIndex,
             long firstPacket, long packetCount, MediaReadBudget? budget = null)
+            : this(reader, inputStreamIndex, outputStreamIndex, firstPacket, packetCount, budget, null)
+        {
+        }
+
+        internal IndexedCopySource(IIndexedContainerReader reader, int inputStreamIndex, int outputStreamIndex,
+            long firstPacket, long packetCount, MediaReadBudget? budget, SemaphoreSlim? indexedReadGate)
         {
             ArgumentNullException.ThrowIfNull(reader);
             ArgumentOutOfRangeException.ThrowIfNegative(firstPacket);
             ArgumentOutOfRangeException.ThrowIfNegative(packetCount);
             EncodedStreamInfo original = reader.Streams.SingleOrDefault(item => item.StreamIndex == inputStreamIndex)
                 ?? throw new ArgumentOutOfRangeException(nameof(inputStreamIndex));
-            long count = reader.GetPacketCount(inputStreamIndex);
+            packets = new(reader, inputStreamIndex, indexedReadGate, usePresentationTiming: false);
+            long count = packets.Count;
             if (firstPacket > count || packetCount > count - firstPacket) { throw new ArgumentOutOfRangeException(nameof(packetCount)); }
             MediaDuration? codedDuration = null;
             if (firstPacket == 0 && packetCount == count) { codedDuration = original.CodedDuration; }
             Stream = new(outputStreamIndex, original.Kind, original.CodecId, original.Format, original.TimeBase,
                 original.Configuration.Span, original.DisplayMatrix, codedDuration, original.ColorDescription, original.AspectRatioDescription);
-            this.reader = reader;
             this.inputStreamIndex = inputStreamIndex;
             this.budget = budget;
             position = firstPacket;
@@ -56,7 +62,7 @@ namespace Mediana.Execution
                 if (ended) { success = true; return null; }
                 budget?.CountPacketRead();
                 if (position == end) { ended = true; success = true; return null; }
-                using MediaPacket packet = await reader.ReadPacketAtAsync(inputStreamIndex, position, cancellationToken).ConfigureAwait(false);
+                using MediaPacket packet = await packets.ReadPacketAtAsync(position, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (packet.StreamIndex != inputStreamIndex) { throw new InvalidDataException("The indexed packet changed its stream identity."); }
                 using Mediana.Core.Memory.MediaBuffer data = packet.RetainData();

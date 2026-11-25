@@ -72,8 +72,14 @@ namespace Mediana.Codecs.H264
             }
             (int x, int y) = target.Grid.Position(address);
             Span<byte> prediction = stackalloc byte[target.MacroblockBytes];
+            if (skip)
+            {
+                target.Quantizers[address] = (byte)qp;
+                H264DirectPrediction.ReconstructSkip(target, header, references, order, x, y, prediction);
+                return;
+            }
             bool noSmallPartitions = H264BidirectionalSyntax.Read(ref bits, new H264CavlcPredictionReader(), target, header, references, order, x, y, type, prediction);
-            H264InterMacroblock.ReadResidual(ref bits, target, header, address, ref qp, prediction, noSmallPartitions, skip);
+            H264InterMacroblock.ReadResidual(ref bits, target, header, address, ref qp, prediction, noSmallPartitions);
         }
     }
 }

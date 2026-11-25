@@ -2,32 +2,32 @@
   {
     "case": "Cabac-Fast-0-qp0-a-6-b-6",
     "decodedBytes": 122880,
-    "transportSha256": "bdffb2af564fc636f156d9ea552c10527cd930bd5ead929f09e5d354281a1c41",
+    "transportSha256": "0b07fd7f7636a4b0270d66cf03d9d8dd583bfd8c8aa626fdbfbc26e3b057d9a9",
     "decodedSha256": "a0a9a75db809fed935e3bd65a4674f6d9dbf4917f859f1032d9fea00e931f142"
   },
   {
     "case": "Cabac-Fast-1-qp26-a0-b0",
     "decodedBytes": 187680,
-    "transportSha256": "d946113d82ea4b31dc9a35b5b671876a8e296aeb870cc8a838b01e07e24b8168",
-    "decodedSha256": "847d7daac0fb8dd662a73442f504e14018d75ed3d6c1dd8fe91acd9224e47d54"
+    "transportSha256": "230893a6ecccebd391f49a5af101828eb41bb31643ff21ea7b26eb8158ab740c",
+    "decodedSha256": "003d154994c510c567af3dadfd0f186cdc10aecf331f9f87b4d9832156990f01"
   },
   {
     "case": "Cabac-RateDistortion-1-qp26-a0-b0",
     "decodedBytes": 187680,
-    "transportSha256": "7db5784d2452c0d41f8b84e23d489516643e822a6c1ebc604cc9353cccb959f2",
-    "decodedSha256": "75c900ec101542e92c7ac5a0c51123156babdd324481915947d87f299e00ee4b"
+    "transportSha256": "a617e0a7568df78d35252091415df64f712702b0b81cfba1bbe86c9bc64251bb",
+    "decodedSha256": "e891dc1ba1837261df97a2807cecfc546c2c401ed657284a034746a28ef73c6c"
   },
   {
     "case": "Cabac-RateDistortion-2-qp18-a2-b-2",
     "decodedBytes": 184320,
-    "transportSha256": "b930948a9343f5a26804c8a4f7e6a1a3da37dd4f7863272e4e48ae385912ac40",
-    "decodedSha256": "7ea2346d014ded581ad5f1a2cc8670307df04a75b9f7beb087c93855454d6f28"
+    "transportSha256": "36583803c8b29f411ff936788262431967658f1d04691d6877337127c6d952e1",
+    "decodedSha256": "c94278c46214c358a95e62056b398f5c0d35e0dc27d127b6610dc8680bf63e0f"
   },
   {
     "case": "Cabac-RateDistortion-3-qp38-a-6-b6",
     "decodedBytes": 204000,
-    "transportSha256": "9596b70412febcd58df9087b1e7a8481594053cd523c1295a942d2e2afd21246",
-    "decodedSha256": "8efdddc3373516b146fcbf026cbd4ebd64ad7091138af18add70cbb459d2d2d4"
+    "transportSha256": "61f5192f6ed710ffde502652ce96d5248b77680366dbf0329d8d05d95fb62727",
+    "decodedSha256": "35d2899631fb0ff9ea621ab2fc058a48b285b5100dd0e1495c1698e0056a1ec5"
   },
   {
     "case": "Cavlc-Fast-1-qp26-a0-b0",

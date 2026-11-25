@@ -95,6 +95,15 @@ await session.WriteInitializationAsync(initializationDestination, cancellationTo
 await session.WriteSegmentAsync(requestedSegmentNumber, segmentDestination, cancellationToken);
 ```
 
+A caller with a spare CPU core can decode and prepare the following frame while
+encoding the current frame. This holds up to one extra prepared frame. The default
+call processes the stages sequentially.
+
+```csharp
+await session.WriteSegmentAsync(requestedSegmentNumber, segmentDestination,
+    overlapVideoPreparation: true, cancellationToken: cancellationToken);
+```
+
 Windows are supplied from an index or application timeline. Their numbers must be
 contiguous and zero-based, with positive durations and adjacent presentation
 intervals. Both boundaries must coincide with source frames; an end inside a frame

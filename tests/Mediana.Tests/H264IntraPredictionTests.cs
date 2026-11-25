@@ -64,5 +64,64 @@ namespace Mediana.Tests
             Assert.Equal(0, output[0]);
             Assert.Equal(255, output[255]);
         }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void Luma16PredictionWritesOnlyTheDestinationColumns(int mode)
+        {
+            const int stride = 53;
+            byte[] top = new byte[16];
+            byte[] left = new byte[16];
+            Random random = new(125);
+            random.NextBytes(top);
+            random.NextBytes(left);
+            byte[] expected = new byte[256];
+            byte[] actual = new byte[stride * 16];
+            actual.AsSpan().Fill(37);
+
+            H264IntraPrediction.Luma16x16(mode, top, left, 10, expected);
+            H264IntraPrediction<byte>.Luma16x16(mode, top, left, 10, actual, byte.MaxValue, stride);
+
+            for (int row = 0; row < 16; row++)
+            {
+                Assert.True(expected.AsSpan(row * 16, 16).SequenceEqual(actual.AsSpan(row * stride, 16)));
+                Assert.False(actual.AsSpan(row * stride + 16, stride - 16).ContainsAnyExcept((byte)37));
+            }
+        }
+
+        [Theory]
+        [InlineData(8, 8)]
+        [InlineData(8, 16)]
+        [InlineData(16, 16)]
+        public void BytePlaneMatchesScalarWithPositiveAndNegativeGradients(int width, int height)
+        {
+            byte[] top = new byte[width];
+            byte[] left = new byte[height];
+            byte[] actual = new byte[width * height];
+            ushort[] expected = new ushort[actual.Length];
+            Random random = new(512);
+            for (int trial = 0; trial < 64; trial++)
+            {
+                random.NextBytes(top);
+                random.NextBytes(left);
+                byte corner = (byte)random.Next(256);
+                ushort[] wideTop = Array.ConvertAll(top, sample => (ushort)sample);
+                ushort[] wideLeft = Array.ConvertAll(left, sample => (ushort)sample);
+                if (width == 16)
+                {
+                    H264IntraPrediction.Luma16x16(3, top, left, corner, actual);
+                    H264IntraPrediction<ushort>.Luma16x16(3, wideTop, wideLeft, corner, expected, byte.MaxValue);
+                }
+                else
+                {
+                    H264IntraPrediction.Chroma(3, top, left, corner, actual, height);
+                    H264IntraPrediction<ushort>.Chroma(3, wideTop, wideLeft, corner, expected, height, byte.MaxValue);
+                }
+                Assert.Equal(expected.Select(sample => (byte)sample), actual);
+            }
+        }
     }
 }

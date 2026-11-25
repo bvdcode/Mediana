@@ -25,7 +25,7 @@ namespace Mediana.Codecs.H264
             else
             {
                 H264LumaNeighborhood block = new(interpolation, x + (motionX >> 2), y + (motionY >> 2));
-                block.Evaluate(motionX & 3, motionY & 3, source.Luma, prediction[..256], int.MaxValue);
+                block.Select(motionX & 3, motionY & 3).Write(prediction[..256]);
             }
             if (HasLumaResidual(source.Luma, prediction[..256], quantizer))
             {

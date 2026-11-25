@@ -40,16 +40,15 @@ namespace Mediana.Codecs.Aac
                     {
                         end++;
                     }
-                    total += 4 + sectionBits;
-                    for (int remaining = end - start; remaining >= escape; remaining -= escape)
-                    {
-                        total += sectionBits;
-                    }
+                    total += SectionBits(end - start, sectionBits, escape);
                     start = end;
                 }
             }
             return total;
         }
+
+        internal static int SectionBits(int length, int lengthBits, int escape) =>
+            4 + lengthBits * (1 + length / escape);
 
         public static void WriteWindow(ref AacBitWriter bits, scoped AacEncodingWindow window)
         {

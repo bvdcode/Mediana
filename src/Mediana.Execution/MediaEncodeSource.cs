@@ -12,6 +12,9 @@ namespace Mediana.Execution
     {
         private readonly Func<CancellationToken, ValueTask<TFrame?>> read;
         private readonly IMediaEncoder<TFrame> encoder;
+        private readonly bool overlapPreparation;
+        private TFrame? prepared;
+        private bool hasPrepared;
         private bool inputCompleted;
         private bool ended;
         private bool disposed;
@@ -19,11 +22,19 @@ namespace Mediana.Execution
         private int busy;
 
         public MediaEncodeSource(Func<CancellationToken, ValueTask<TFrame?>> read, IMediaEncoder<TFrame> encoder)
+            : this(read, encoder, false)
+        {
+        }
+
+        /// <summary>When enabled, one following frame may be read while the encoder accepts its predecessor.
+        /// Reads remain serialized with the caller. Each operation joins both stages before returning.</summary>
+        public MediaEncodeSource(Func<CancellationToken, ValueTask<TFrame?>> read, IMediaEncoder<TFrame> encoder, bool overlapPreparation)
         {
             ArgumentNullException.ThrowIfNull(read);
             ArgumentNullException.ThrowIfNull(encoder);
             this.read = read;
             this.encoder = encoder;
+            this.overlapPreparation = overlapPreparation;
         }
 
         public EncodedStreamInfo Stream => encoder.Stream;
@@ -76,14 +87,23 @@ namespace Mediana.Execution
             }
             finally
             {
-                faulted |= !success;
-                Volatile.Write(ref busy, 0);
+                try
+                {
+                    if (!success)
+                    {
+                        faulted = true;
+                        ReleasePrepared();
+                    }
+                }
+                finally { Volatile.Write(ref busy, 0); }
             }
         }
 
         private async ValueTask SendFrameAsync(CancellationToken token)
         {
-            using TFrame? frame = await read(token).ConfigureAwait(false);
+            using TFrame? frame = hasPrepared ? prepared : await read(token).ConfigureAwait(false);
+            prepared = null;
+            hasPrepared = false;
             token.ThrowIfCancellationRequested();
             if (frame is null)
             {
@@ -91,6 +111,55 @@ namespace Mediana.Execution
                 inputCompleted = true;
                 return;
             }
+            if (overlapPreparation)
+            {
+                using CancellationTokenSource stages = CancellationTokenSource.CreateLinkedTokenSource(token);
+                Task sending = Task.Run(() => SendWithPreparationAsync(frame, stages), stages.Token);
+                await Task.WhenAll(sending, PrepareAsync(stages)).ConfigureAwait(false);
+            }
+            else
+            {
+                Send(frame, token);
+            }
+        }
+
+        private async Task PrepareAsync(CancellationTokenSource stages)
+        {
+            try
+            {
+                prepared = await read(stages.Token).ConfigureAwait(false);
+                hasPrepared = true;
+            }
+            finally
+            {
+                if (!hasPrepared) { await stages.CancelAsync().ConfigureAwait(false); }
+            }
+        }
+
+        private async Task SendWithPreparationAsync(TFrame frame, CancellationTokenSource stages)
+        {
+            bool accepted = false;
+            try
+            {
+                Send(frame, stages.Token);
+                accepted = true;
+            }
+            finally
+            {
+                if (!accepted) { await stages.CancelAsync().ConfigureAwait(false); }
+            }
+        }
+
+        private void ReleasePrepared()
+        {
+            TFrame? remaining = prepared;
+            prepared = null;
+            hasPrepared = false;
+            remaining?.Dispose();
+        }
+
+        private void Send(TFrame frame, CancellationToken token)
+        {
             if (encoder.TrySend(frame, token) != CodecInputStatus.Accepted)
             {
                 throw new InvalidOperationException("The encoder refused a frame after requesting input.");
@@ -103,6 +172,7 @@ namespace Mediana.Execution
             try
             {
                 disposed = true;
+                ReleasePrepared();
                 GC.SuppressFinalize(this);
                 return ValueTask.CompletedTask;
             }

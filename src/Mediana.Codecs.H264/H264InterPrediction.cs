@@ -5,11 +5,30 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264InterPrediction
     {
-        public static void Skip(H264Picture target, H264SliceHeader header, IReadOnlyList<H264ReferencePicture?> references,
+        public static void ReconstructSkip(H264Picture target, H264SliceHeader header, IReadOnlyList<H264ReferencePicture?> references,
             int x, int y, scoped Span<byte> prediction)
         {
             (int motionX, int motionY) = H264MotionPrediction.Skip(target, x, y);
+            if ((motionX | motionY) == 0 && FindStationaryReference(target, header, references) is H264Picture reference)
+            {
+                target.WriteStationarySkip(reference, x, y);
+                return;
+            }
             PredictPartition(target, header, references, x, y, 16, 16, 0, motionX, motionY, prediction);
+            target.WriteInterPrediction(x, y, prediction);
+        }
+
+        internal static H264Picture? FindStationaryReference(H264Picture target, H264SliceHeader header,
+            IReadOnlyList<H264ReferencePicture?> references)
+        {
+            if (target.Layout.MacroblockAdaptiveFrameField || references.Count == 0 || references[0] is not H264ReferencePicture previous
+                || previous.Companion is not null || previous.Structure != target.Structure || previous.Picture.Structure != target.Structure
+                || previous.Picture.Layout.MacroblockAdaptiveFrameField || !ReferenceEquals(target.Sequence, previous.Picture.Sequence)
+                || (header.Weights is not null && !header.Weights.IsIdentity(0)))
+            {
+                return null;
+            }
+            return previous.Picture;
         }
 
         public static bool Read<TReader>(ref H264BitReader bits, TReader reader, H264Picture target, H264SliceHeader header,
@@ -110,16 +129,14 @@ namespace Mediana.Codecs.H264
             }
             target.SetMotion(H264ReferenceList.L0, x, y, width, height, referenceIndex, motionX, motionY);
             H264MacroblockPredictionContext context = H264MacroblockPredictionContext.Create(target, x, y);
-            Span<byte> block = stackalloc byte[target.LumaMacroblockBytes];
+            Span<byte> scratch = width == 16 ? [] : stackalloc byte[target.LumaMacroblockBytes];
             for (int plane = 0; plane < 3; plane++)
             {
-                int scale = target.HorizontalScale(plane);
-                int blockWidth = width / scale;
-                int blockHeight = height / target.VerticalScale(plane);
-                Span<byte> samples = block[..(blockWidth * blockHeight * target.SampleBytes)];
+                H264PredictionPartition partition = new(target, plane, x, y, width, height, prediction);
+                Span<byte> samples = partition.PackedSamples(scratch);
                 H264PredictionBlock.Read(reference, context.Structure, plane, context.X, context.Y, width, height, motionX, motionY, samples);
                 header.Weights?.Apply(context.WeightIndex(referenceIndex), plane, samples, target.Sequence.LumaBitDepth);
-                H264PredictionBlock.Write(target, plane, x, y, width, height, samples, prediction);
+                partition.Complete(samples);
             }
         }
     }

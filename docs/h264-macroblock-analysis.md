@@ -2,7 +2,7 @@
 
 `H264EncoderOptions.MacroblockAnalysis` selects the prediction analysis policy:
 
-- `Fast` is the default. Predictive pictures use motion-compensated Inter16×16 prediction with the existing skip decisions. It preserves the established encoded output and does not allocate rate-distortion state.
+- `Fast` is the default. Predictive pictures use Inter16×16 motion search and skip detection. With CABAC, the encoder also evaluates Intra16 when the motion-compensated block has a residual. It compares absolute sample errors across Y, Cb and Cr, including a QP-dependent signalling penalty for Intra16. This choice uses the motion search result and one macroblock of stack storage.
 - `RateDistortion` combines a quantized P_SKIP probe, a smaller fractional-motion search and an additional Intra16 candidate in predictive pictures. It requires `H264EntropyCoding.Cabac`; requesting it with CAVLC throws `NotSupportedException` before encoding starts. It is an explicit quality/compression choice; operation cost depends on the content.
 
 ```csharp

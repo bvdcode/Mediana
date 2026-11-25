@@ -18,33 +18,41 @@ namespace Mediana.Codecs.H264
             {
                 int blockX = x + index % 2 * 8;
                 int blockY = y + index / 2 * 8;
-                coefficients.Clear();
                 int count = (pattern & (1 << index)) != 0
                     ? reader.Read(ref bits, H264ResidualCategory.Luma8x8, plane, blockX, blockY, coefficients) : 0;
+                scoped ReadOnlySpan<byte> predicted;
+                int predictionStride;
                 if (intra)
                 {
-                    target.PredictLuma8x8(blockX, blockY, target.Modes[target.BlockIndex(0, blockX, blockY)] & 127, prediction, constrained, plane);
-                    if (count == 0)
+                    int mode = target.Modes[target.BlockIndex(0, blockX, blockY)] & 127;
+                    if (mode <= 2 && (count == 0 || (count == 1 && coefficients[0] != 0)))
                     {
-                        target.WriteZeroResidualBlock(plane, blockX, blockY, 8, prediction, 8);
+                        int correction = count == 0 ? 0 : H264InverseTransform8x8.DcResidual(coefficients[0], qp);
+                        target.ReconstructSimpleIntra8x8(plane, blockX, blockY, mode, constrained, correction, count == 0);
                         continue;
                     }
+                    target.PredictLuma8x8(blockX, blockY, mode, prediction, constrained, plane);
+                    predicted = prediction;
+                    predictionStride = 8;
                 }
                 else
                 {
-                    if (count == 0)
-                    {
-                        target.WriteZeroResidualBlock(plane, blockX, blockY, 8, macroPrediction[(((blockY - y) * 16 + blockX - x) * target.SampleBytes)..], 16);
-                        continue;
-                    }
-                    for (int row = 0; row < 8; row++)
-                    {
-                        macroPrediction.Slice(((blockY - y + row) * 16 + blockX - x) * target.SampleBytes, 8 * target.SampleBytes)
-                            .CopyTo(prediction.Slice(row * 8 * target.SampleBytes, 8 * target.SampleBytes));
-                    }
+                    predicted = macroPrediction[(((blockY - y) * 16 + blockX - x) * target.SampleBytes)..];
+                    predictionStride = 16;
+                }
+                if (count == 0)
+                {
+                    target.WriteZeroResidualBlock(plane, blockX, blockY, 8, predicted, predictionStride);
+                    continue;
+                }
+                if (count == 1 && coefficients[0] != 0)
+                {
+                    int delta = H264InverseTransform8x8.DcResidual(coefficients[0], qp);
+                    target.WriteConstant8x8(plane, blockX, blockY, predicted, predictionStride, delta);
+                    continue;
                 }
                 H264InverseTransform8x8.Residual(coefficients, qp, residual, target.Sequence.LumaBitDepth, field: field);
-                target.WriteLuma8x8(blockX, blockY, prediction, residual, plane);
+                target.WriteLuma8x8(blockX, blockY, predicted, predictionStride, residual, plane);
             }
         }
     }

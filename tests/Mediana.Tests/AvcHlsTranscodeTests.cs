@@ -39,8 +39,10 @@ namespace Mediana.Tests
             Assert.Equal(new TimeBase(1, 5), session.Stream.TimeBase);
         }
 
-        [Fact]
-        public async Task ColdRequestsReadOnlyTheRequestedGopAndEncodeExactlyItsFramesInAnyOrder()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ColdRequestsReadOnlyTheRequestedGopAndEncodeExactlyItsFramesInAnyOrder(bool overlap)
         {
             byte[] input = await Mp4TestData.ReadAsync("hls-on-demand.mp4");
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
@@ -61,7 +63,7 @@ namespace Mediana.Tests
                 {
                     source.Reads.Clear();
                     using MemoryStream fragment = new();
-                    HlsMediaSegment segment = await session.WriteSegmentAsync(number, fragment);
+                    HlsMediaSegment segment = await session.WriteSegmentAsync(number, fragment, overlap, CancellationToken.None);
                     Assert.Equal(number, segment.Number);
                     Assert.Equal(new MediaTimestamp(number, new(1, 1)), segment.Start);
                     Assert.Equal(fragment.Length, segment.ByteLength);
@@ -135,10 +137,14 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(1)]
-        [InlineData(2)]
-        public async Task CancellationAndOutputFailuresReleaseAllWorkAndPermitIdenticalRetry(int failure)
+        [InlineData(0, false)]
+        [InlineData(1, false)]
+        [InlineData(2, false)]
+        [InlineData(0, true)]
+        [InlineData(1, true)]
+        [InlineData(2, true)]
+        [InlineData(3, true)]
+        public async Task CancellationAndOutputFailuresReleaseAllWorkAndPermitIdenticalRetry(int failure, bool overlap)
         {
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("hls-on-demand.mp4"));
@@ -147,22 +153,29 @@ namespace Mediana.Tests
             long retained = allocator.AllocatedBytes;
             using CancellationTokenSource cancellation = new();
             using MpegTsTestOutput failed = new() { FailOnWrite = failure == 1 ? 2 : null, FailOnFlush = failure == 2 };
-            if (failure == 0)
+            if (failure is 0 or 3)
             {
-                source.AfterRead = cancellation.Cancel;
-                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => session.WriteSegmentAsync(7, failed, cancellation.Token).AsTask());
+                int remaining = failure == 0 ? 1 : 4;
+                source.AfterRead = () =>
+                {
+                    if (--remaining == 0)
+                    {
+                        cancellation.Cancel();
+                    }
+                };
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => session.WriteSegmentAsync(7, failed, overlap, cancellation.Token).AsTask());
                 source.AfterRead = null;
                 Assert.Empty(failed.Bytes.ToArray());
             }
             else
             {
-                await Assert.ThrowsAsync<IOException>(() => session.WriteSegmentAsync(7, failed).AsTask());
+                await Assert.ThrowsAsync<IOException>(() => session.WriteSegmentAsync(7, failed, overlap, CancellationToken.None).AsTask());
             }
             Assert.Equal(retained, allocator.AllocatedBytes);
             Assert.False(failed.WasDisposed);
             using MemoryStream retry = new(), repeated = new();
-            await session.WriteSegmentAsync(7, retry);
-            await session.WriteSegmentAsync(7, repeated);
+            await session.WriteSegmentAsync(7, retry, overlap, CancellationToken.None);
+            await session.WriteSegmentAsync(7, repeated, false, CancellationToken.None);
             Assert.Equal(retry.ToArray(), repeated.ToArray());
             Assert.Equal(retained, allocator.AllocatedBytes);
         }

@@ -20,6 +20,7 @@ namespace Mediana.Codecs.H264
         internal const int MaximumNalCpbBits = MaximumCpbBits / 5 * 6;
         internal const int MaximumFramesPerSecond = 172;
         internal const int MinimumCompressionRatio = 2;
+        internal const uint WeightedPictureId = 1;
 
         public static byte[] Create(VideoFormat format, MediaBufferAllocator allocator, H264EncoderOptions options,
             out int parameterSetBytes)
@@ -67,15 +68,42 @@ namespace Mediana.Codecs.H264
             sequence.WriteFlag(true);
             WriteVui(sequence, format, references, options.MotionSearchRange);
             using MediaBuffer sps = sequence.Finish();
-            using H264BitWriter picture = new(allocator, 4096, 0x68);
-            picture.WriteUnsigned(0);
+            using MediaBuffer pps = WritePicture(allocator, options, false);
+            using MediaBuffer? weighted = H264LumaPredictionOffset.IsEnabled(options) ? WritePicture(allocator, options, true) : null;
+            parameterSetBytes = sps.Memory.Length + pps.Memory.Length + (weighted?.Memory.Length ?? 0);
+            byte[] configuration = new byte[11 + parameterSetBytes + (weighted is null ? 0 : 2)];
+            configuration[0] = 1;
+            sps.Memory.Span.Slice(1, 3).CopyTo(configuration.AsSpan(1));
+            configuration[4] = 0xFF;
+            configuration[5] = 0xE1;
+            int offset = CopyParameterSet(sps.Memory.Span, configuration, 6);
+            configuration[offset++] = weighted is null ? (byte)1 : (byte)2;
+            offset = CopyParameterSet(pps.Memory.Span, configuration, offset);
+            if (weighted is not null)
+            {
+                CopyParameterSet(weighted.Memory.Span, configuration, offset);
+            }
+            return configuration;
+        }
+
+        private static int CopyParameterSet(ReadOnlySpan<byte> parameterSet, Span<byte> configuration, int offset)
+        {
+            BinaryPrimitives.WriteUInt16BigEndian(configuration[offset..], (ushort)parameterSet.Length);
+            parameterSet.CopyTo(configuration[(offset + 2)..]);
+            return offset + 2 + parameterSet.Length;
+        }
+
+        private static MediaBuffer WritePicture(MediaBufferAllocator allocator, H264EncoderOptions options, bool weighted)
+        {
+            using H264BitWriter picture = new(allocator, 64, 0x68);
+            picture.WriteUnsigned(weighted ? WeightedPictureId : 0);
             picture.WriteUnsigned(0);
             picture.WriteFlag(options.EntropyCoding == H264EntropyCoding.Cabac);
             picture.WriteFlag(false);
             picture.WriteUnsigned(0);
             picture.WriteUnsigned(0);
             picture.WriteUnsigned(0);
-            picture.WriteFlag(false);
+            picture.WriteFlag(weighted);
             picture.WriteBits(0, 2);
             picture.WriteSigned(options.Quantizer - 26);
             picture.WriteSigned(0);
@@ -83,20 +111,7 @@ namespace Mediana.Codecs.H264
             picture.WriteFlag(true);
             picture.WriteFlag(false);
             picture.WriteFlag(false);
-            using MediaBuffer pps = picture.Finish();
-            parameterSetBytes = sps.Memory.Length + pps.Memory.Length;
-            byte[] configuration = new byte[11 + parameterSetBytes];
-            configuration[0] = 1;
-            sps.Memory.Span.Slice(1, 3).CopyTo(configuration.AsSpan(1));
-            configuration[4] = 0xFF;
-            configuration[5] = 0xE1;
-            BinaryPrimitives.WriteUInt16BigEndian(configuration.AsSpan(6), (ushort)sps.Memory.Length);
-            sps.Memory.Span.CopyTo(configuration.AsSpan(8));
-            int offset = 8 + sps.Memory.Length;
-            configuration[offset++] = 1;
-            BinaryPrimitives.WriteUInt16BigEndian(configuration.AsSpan(offset), (ushort)pps.Memory.Length);
-            pps.Memory.Span.CopyTo(configuration.AsSpan(offset + 2));
-            return configuration;
+            return picture.Finish();
         }
 
         private static void WriteVui(H264BitWriter bits, VideoFormat format, uint references, int motionRange)

@@ -11,14 +11,20 @@ namespace Mediana.Codecs.H264
         private readonly ReadOnlySpan<byte> samples;
 
         public H264SourceMacroblock(VideoFrame input, int x, int y, Span<byte> storage)
+            : this(new H264SourcePicture(input), x, y, storage) { }
+
+        public H264SourceMacroblock(scoped H264SourcePicture input, int x, int y, Span<byte> storage)
+            : this(storage)
+        {
+            input.Read(x, y, storage);
+        }
+
+        internal H264SourceMacroblock(ReadOnlySpan<byte> storage)
         {
             if (storage.Length != ByteCount)
             {
                 throw new ArgumentException("The source macroblock requires 384 samples.", nameof(storage));
             }
-            H264BorderExtension.Copy(input, 0, x, y, 16, 16, storage[..256]);
-            H264BorderExtension.Copy(input, 1, x / 2, y / 2, 8, 8, storage.Slice(256, 64));
-            H264BorderExtension.Copy(input, 2, x / 2, y / 2, 8, 8, storage.Slice(320, 64));
             samples = storage;
         }
 

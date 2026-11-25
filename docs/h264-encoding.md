@@ -55,7 +55,7 @@ Calls and disposal must not overlap.
 
 IDR pictures select among all nine legal intra4x4 directions using reconstructed
 neighbours and minimum absolute prediction error. Ties prefer the predicted
-mode's shorter syntax. Chroma uses DC prediction. Only residual groups with
+mode's shorter syntax. With CABAC, chroma can use DC, horizontal, vertical or plane prediction. Only residual groups with
 nonzero quantized coefficients are signalled. Selection retains coefficients for
 one macroblock and reconstructs each luma block before selecting the next one.
 [Complete directional prediction checks](h264-intra-prediction.md) include every
@@ -63,9 +63,8 @@ direction, boundary availability, independent pixels and measured error/size
 tradeoffs. P pictures use P16x16 or
 P_Skip, integer 4x4 residual transforms, per-block quantization, chroma DC
 transforms and CAVLC. The reference contains reconstructed pixels, so quantization
-errors do not create an encoder/decoder prediction mismatch. CABAC and
-[rate-distortion analysis](h264-macroblock-analysis.md) also support Intra16
-candidates in P pictures.
+errors do not create an encoder/decoder prediction mismatch. With CABAC, both [macroblock analysis modes](h264-macroblock-analysis.md)
+can select Intra16 in P pictures.
 
 `H264EncoderOptions.Deblocking` enables the normative in-loop filter for either
 entropy mode. The accepted reconstructed picture is filtered in place before it

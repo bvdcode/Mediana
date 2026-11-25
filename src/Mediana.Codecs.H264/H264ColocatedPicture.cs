@@ -25,6 +25,10 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        public bool SharesFrameGrid => target.Structure == H264PictureStructure.Frame && picture.Structure == H264PictureStructure.Frame
+            && !target.Layout.MacroblockAdaptiveFrameField && !picture.Layout.MacroblockAdaptiveFrameField
+            && target.Width == picture.Width && target.Height == picture.Height;
+
         public H264ColocatedBlock MapBlock(int x, int y)
         {
             if (picture.Layout.MacroblockAdaptiveFrameField)

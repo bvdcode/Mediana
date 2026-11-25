@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+
 namespace Mediana.Codecs.H264
 {
     internal partial class H264CabacSyntax<TWriter>
@@ -33,6 +38,9 @@ namespace Mediana.Codecs.H264
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void WriteResidualBin(bool value, int context) => writer.WriteBin(value, ref contexts[context + residualContextOffset]);
+
         private int WriteResidual(H264ResidualCategory category, int neighbourContext, ReadOnlySpan<int> coefficients)
         {
             (int count, int significantBase, int lastBase, int levelBase) = category switch
@@ -46,38 +54,35 @@ namespace Mediana.Codecs.H264
                 _ => throw new ArgumentOutOfRangeException(nameof(category))
             };
             if (coefficients.Length != count) { throw new ArgumentException("Coefficient count does not match its CABAC category.", nameof(coefficients)); }
-            int total = 0, last = -1;
-            for (int index = 0; index < coefficients.Length; index++)
+            uint nonzero = ClassifyCoefficients(coefficients);
+            WriteResidualBin(nonzero != 0, 85 + (int)category * 4 + neighbourContext);
+            if (nonzero == 0) { return 0; }
+            int last = BitOperations.Log2(nonzero);
+            int explicitCount = Math.Min(last + 1, count - 1);
+            for (int index = 0; index < explicitCount; index++)
             {
-                if (coefficients[index] == 0) { continue; }
-                if (coefficients[index] is < short.MinValue or > short.MaxValue)
-                { throw new NotSupportedException("The H.264 CABAC coefficient exceeds 8-bit transform precision."); }
-                total++; last = index;
-            }
-            WriteBin(total != 0, 85 + (int)category * 4 + neighbourContext);
-            if (last < 0) { return 0; }
-            for (int index = 0; index < count - 1; index++)
-            {
-                bool significant = coefficients[index] != 0;
-                WriteBin(significant, significantBase + index);
-                if (!significant) { continue; }
-                WriteBin(index == last, lastBase + index);
-                if (index == last) { break; }
+                bool significant = (nonzero & (1u << index)) != 0;
+                WriteResidualBin(significant, significantBase + index);
+                if (significant)
+                {
+                    WriteResidualBin(index == last, lastBase + index);
+                }
             }
             int equalOne = 0, greaterOne = 0;
-            for (int index = last; index >= 0; index--)
+            while (nonzero != 0)
             {
+                int index = BitOperations.Log2(nonzero);
+                nonzero ^= 1u << index;
                 int signed = coefficients[index];
-                if (signed == 0) { continue; }
                 int magnitude = Math.Abs(signed);
                 int firstContext = greaterOne == 0 ? Math.Min(4, 1 + equalOne) : 0;
-                WriteBin(magnitude > 1, levelBase + firstContext);
+                WriteResidualBin(magnitude > 1, levelBase + firstContext);
                 if (magnitude > 1)
                 {
                     int continuation = levelBase + 5 + Math.Min(category == H264ResidualCategory.ChromaDc ? 3 : 4, greaterOne);
                     for (int prefix = 1; prefix < 14; prefix++)
                     {
-                        WriteBin(magnitude > prefix + 1, continuation);
+                        WriteResidualBin(magnitude > prefix + 1, continuation);
                         if (magnitude == prefix + 1) { break; }
                     }
                     if (magnitude >= 15) { WriteExpGolomb(magnitude - 15, 0); }
@@ -85,7 +90,58 @@ namespace Mediana.Codecs.H264
                 writer.WriteBypass(signed < 0);
                 if (magnitude == 1) { equalOne++; } else { greaterOne++; }
             }
-            return total;
+            return equalOne + greaterOne;
         }
+
+        private static uint ClassifyCoefficients(ReadOnlySpan<int> coefficients)
+        {
+            if (Vector128.IsHardwareAccelerated)
+            {
+                ref int address = ref MemoryMarshal.GetReference(coefficients);
+                Vector128<int> a = Vector128.LoadUnsafe(ref address);
+                Vector128<int> minimum = Vector128.Create((int)short.MinValue);
+                Vector128<uint> limit = Vector128.Create((uint)ushort.MaxValue);
+                Vector128<uint> invalid = Vector128.GreaterThan((a - minimum).AsUInt32(), limit);
+                uint mask = NonzeroMask(a);
+                if (coefficients.Length != 4)
+                {
+                    Vector128<int> b = Vector128.LoadUnsafe(ref address, 4);
+                    Vector128<int> c = Vector128.LoadUnsafe(ref address, 8);
+                    int end = coefficients.Length - 4;
+                    Vector128<int> d = Vector128.LoadUnsafe(ref address, (nuint)end);
+                    invalid |= Vector128.GreaterThan((b - minimum).AsUInt32(), limit) |
+                        Vector128.GreaterThan((c - minimum).AsUInt32(), limit) |
+                        Vector128.GreaterThan((d - minimum).AsUInt32(), limit);
+                    mask |= (NonzeroMask(b) << 4) | (NonzeroMask(c) << 8) | (NonzeroMask(d) << end);
+                }
+                if (invalid.ExtractMostSignificantBits() != 0)
+                {
+                    ThrowTransformPrecision();
+                }
+                return mask;
+            }
+            uint nonzero = 0;
+            for (int index = 0; index < coefficients.Length; index++)
+            {
+                int level = coefficients[index];
+                if (level is < short.MinValue or > short.MaxValue)
+                {
+                    ThrowTransformPrecision();
+                }
+                if (level != 0)
+                {
+                    nonzero |= 1u << index;
+                }
+            }
+            return nonzero;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static uint NonzeroMask(Vector128<int> values) =>
+            Vector128.Equals(values, Vector128<int>.Zero).ExtractMostSignificantBits() ^ 15u;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowTransformPrecision() =>
+            throw new NotSupportedException("The H.264 CABAC coefficient exceeds 8-bit transform precision.");
     }
 }

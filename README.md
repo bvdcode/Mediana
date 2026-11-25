@@ -1346,8 +1346,9 @@ Unit tests and Native AOT execute the same preview checks.
 ## Encoding H.264
 
 `H264Encoder` accepts progressive, even-sized 8-bit planar YUV 4:2:0 and
-writes Constrained Baseline level 4.1 AVC. IDR groups use a media-time interval,
-with P16x16/skip pictures referencing the preceding reconstruction. Defaults are
+writes Constrained Baseline AVC with CAVLC or Main profile AVC with CABAC.
+IDR groups use a media-time interval. P pictures can copy or predict from the
+preceding reconstruction. With CABAC they can also use Intra16 prediction. Defaults are
 QP26, a two-second IDR interval and a 16-pixel motion-search range. An explicit
 zero interval selects all-IDR encoding. Input timing, SAR and source color are
 preserved; output packet ownership and reconstructed storage are bounded.

@@ -10,7 +10,7 @@ using Mediana.Execution;
 namespace Mediana
 {
     internal class MediaTrackInput(IIndexedContainerReader reader, MediaBufferAllocator allocator, MediaBufferAllocator inputAllocator,
-        MediaReadBudget budget, MediaTrackResources resources, MediaTimeRange? selection)
+        MediaReadBudget budget, MediaTrackResources resources, MediaTimeRange? selection, SemaphoreSlim? indexedReadGate)
     {
         public IIndexedContainerReader Reader { get; } = reader;
         public MediaBufferAllocator Allocator { get; } = allocator;
@@ -18,8 +18,10 @@ namespace Mediana
         public MediaReadBudget Budget { get; } = budget;
         public MediaTrackResources Resources { get; } = resources;
         public MediaTimeRange? Selection { get; } = selection;
+        public SemaphoreSlim? IndexedReadGate { get; } = indexedReadGate;
 
-        public MediaTrackInput WithSelection(MediaTimeRange value) => new(Reader, Allocator, InputAllocator, Budget, Resources, value);
+        public MediaTrackInput WithSelection(MediaTimeRange value) =>
+            new(Reader, Allocator, InputAllocator, Budget, Resources, value, IndexedReadGate);
 
         public EncodedStreamInfo Select(int index, MediaKind? kind = null)
         {

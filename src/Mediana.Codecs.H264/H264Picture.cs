@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using Mediana.Core.Memory;
 
 namespace Mediana.Codecs.H264
@@ -109,7 +110,16 @@ namespace Mediana.Codecs.H264
         public Span<byte> Modes => storage.Span.Slice(ModesOffset, lumaBlocks);
         private int QuantizersOffset => ModesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);
         public Span<byte> Quantizers => storage.Span.Slice(QuantizersOffset, macroblocks);
-        public Span<byte> Transforms8x8 => storage.Span.Slice(QuantizersOffset + macroblocks, macroblocks);
+        public Span<H264MacroblockFlags> MacroblockFlags =>
+            MemoryMarshal.Cast<byte, H264MacroblockFlags>(storage.Span.Slice(QuantizersOffset + macroblocks, macroblocks));
+
+        public bool Uses8x8Transform(int address) => MacroblockFlags[address].HasFlag(H264MacroblockFlags.Transform8x8);
+
+        public void Set8x8Transform(int address, bool enabled)
+        {
+            ref H264MacroblockFlags flags = ref MacroblockFlags[address];
+            flags = enabled ? flags | H264MacroblockFlags.Transform8x8 : flags & ~H264MacroblockFlags.Transform8x8;
+        }
 
         public Span<byte> Counts(int index) => index switch
         {
@@ -163,43 +173,57 @@ namespace Mediana.Codecs.H264
 
         public void SetLuma8x8Mode(int x, int y, int mode)
         {
-            for (int row = 0; row < 8; row += 4)
-            {
-                for (int column = 0; column < 8; column += 4)
-                {
-                    SetLumaMode(x + column, y + row, mode);
-                }
-            }
+            int first = BlockIndex(0, x, y);
+            Span<byte> modes = Modes;
+            byte pending = (byte)(mode | 128);
+            modes.Slice(first, 2).Fill(pending);
+            modes.Slice(first + Width / 4, 2).Fill(pending);
         }
 
         public void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual) =>
-            WriteBlock(plane, x, y, prediction, residual, 4);
+            WriteBlock(plane, x, y, prediction, 4, residual, 4);
 
-        public void WriteLuma8x8(int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual, int plane = 0) =>
-            WriteBlock(plane, x, y, prediction, residual, 8);
+        public void Reconstruct4x4(int plane, int x, int y, ReadOnlySpan<byte> prediction, int predictionStride,
+            ReadOnlySpan<int> levels, int qp, int? scaledDc = null, bool field = false)
+        {
+            if (Vector128.IsHardwareAccelerated && SampleBytes == 1 && !field)
+            {
+                (int offset, int stride) = SampleLocation(plane, x, y);
+                if (H264InverseTransform.TryReconstructFrame4x4(levels, qp, scaledDc, prediction, predictionStride,
+                    Plane(plane)[offset..], stride))
+                {
+                    if (plane == 0 || FullResolutionChroma)
+                    {
+                        Modes[BlockIndex(plane, x, y)] &= 127;
+                    }
+                    return;
+                }
+            }
+            Span<int> residual = stackalloc int[16];
+            H264InverseTransform.Residual4x4(levels, qp, residual, scaledDc,
+                plane == 0 ? Sequence.LumaBitDepth : Sequence.ChromaBitDepth, field);
+            WriteBlock(plane, x, y, prediction, predictionStride, residual, 4);
+        }
 
-        private void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual, int size)
+        public void WriteLuma8x8(int x, int y, ReadOnlySpan<byte> prediction, int predictionStride, ReadOnlySpan<int> residual, int plane) =>
+            WriteBlock(plane, x, y, prediction, predictionStride, residual, 8);
+
+        private void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, int predictionStride, ReadOnlySpan<int> residual, int size)
         {
             (int offset, int stride) = SampleLocation(plane, x, y);
             Span<byte> pixels = Plane(plane);
             if (SampleBytes == 1)
             {
-                H264SampleReconstruction.Write(prediction, residual, size, pixels[offset..], stride);
+                H264SampleReconstruction.Write(prediction, predictionStride, residual, size, pixels[offset..], stride);
             }
             else
             {
-                H264HighPrecisionReconstruction.Write(MemoryMarshal.Cast<byte, ushort>(prediction), residual, size,
+                H264HighPrecisionReconstruction.Write(MemoryMarshal.Cast<byte, ushort>(prediction), predictionStride, residual, size,
                     MemoryMarshal.Cast<byte, ushort>(pixels)[offset..], stride, MaximumSample);
             }
             if (plane == 0 || FullResolutionChroma)
             {
-                for (int row = 0; row < size; row += 4)
-                {
-                    for (int column = 0; column < size; column += 4)
-                    {
-                        Modes[BlockIndex(0, x + column, y + row)] &= 127;
-                    }
-                }
+                MarkReconstructed(BlockIndex(plane, x, y), Stride(plane) / 4, size / 4);
             }
         }
 
@@ -217,7 +241,14 @@ namespace Mediana.Codecs.H264
         public bool IsInCurrentSlice(int x, int y) => x >= 0 && x < Width && y >= 0 && y < Height &&
             y / 16 * Sequence.WidthInMbs + x / 16 >= FirstMacroblock;
 
-        private bool IsAvailable(int x, int y, bool constrained) => IsInCurrentSlice(x, y) &&
-            Modes[BlockIndex(0, x, y)] < 128 && (!constrained || Modes[BlockIndex(0, x, y)] != InterMode);
+        private bool IsAvailable(int x, int y, bool constrained)
+        {
+            if (!IsInCurrentSlice(x, y))
+            {
+                return false;
+            }
+            byte mode = Modes[BlockIndex(0, x, y)];
+            return mode < 128 && (!constrained || mode != InterMode);
+        }
     }
 }

@@ -34,7 +34,7 @@ namespace Mediana.Tests
                     context.BeginMacroblock(4);
                     for (int transform = 0; transform < 2; transform++)
                     {
-                        picture.Transforms8x8.Fill((byte)transform);
+                        picture.MacroblockFlags.Fill((H264MacroblockFlags)transform);
                         foreach (int mask in new[] { 0, 1, 0x33, 0x3333, 0xcccc, 0xffff, 0x7fff, 0x9ace })
                         {
                             picture.Counts(0).Fill(1);

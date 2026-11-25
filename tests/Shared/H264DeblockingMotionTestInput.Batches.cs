@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
 using Mediana.Codecs.H264;
 
 namespace Mediana.Tests
@@ -36,9 +37,9 @@ namespace Mediana.Tests
                                 int previousAddress = boundary == 1 ? address - (vertical ? 1 : 2) : address;
                                 picture.Modes.Fill(H264Picture.InterMode);
                                 picture.Counts(0).Clear();
-                                picture.Transforms8x8.Clear();
-                                picture.Transforms8x8[address] = (byte)(transform & 1);
-                                picture.Transforms8x8[previousAddress] |= (byte)((transform >> 1) & 1);
+                                picture.MacroblockFlags.Clear();
+                                picture.Set8x8Transform(address, (transform & 1) != 0);
+                                picture.MacroblockFlags[previousAddress] |= (H264MacroblockFlags)(transform >> 1);
                                 for (int lane = 0; lane < 4; lane++)
                                 {
                                     int q = picture.BlockIndex(0, x + (vertical ? 0 : lane * 4), y + (vertical ? lane * 4 : 0));
@@ -96,7 +97,7 @@ namespace Mediana.Tests
                                 byte[] originalL0 = picture.ReferenceIndices(H264ReferenceList.L0).ToArray();
                                 int[] originalX0 = picture.MotionX(H264ReferenceList.L0).ToArray();
                                 int[] originalY0 = picture.MotionY(H264ReferenceList.L0).ToArray();
-                                byte[] originalTransforms = picture.Transforms8x8.ToArray();
+                                byte[] originalFlags = MemoryMarshal.AsBytes(picture.MacroblockFlags).ToArray();
                                 byte[] originalL1 = picture.HasBidirectionalMotion ? picture.ReferenceIndices(H264ReferenceList.L1).ToArray() : [];
                                 int[] originalX1 = picture.HasBidirectionalMotion ? picture.MotionX(H264ReferenceList.L1).ToArray() : [];
                                 int[] originalY1 = picture.HasBidirectionalMotion ? picture.MotionY(H264ReferenceList.L1).ToArray() : [];
@@ -133,7 +134,7 @@ namespace Mediana.Tests
                                         throw new InvalidOperationException($"Mixed strength or partial-write mismatch: {captured}/{orientation}/{boundary}/{mask}/{transform}/{lane}.");
                                     }
                                 }
-                                if (!picture.Transforms8x8.SequenceEqual(originalTransforms)
+                                if (!MemoryMarshal.AsBytes(picture.MacroblockFlags).SequenceEqual(originalFlags)
                                     || (picture.HasBidirectionalMotion && (!picture.ReferenceIndices(H264ReferenceList.L1).SequenceEqual(originalL1)
                                         || !picture.MotionX(H264ReferenceList.L1).SequenceEqual(originalX1)
                                         || !picture.MotionY(H264ReferenceList.L1).SequenceEqual(originalY1)))
@@ -152,7 +153,7 @@ namespace Mediana.Tests
             }
             picture.Modes.Fill(H264Picture.InterMode);
             picture.Counts(0).Clear();
-            picture.Transforms8x8.Clear();
+            picture.MacroblockFlags.Clear();
             picture.ReferenceIndices(H264ReferenceList.L0).Fill(0);
             picture.MotionX(H264ReferenceList.L0).Clear();
             picture.MotionY(H264ReferenceList.L0).Clear();
@@ -177,7 +178,7 @@ namespace Mediana.Tests
         private static bool Coefficients(H264Picture picture, int x, int y)
         {
             int address = y / 16 * 2 + x / 16;
-            int size = picture.Transforms8x8[address] == 0 ? 4 : 8;
+            int size = !picture.Uses8x8Transform(address) ? 4 : 8;
             int firstX = x / size * size;
             int firstY = y / size * size;
             for (int sy = firstY; sy < firstY + size; sy += 4)

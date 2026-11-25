@@ -13,8 +13,34 @@ namespace Mediana.Codecs.H264
             H264PictureOrder order, int x, int y, Span<byte> prediction)
             => PredictRegion(target, header, references, order, x, y, 16, prediction);
 
+        public static void ReconstructSkip(H264Picture target, H264SliceHeader header, H264BidirectionalReferences references,
+            H264PictureOrder order, int x, int y, Span<byte> prediction)
+            => PredictRegion(target, header, references, order, x, y, 16, prediction, reconstruct: true);
+
         private static void PredictRegion(H264Picture target, H264SliceHeader header, H264BidirectionalReferences references,
-            H264PictureOrder order, int x, int y, int regionSize, Span<byte> prediction)
+            H264PictureOrder order, int x, int y, int regionSize, Span<byte> prediction, bool reconstruct = false)
+        {
+            Span<H264DirectMotion> motions = stackalloc H264DirectMotion[16];
+            int count = ReadMotion(target, header, references, order, x, y, regionSize, motions);
+            if (reconstruct && count == 1 && H264StationaryBiPrediction.TryWrite(target, header, references, order, x, y, motions[0]))
+            {
+                return;
+            }
+            int size = count == 1 ? regionSize : header.Sequence.Direct8x8Inference ? 8 : 4;
+            int columns = regionSize / size;
+            for (int index = 0; index < count; index++)
+            {
+                H264BidirectionalPrediction.PredictPartition(target, header, references, order, x + index % columns * size,
+                    y + index / columns * size, size, size, motions[index].L0, motions[index].L1, prediction);
+            }
+            if (reconstruct)
+            {
+                target.WriteInterPrediction(x, y, prediction);
+            }
+        }
+
+        private static int ReadMotion(H264Picture target, H264SliceHeader header, H264BidirectionalReferences references,
+            H264PictureOrder order, int x, int y, int regionSize, Span<H264DirectMotion> motions)
         {
             H264ReferencePicture colocated = references.L1.Count > 0 && references.L1[0] is H264ReferencePicture reference
                 ? reference : throw new InvalidDataException("H.264 direct prediction has no co-located picture.");
@@ -23,20 +49,21 @@ namespace Mediana.Codecs.H264
             H264PictureOrder currentOrder = context.SelectOrder(order);
             int mbX = x / 16 * 16;
             int mbY = y / 16 * 16;
-            (int reference0, int reference1) = header.DirectSpatialMotionPrediction ?
-                (SpatialReference(target, H264ReferenceList.L0, mbX, mbY), SpatialReference(target, H264ReferenceList.L1, mbX, mbY)) : (-1, 0);
-            bool zero = reference0 < 0 && reference1 < 0;
-            if (header.DirectSpatialMotionPrediction && zero)
+            H264DirectMotion spatial = default;
+            H264DirectMotion colocatedZero = default;
+            if (header.DirectSpatialMotionPrediction)
             {
-                reference0 = 0;
-                reference1 = 0;
+                spatial = H264MotionPrediction.SpatialDirect(target, mbX, mbY);
+                colocatedZero = new(ApplyColocatedZero(spatial.L0), ApplyColocatedZero(spatial.L1));
+                if ((spatial == colocatedZero || colocated.LongTermIndex is not null) && source.SharesFrameGrid)
+                {
+                    motions[0] = spatial;
+                    return 1;
+                }
             }
             int size = header.Sequence.Direct8x8Inference ? 8 : 4;
-            Span<H264DirectMotion> motions = stackalloc H264DirectMotion[16];
             int count = 0;
             bool uniform = true;
-            H264PartitionMotion? spatial0 = null;
-            H264PartitionMotion? spatial1 = null;
             for (int row = 0; row < regionSize; row += size)
             {
                 for (int column = 0; column < regionSize; column += size)
@@ -50,8 +77,7 @@ namespace Mediana.Codecs.H264
                     if (header.DirectSpatialMotionPrediction)
                     {
                         bool colZero = colocated.LongTermIndex is null && motion.ReferenceIndex == 0 && Math.Abs(motion.X) <= 1 && Math.Abs(motion.Y) <= 1;
-                        l0 = SpatialMotion(target, H264ReferenceList.L0, mbX, mbY, reference0, zero || colZero && reference0 == 0, ref spatial0);
-                        l1 = SpatialMotion(target, H264ReferenceList.L1, mbX, mbY, reference1, zero || colZero && reference1 == 0, ref spatial1);
+                        (l0, l1) = colZero ? colocatedZero : spatial;
                     }
                     else
                     {
@@ -83,52 +109,11 @@ namespace Mediana.Codecs.H264
                     motions[count++] = direct;
                 }
             }
-            if (uniform)
-            {
-                H264BidirectionalPrediction.PredictPartition(target, header, references, order, x, y, regionSize, regionSize,
-                    motions[0].L0, motions[0].L1, prediction);
-                return;
-            }
-            int columns = regionSize / size;
-            for (int index = 0; index < count; index++)
-            {
-                H264BidirectionalPrediction.PredictPartition(target, header, references, order, x + index % columns * size,
-                    y + index / columns * size, size, size, motions[index].L0, motions[index].L1, prediction);
-            }
+            return uniform ? 1 : count;
         }
 
-        private static int SpatialReference(H264Picture target, H264ReferenceList list, int x, int y)
-        {
-            H264MotionSample a = target.NeighbourMotionAt(list, x, y, x - 1, y);
-            H264MotionSample b = target.NeighbourMotionAt(list, x, y, x, y - 1);
-            H264MotionSample c = target.NeighbourMotionAt(list, x, y, x + 16, y - 1);
-            if (!c.Available)
-            {
-                c = target.NeighbourMotionAt(list, x, y, x - 1, y - 1);
-            }
-            return Minimum(a.ReferenceIndex, Minimum(b.ReferenceIndex, c.ReferenceIndex));
-        }
-
-        private static int Minimum(int first, int second) => first >= 0 && second >= 0 ? Math.Min(first, second) : Math.Max(first, second);
-
-        private static H264PartitionMotion SpatialMotion(H264Picture target, H264ReferenceList list, int x, int y,
-            int reference, bool zero, ref H264PartitionMotion? prediction)
-        {
-            if (reference < 0)
-            {
-                return H264PartitionMotion.None;
-            }
-            if (zero)
-            {
-                return new H264PartitionMotion(reference, 0, 0);
-            }
-            if (prediction is null)
-            {
-                (int dx, int dy) = H264MotionPrediction.Predict(target, list, x, y, 16, 16, reference, 0);
-                prediction = new H264PartitionMotion(reference, dx, dy);
-            }
-            return prediction.Value;
-        }
+        private static H264PartitionMotion ApplyColocatedZero(H264PartitionMotion predicted) =>
+            predicted.ReferenceIndex == 0 ? new H264PartitionMotion(0, 0, 0) : predicted;
 
         private static (H264ReferenceList List, H264MotionSample Motion) Colocated(H264Picture picture, int x, int y)
         {

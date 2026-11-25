@@ -42,6 +42,36 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        public void ReconstructSimpleIntra8x8(int plane, int x, int y, int mode, bool constrained, int delta, bool uncoded)
+        {
+            (int offset, int stride) = SampleLocation(plane, x, y);
+            Span<byte> pixels = Plane(plane)[(offset * SampleBytes)..];
+            if (SampleBytes == 1)
+            {
+                ReconstructSimpleIntra8x8<byte>(plane, x, y, mode, constrained, delta, pixels, stride);
+            }
+            else
+            {
+                ReconstructSimpleIntra8x8<ushort>(plane, x, y, mode, constrained, delta,
+                    MemoryMarshal.Cast<byte, ushort>(pixels), stride);
+            }
+            if (uncoded)
+            {
+                ClearBlockCounts(plane, x, y, 8, 8);
+            }
+            MarkReconstructed(BlockIndex(plane, x, y), Stride(plane) / 4, 2);
+        }
+
+        private void ReconstructSimpleIntra8x8<TSample>(int plane, int x, int y, int mode, bool constrained,
+            int delta, Span<TSample> pixels, int stride) where TSample : unmanaged, IBinaryInteger<TSample>
+        {
+            Span<TSample> top = stackalloc TSample[16];
+            Span<TSample> left = stackalloc TSample[8];
+            (bool hasTop, bool hasLeft, TSample? corner) = ReadLumaNeighbours(x, y, 8, top, left, constrained, plane);
+            H264IntraPrediction<TSample>.WriteSimple8x8(mode, hasTop ? top : [], hasLeft ? left : [], corner,
+                pixels, stride, MaximumSample, delta);
+        }
+
         public (bool HasTop, bool HasLeft, byte? Corner) ReadLumaNeighbours(int x, int y, int size,
             Span<byte> top, Span<byte> left, bool constrained = false) =>
             ReadLumaNeighbours<byte>(x, y, size, top, left, constrained);
@@ -59,9 +89,22 @@ namespace Mediana.Codecs.H264
             bool hasLeft = IsAvailable(x - 1, y, constrained);
             if (hasTop)
             {
-                for (int index = 0; index < size * 2; index++)
+                int length = size * 2;
+                int topRow = (y - 1) * Width + x;
+                // Reconstruction and intra availability are stored per 4x4 block.
+                for (int index = 0; index < length;)
                 {
-                    top[index] = IsAvailable(x + index, y - 1, constrained) ? pixels[(y - 1) * Width + x + index] : top[size - 1];
+                    int count = Math.Min(4 - ((x + index) & 3), length - index);
+                    Span<TSample> group = top.Slice(index, count);
+                    if (index == 0 || IsAvailable(x + index, y - 1, constrained))
+                    {
+                        pixels.Slice(topRow + index, count).CopyTo(group);
+                    }
+                    else
+                    {
+                        group.Fill(top[size - 1]);
+                    }
+                    index += count;
                 }
             }
             if (hasLeft)
@@ -87,7 +130,39 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        private void PredictMacroblock<TSample>(int plane, int x, int y, int mode, Span<TSample> output, bool constrained)
+        public Span<byte> PredictIntra16InPlace(int plane, int x, int y, int mode, bool constrained, out int stride)
+        {
+            (int offset, int sampleStride) = SampleLocation(plane, x, y);
+            Span<byte> output = Plane(plane)[(offset * SampleBytes)..];
+            if (SampleBytes == 1)
+            {
+                PredictMacroblock<byte>(plane, x, y, mode, output, constrained, sampleStride);
+            }
+            else
+            {
+                PredictMacroblock<ushort>(plane, x, y, mode, MemoryMarshal.Cast<byte, ushort>(output), constrained, sampleStride);
+            }
+            stride = sampleStride;
+            return output;
+        }
+
+        public void FinishIntra16(int plane, int x, int y, bool clearCounts)
+        {
+            if (clearCounts)
+            {
+                ClearBlockCounts(plane, x, y, 16, 16);
+            }
+            MarkReconstructed(BlockIndex(plane, x, y), Stride(plane) / 4, 4);
+        }
+
+        internal bool TryReadLuma16Neighbours(int x, int y, Span<byte> top, Span<byte> left, out byte corner)
+        {
+            (bool hasTop, bool hasLeft, byte? topLeft) = ReadMacroblockNeighbours(0, x, y, 16, 16, top, left, false);
+            corner = topLeft.GetValueOrDefault();
+            return hasTop && hasLeft && topLeft.HasValue;
+        }
+
+        private void PredictMacroblock<TSample>(int plane, int x, int y, int mode, Span<TSample> output, bool constrained, int lumaStride = 16)
             where TSample : unmanaged, IBinaryInteger<TSample>
         {
             int size = 16 / HorizontalScale(plane);
@@ -97,7 +172,7 @@ namespace Mediana.Codecs.H264
             (bool hasTop, bool hasLeft, TSample? corner) = ReadMacroblockNeighbours(plane, x, y, size, height, top, left, constrained);
             if (plane == 0 || FullResolutionChroma)
             {
-                H264IntraPrediction<TSample>.Luma16x16(mode, hasTop ? top : [], hasLeft ? left : [], corner, output, MaximumSample);
+                H264IntraPrediction<TSample>.Luma16x16(mode, hasTop ? top : [], hasLeft ? left : [], corner, output, MaximumSample, lumaStride);
             }
             else
             {

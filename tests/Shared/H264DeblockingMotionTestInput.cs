@@ -133,7 +133,7 @@ namespace Mediana.Tests
                     VerifyMixed(unidirectional, l0, [], alternateL0, [], vectors);
                 }
                 picture.Counts(0).Clear();
-                picture.Transforms8x8.Clear();
+                picture.MacroblockFlags.Clear();
                 int internalPosition = picture.BlockIndex(0, 4, 4);
                 Set(picture, internalPosition - 1, 0, -1, 0, 0, 0, 0);
                 Set(picture, internalPosition, 0, -1, 0, 0, 0, 0);

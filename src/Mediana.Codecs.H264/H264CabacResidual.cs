@@ -22,6 +22,18 @@ namespace Mediana.Codecs.H264
             9, 10, 10, 8, 13, 13, 9, 9, 10, 10, 14, 14, 14, 14, 14,
         ];
 
+        private static ReadOnlySpan<byte> LinearContexts => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+        private static ReadOnlySpan<byte> ChromaDc422Contexts => [0, 0, 1, 1, 2, 2, 2];
+
+        // Rec. ITU-T H.264, Table 9-43 (last_significant_coeff_flag for 8x8 blocks).
+        private static ReadOnlySpan<byte> Last8x8 =>
+        [
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+            5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8
+        ];
+
         public static int Read(ref H264BitReader bits, H264CabacReader reader,
             H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients, int bitDepth = 8, bool field = false, int? fullResolutionPlane = null)
         {
@@ -75,7 +87,6 @@ namespace Mediana.Codecs.H264
                 significantBase += offset;
                 lastBase += offset;
             }
-            ReadOnlySpan<byte> significantPositions = field ? Significant8x8Field : Significant8x8;
             ArgumentOutOfRangeException.ThrowIfNegative(neighbourContext);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(neighbourContext, 3);
             if (coefficients.Length != count)
@@ -87,28 +98,36 @@ namespace Mediana.Codecs.H264
             {
                 return 0;
             }
-            Span<int> positions = stackalloc int[64];
+            ReadOnlySpan<byte> significance = count switch
+            {
+                64 => field ? Significant8x8Field : Significant8x8,
+                8 => ChromaDc422Contexts,
+                _ => LinearContexts
+            };
+            ReadOnlySpan<byte> lastSignificance = count == 64 ? Last8x8 : significance;
+            Span<byte> positions = stackalloc byte[64];
             int total = 0;
-            int last = count - 1;
             for (int index = 0; index < count - 1; index++)
             {
-                int positionContext = category == H264ResidualCategory.ChromaDc ? Math.Min(index / (count / 4), 2) : index;
-                int significantContext = significantBase + (count == 64 ? significantPositions[index] : positionContext);
-                if (reader.Read(ref bits, significantContext))
+                if (reader.Read(ref bits, significantBase + significance[index]))
                 {
-                    int lastContext = lastBase + (count == 64 ? Last8x8(index) : positionContext);
-                    if (reader.Read(ref bits, lastContext))
+                    positions[total++] = (byte)index;
+                    if (reader.Read(ref bits, lastBase + lastSignificance[index]))
                     {
-                        last = index;
-                        break;
+                        return ReadLevels(ref bits, reader, category, levelBase, positions[..total], coefficients, bitDepth);
                     }
-                    positions[total++] = index;
                 }
             }
-            positions[total++] = last;
+            positions[total++] = (byte)(count - 1);
+            return ReadLevels(ref bits, reader, category, levelBase, positions[..total], coefficients, bitDepth);
+        }
+
+        private static int ReadLevels(ref H264BitReader bits, H264CabacReader reader, H264ResidualCategory category,
+            int levelBase, scoped ReadOnlySpan<byte> positions, scoped Span<int> coefficients, int bitDepth)
+        {
             int equalOne = 0;
             int greaterOne = 0;
-            for (int index = total - 1; index >= 0; index--)
+            for (int index = positions.Length - 1; index >= 0; index--)
             {
                 int firstContext = greaterOne == 0 ? Math.Min(4, 1 + equalOne) : 0;
                 int magnitude = 1;
@@ -143,22 +162,8 @@ namespace Mediana.Codecs.H264
                     greaterOne++;
                 }
             }
-            return total;
+            return positions.Length;
         }
-
-        private static int Last8x8(int index) => index switch
-        {
-            0 => 0,
-            >= 1 and <= 15 => 1,
-            >= 16 and <= 31 => 2,
-            >= 32 and <= 39 => 3,
-            >= 40 and <= 47 => 4,
-            >= 48 and <= 51 => 5,
-            >= 52 and <= 55 => 6,
-            >= 56 and <= 59 => 7,
-            >= 60 and <= 62 => 8,
-            _ => throw new ArgumentOutOfRangeException(nameof(index))
-        };
 
         private static int ReadExpGolomb(ref H264BitReader bits, H264CabacReader reader, int maximumOrder)
         {

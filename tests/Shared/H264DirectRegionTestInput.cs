@@ -86,6 +86,25 @@ namespace Mediana.Tests
             if (region == 16)
             {
                 H264DirectPrediction.PredictMacroblock(actual, header, references, new(2, 2), x, 16, actualPixels);
+                using H264Picture reconstructed = new(sequence, allocator, H264SliceKind.B);
+                InitializeNeighbours(reconstructed, lists, spatialReference);
+                Span<byte> scratch = stackalloc byte[384];
+                scratch.Fill(37);
+                H264DirectPrediction.ReconstructSkip(reconstructed, header, references, new(2, 2), x, 16, scratch);
+                actual.WriteInterPrediction(x, 16, actualPixels);
+                expected.WriteInterPrediction(x, 16, expectedPixels);
+                Require(reconstructed.Modes.SequenceEqual(expected.Modes));
+                for (int plane = 0; plane < 3; plane++)
+                {
+                    Require(reconstructed.ReadPlane(plane).SequenceEqual(expected.ReadPlane(plane)));
+                    Require(reconstructed.Counts(plane).SequenceEqual(expected.Counts(plane)));
+                }
+                foreach (H264ReferenceList list in new[] { H264ReferenceList.L0, H264ReferenceList.L1 })
+                {
+                    Require(reconstructed.ReferenceIndices(list).SequenceEqual(expected.ReferenceIndices(list)) &&
+                        reconstructed.MotionX(list).SequenceEqual(expected.MotionX(list)) &&
+                        reconstructed.MotionY(list).SequenceEqual(expected.MotionY(list)));
+                }
             }
             else
             {

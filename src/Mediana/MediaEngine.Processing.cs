@@ -40,8 +40,10 @@ namespace Mediana
             try
             {
                 MediaReadBudget budget = new(options.Input.MaxPacketReads, options.Input.MaxFrameReads);
+                SemaphoreSlim? indexedReadGate = selected.Any(track => track is VideoEncodingRequest { BufferPreparedFrames: true })
+                    ? resources.Own(new SemaphoreSlim(1, 1)) : null;
                 MediaTrackInput input = new(reader, allocator, inputAllocator ?? allocator.CreateScope(options.Input.BufferBudgetBytes),
-                    budget, resources, options.Selection);
+                    budget, resources, options.Selection, indexedReadGate);
                 foreach (MediaTrackRequest track in selected) { _ = input.Select(track.InputStreamIndex); }
                 ProcessedMediaTrack[] sources = new ProcessedMediaTrack[selected.Length];
                 for (int index = 0; index < selected.Length; index++)

@@ -13,13 +13,16 @@ namespace Mediana.Execution
         private readonly IIndexedContainerReader source;
         private readonly IIndexedPresentationTimingReader? presentationTiming;
         private readonly int streamIndex;
+        private readonly SemaphoreSlim? gate;
         private long position;
 
-        public IndexedPacketReader(IIndexedContainerReader source, int streamIndex)
+        public IndexedPacketReader(IIndexedContainerReader source, int streamIndex, SemaphoreSlim? gate = null,
+            bool usePresentationTiming = true)
         {
             this.source = source;
-            presentationTiming = source as IIndexedPresentationTimingReader;
+            presentationTiming = usePresentationTiming ? source as IIndexedPresentationTimingReader : null;
             this.streamIndex = streamIndex;
+            this.gate = gate;
             Count = source.GetPacketCount(streamIndex);
             if (Count < 0)
             {
@@ -42,9 +45,20 @@ namespace Mediana.Execution
 
         public async ValueTask<MediaPacket> ReadPacketAtAsync(long packetIndex, CancellationToken cancellationToken)
         {
-            MediaDuration? duration = presentationTiming?.GetPresentationDuration(streamIndex, packetIndex, cancellationToken);
-            MediaPacket packet = await source.ReadPacketAtAsync(streamIndex, packetIndex, cancellationToken).ConfigureAwait(false);
-            return presentationTiming is null ? packet : PacketPresentationTiming.Apply(packet, duration);
+            if (gate is not null)
+            {
+                await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            try
+            {
+                MediaDuration? duration = presentationTiming?.GetPresentationDuration(streamIndex, packetIndex, cancellationToken);
+                MediaPacket packet = await source.ReadPacketAtAsync(streamIndex, packetIndex, cancellationToken).ConfigureAwait(false);
+                return presentationTiming is null ? packet : PacketPresentationTiming.Apply(packet, duration);
+            }
+            finally
+            {
+                gate?.Release();
+            }
         }
 
         public void Reposition(long nextPacketIndex)

@@ -16,6 +16,31 @@ namespace Mediana.Codecs.H264
         private static ReadOnlySpan<int> Mixed => [8066, 7490, 6554, 5825, 5243, 4559];
         private static ReadOnlySpan<int> Odd => [5243, 4660, 4194, 3647, 3355, 2893];
 
+        public static H264SkipResidualBounds GetSkipBounds(int qp)
+        {
+            int chromaQp = H264InverseTransform.ChromaQp(qp, 0);
+            int chromaStep = 1 << (16 + chromaQp / 6);
+            // L1 norms of the 4x4 transform basis are 16, 24 or 36. Chroma DC spans four blocks.
+            int chromaDc = (chromaStep - 1 - chromaStep / 3) / (64 * Even[chromaQp % 6]);
+            return new(TransformBound(qp), (byte)Math.Min(chromaDc, TransformBound(chromaQp)));
+        }
+
+        private static byte TransformBound(int qp)
+        {
+            int step = 1 << (15 + qp / 6);
+            int index = qp % 6;
+            int maximum = Math.Max(16 * Even[index], Math.Max(24 * Mixed[index], 36 * Odd[index]));
+            return (byte)((step - 1 - step / 3) / maximum);
+        }
+
+        public static int QuantizeConstantBlock(int sampleDifference, int qp, bool chroma)
+        {
+            // A constant 4x4 residual has only DC. Chroma combines four identical DC inputs.
+            int shift = (chroma ? 16 : 15) + qp / 6;
+            int dc = sampleDifference * (chroma ? 64 : 16);
+            return Quantize(dc, Even[qp % 6], shift, (1L << shift) / 3);
+        }
+
         public static void Quantize4x4(ReadOnlySpan<int> transformed, int qp, Span<int> scanned)
         {
             if (transformed.Length != 16 || scanned.Length is not (15 or 16) || qp is < 0 or > 51)

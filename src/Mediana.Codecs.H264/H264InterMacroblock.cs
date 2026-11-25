@@ -26,26 +26,24 @@ namespace Mediana.Codecs.H264
             }
             (int x, int y) = target.Grid.Position(address);
             Span<byte> prediction = stackalloc byte[target.MacroblockBytes];
-            bool noSmallPartitions = true;
             if (skip)
             {
-                H264InterPrediction.Skip(target, header, references, x, y, prediction);
+                target.Quantizers[address] = (byte)qp;
+                H264InterPrediction.ReconstructSkip(target, header, references, x, y, prediction);
+                return;
             }
-            else
-            {
-                noSmallPartitions = H264InterPrediction.Read(ref bits, new H264CavlcPredictionReader(), target, header, references, x, y, type, prediction);
-            }
-            ReadResidual(ref bits, target, header, address, ref qp, prediction, noSmallPartitions, skip);
+            bool noSmallPartitions = H264InterPrediction.Read(ref bits, new H264CavlcPredictionReader(), target, header, references, x, y, type, prediction);
+            ReadResidual(ref bits, target, header, address, ref qp, prediction, noSmallPartitions);
         }
 
         public static void ReadResidual(ref H264BitReader bits, H264Picture target, H264SliceHeader header, int address,
-            ref int qp, scoped ReadOnlySpan<byte> prediction, bool noSmallPartitions, bool skip)
+            ref int qp, scoped ReadOnlySpan<byte> prediction, bool noSmallPartitions)
         {
             (int x, int y) = target.Grid.Position(address);
-            int pattern = skip ? 0 : ReadPattern(ref bits, target);
+            int pattern = ReadPattern(ref bits, target);
             if ((pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions && bits.ReadFlag())
             {
-                target.Transforms8x8[address] = 1;
+                target.Set8x8Transform(address, true);
             }
             if (pattern != 0)
             {

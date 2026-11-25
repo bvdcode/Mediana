@@ -44,7 +44,9 @@ namespace Mediana.Tests
                             for (int dx = -3; dx <= 3; dx++)
                             {
                                 guarded.AsSpan().Fill(183);
-                                int error = neighborhood.Evaluate(dx, dy, comparison, guarded.AsSpan(3, 256), int.MaxValue);
+                                H264LumaCandidate candidate = neighborhood.Select(dx, dy);
+                                candidate.Write(guarded.AsSpan(3, 256));
+                                int error = candidate.Difference(comparison, int.MaxValue);
                                 int expectedError = 0;
                                 for (int row = 0; row < 16; row++)
                                 {
@@ -111,7 +113,7 @@ namespace Mediana.Tests
             for (int index = 0; index < 256; index++)
             {
                 H264LumaNeighborhood neighborhood = new(picture, 8, 8, samples, filtered);
-                neighborhood.Evaluate(index % 7 - 3, index / 7 % 7 - 3, comparison, output, int.MaxValue);
+                neighborhood.Select(index % 7 - 3, index / 7 % 7 - 3).Write(output);
                 sum += output[0];
             }
             return sum;

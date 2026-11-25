@@ -17,17 +17,39 @@ namespace Mediana.Processing
         private readonly MediaBufferAllocator allocator;
         private readonly WritableMediaBuffer ranges;
         private readonly WritableMediaBuffer? workspace;
+        private readonly IAreaPlaneFilter? lumaFilter;
+        private readonly IAreaPlaneFilter? chromaFilter;
         private bool disposed;
         private int busy;
 
         private Yuv420AreaResizer(VideoFormat inputFormat, VideoFormat outputFormat, MediaBufferAllocator allocator,
-            WritableMediaBuffer ranges, WritableMediaBuffer? workspace)
+            WritableMediaBuffer ranges, WritableMediaBuffer? workspace, CancellationToken cancellationToken)
         {
             this.inputFormat = inputFormat;
             OutputFormat = outputFormat;
             this.allocator = allocator;
             this.ranges = ranges;
             this.workspace = workspace;
+            if (workspace is not null)
+            {
+                Span<AreaSampleRange> all = MemoryMarshal.Cast<byte, AreaSampleRange>(ranges.Span);
+                int width = outputFormat.Width;
+                int height = outputFormat.Height;
+                lumaFilter = CompilePlane(all[..width], all.Slice(width, height), inputFormat.Width,
+                    inputFormat.Width, inputFormat.Height, 1, cancellationToken);
+                int chroma = width + height;
+                chromaFilter = CompilePlane(all.Slice(chroma, width / 2), all[(chroma + width / 2)..],
+                    (inputFormat.Width + 1) / 2, inputFormat.Width, inputFormat.Height, 2, cancellationToken);
+            }
+        }
+
+        private static IAreaPlaneFilter? CompilePlane(Span<AreaSampleRange> horizontal, Span<AreaSampleRange> vertical,
+            int sourceWidth, int frameWidth, int frameHeight, int extentDenominator, CancellationToken token)
+        {
+            IAreaPlaneFilter? compact = AreaPlaneFilter.Compile(horizontal, vertical, sourceWidth,
+                frameWidth, frameHeight, extentDenominator, token);
+            return compact ?? AreaInt32PlaneFilter.Compile(horizontal, vertical, sourceWidth,
+                frameWidth, frameHeight, extentDenominator, token);
         }
 
         public VideoFormat OutputFormat { get; }
@@ -68,7 +90,7 @@ namespace Mediana.Processing
                 {
                     workspace = allocator.Allocate(checked(2 * width * sizeof(long)));
                 }
-                Yuv420AreaResizer result = new(inputFormat, outputFormat, allocator, storage, workspace);
+                Yuv420AreaResizer result = new(inputFormat, outputFormat, allocator, storage, workspace, cancellationToken);
                 succeeded = true;
                 return result;
             }
@@ -147,9 +169,19 @@ namespace Mediana.Processing
                 ReadOnlySpan<AreaSampleRange> chromaY = all[offset..];
                 for (int plane = 0; plane < 3; plane++)
                 {
-                    Render(input, plane, output.Memory.Span.Slice(planes[plane].Offset), planes[plane].Stride,
-                        plane == 0 ? lumaX : chromaX, plane == 0 ? lumaY : chromaY,
-                        MemoryMarshal.Cast<byte, long>(workspace.Memory.Span), cancellationToken);
+                    IAreaPlaneFilter? filter = plane == 0 ? lumaFilter : chromaFilter;
+                    Span<byte> pixels = output.Span[planes[plane].Offset..];
+                    ReadOnlySpan<AreaSampleRange> horizontal = plane == 0 ? lumaX : chromaX;
+                    ReadOnlySpan<AreaSampleRange> vertical = plane == 0 ? lumaY : chromaY;
+                    if (filter is null)
+                    {
+                        Render(input, plane, pixels, planes[plane].Stride, horizontal, vertical,
+                            MemoryMarshal.Cast<byte, long>(workspace.Span), cancellationToken);
+                    }
+                    else
+                    {
+                        filter.Render(input, plane, pixels, planes[plane].Stride, horizontal, vertical, workspace.Span, cancellationToken);
+                    }
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 using MediaBuffer buffer = output.Publish();
@@ -165,7 +197,10 @@ namespace Mediana.Processing
             ReadOnlySpan<AreaSampleRange> horizontal, ReadOnlySpan<AreaSampleRange> vertical,
             Span<long> workspace, CancellationToken cancellationToken)
         {
-            long denominator = 16L * input.Format.Width * input.Format.Height;
+            ulong denominator = 16UL * (ulong)input.Format.Width * (ulong)input.Format.Height;
+            ulong rounding = denominator / 2;
+            // Rounding the reciprocal up can overestimate the quotient by at most one.
+            ulong reciprocal = ulong.MaxValue / denominator + 1;
             int extentDenominator = plane == 0 ? 1 : 2;
             Span<long> filtered = workspace[..horizontal.Length];
             Span<long> sums = workspace.Slice(horizontal.Length, horizontal.Length);
@@ -192,7 +227,9 @@ namespace Mediana.Processing
                 Span<byte> outputRow = output.Slice(y * stride, horizontal.Length);
                 for (int x = 0; x < sums.Length; x++)
                 {
-                    outputRow[x] = (byte)((sums[x] + denominator / 2) / denominator);
+                    ulong sum = (ulong)sums[x] + rounding;
+                    ulong quotient = Math.BigMul(sum, reciprocal, out _);
+                    outputRow[x] = (byte)(quotient * denominator > sum ? quotient - 1 : quotient);
                 }
             }
         }

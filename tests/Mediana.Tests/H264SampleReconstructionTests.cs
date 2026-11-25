@@ -8,14 +8,14 @@ namespace Mediana.Tests
     public class H264SampleReconstructionTests
     {
         [Theory]
-        [InlineData(4, 4)]
-        [InlineData(4, 19)]
-        [InlineData(8, 8)]
-        [InlineData(8, 27)]
-        public void ReconstructedSamplesClipFullIntegerResidualsAndPreservePadding(int size, int stride)
+        [InlineData(4, 4, 4)]
+        [InlineData(4, 16, 19)]
+        [InlineData(8, 8, 8)]
+        [InlineData(8, 16, 27)]
+        public void ReconstructedSamplesClipFullIntegerResidualsAndPreservePadding(int size, int predictionStride, int stride)
         {
             Random random = new(7301);
-            byte[] prediction = new byte[size * size];
+            byte[] prediction = new byte[(size - 1) * predictionStride + size];
             int[] residual = new int[size * size];
             byte[] actual = new byte[stride * size + 9];
             for (int iteration = 0; iteration < 256; iteration++)
@@ -29,10 +29,42 @@ namespace Mediana.Tests
                     for (int x = 0; x < size; x++)
                     {
                         int index = y * size + x;
-                        expected[y * stride + x + 3] = (byte)Math.Clamp((long)prediction[index] + residual[index], 0, 255);
+                        expected[y * stride + x + 3] = (byte)Math.Clamp((long)prediction[y * predictionStride + x] + residual[index], 0, 255);
                     }
                 }
-                H264SampleReconstruction.Write(prediction, residual, size, actual.AsSpan(3), stride);
+                H264SampleReconstruction.Write(prediction, predictionStride, residual, size, actual.AsSpan(3), stride);
+                Assert.Equal(expected, actual);
+            }
+        }
+
+        [Theory]
+        [InlineData(4, 1023)]
+        [InlineData(8, 16383)]
+        public void StridedHighPrecisionPredictionClipsResidualsInSampleUnits(int size, int maximum)
+        {
+            const int predictionStride = 16;
+            const int outputStride = 19;
+            Random random = new(7031);
+            ushort[] prediction = new ushort[(size - 1) * predictionStride + size];
+            int[] residual = new int[size * size];
+            ushort[] actual = new ushort[size * outputStride];
+            ushort[] expected = new ushort[actual.Length];
+            for (int index = 0; index < prediction.Length; index++)
+            {
+                prediction[index] = (ushort)random.Next(maximum + 1);
+            }
+            for (int iteration = 0; iteration < 16; iteration++)
+            {
+                FillResiduals(random, residual, iteration);
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        long sample = (long)prediction[y * predictionStride + x] + residual[y * size + x];
+                        expected[y * outputStride + x] = (ushort)Math.Clamp(sample, 0, maximum);
+                    }
+                }
+                H264HighPrecisionReconstruction.Write(prediction, predictionStride, residual, size, actual, outputStride, maximum);
                 Assert.Equal(expected, actual);
             }
         }

@@ -15,6 +15,14 @@ namespace Mediana.Codecs.H264
             {
                 ReadOnlySpan<byte> planeSource = source.Slice((plane - 1) * 64, 64);
                 ReadOnlySpan<byte> planePrediction = prediction.Slice((plane - 1) * 64, 64);
+                if (!planeSource.ContainsAnyExcept(planeSource[0]) && !planePrediction.ContainsAnyExcept(planePrediction[0]))
+                {
+                    coefficients.Slice((plane - 1) * 60, 60).Clear();
+                    Span<int> dc = coefficients.Slice(120 + (plane - 1) * 4, 4);
+                    dc.Clear();
+                    dc[0] = H264ForwardTransform.QuantizeConstantBlock(planeSource[0] - planePrediction[0], chromaQp, true);
+                    continue;
+                }
                 for (int index = 0; index < 4; index += 2)
                 {
                     int blockX = index % 2 * 4;
@@ -55,8 +63,6 @@ namespace Mediana.Codecs.H264
             }
             int chromaQp = H264InverseTransform.ChromaQp(qp, 0);
             Span<int> scaledDc = stackalloc int[4];
-            Span<int> residual = stackalloc int[16];
-            Span<byte> blockPrediction = stackalloc byte[16];
             for (int plane = 1; plane <= 2; plane++)
             {
                 H264InverseTransform.ChromaDc(coefficients.Slice(120 + (plane - 1) * 4, 4), chromaQp, scaledDc);
@@ -78,9 +84,8 @@ namespace Mediana.Codecs.H264
                         continue;
                     }
                     target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
-                    H264Residuals.CopyPrediction(prediction.Slice((plane - 1) * 64, 64), 8, blockX, blockY, blockPrediction);
-                    H264InverseTransform.Residual4x4(levels, chromaQp, residual, scaledDc[index]);
-                    target.WriteBlock(plane, x + blockX, y + blockY, blockPrediction, residual);
+                    target.Reconstruct4x4(plane, x + blockX, y + blockY,
+                        prediction[((plane - 1) * 64 + blockY * 8 + blockX)..], 8, levels, chromaQp, scaledDc[index]);
                 }
             }
             return true;

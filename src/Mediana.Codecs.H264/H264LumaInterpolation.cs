@@ -89,6 +89,14 @@ namespace Mediana.Codecs.H264
         private static void PredictDiagonal(ReadOnlySpan<byte> patch, int stride, int origin, int dx, int dy,
             int width, int height, int outputStride, Span<byte> output)
         {
+            if (H264ConstantRegion.TryRead(patch, stride, width + Padding, height + Padding, out byte value))
+            {
+                for (int row = 0; row < height; row++)
+                {
+                    output.Slice(row * outputStride, width).Fill(value);
+                }
+                return;
+            }
             Span<short> horizontal = stackalloc short[(height + Padding) * width];
             PrepareHorizontal(patch, stride, width, height, horizontal);
             FilterDiagonalBlock(horizontal, width, height, outputStride, output);

@@ -11,7 +11,7 @@ namespace Mediana.Codecs.H264
         private readonly H264PictureIdentity? singleReference;
         private readonly ReadOnlySpan<byte> modes;
         private readonly ReadOnlySpan<byte> counts;
-        private readonly ReadOnlySpan<byte> transforms;
+        private readonly ReadOnlySpan<H264MacroblockFlags> flags;
         private readonly ReadOnlySpan<byte> indicesL0;
         private readonly ReadOnlySpan<byte> indicesL1;
         private readonly ReadOnlySpan<int> motionXL0;
@@ -36,7 +36,7 @@ namespace Mediana.Codecs.H264
             this.singleReference = singleReference;
             modes = picture.Modes;
             counts = picture.Counts(0);
-            transforms = picture.Transforms8x8;
+            flags = picture.MacroblockFlags;
             indicesL0 = picture.ReferenceIndices(H264ReferenceList.L0);
             motionXL0 = picture.MotionX(H264ReferenceList.L0);
             motionYL0 = picture.MotionY(H264ReferenceList.L0);
@@ -114,7 +114,7 @@ namespace Mediana.Codecs.H264
 
         private readonly bool HasResidual(int x, int y, int position, int macroblock)
         {
-            if (transforms[macroblock] == 0)
+            if (!flags[macroblock].HasFlag(H264MacroblockFlags.Transform8x8))
             {
                 return counts[position] != 0;
             }

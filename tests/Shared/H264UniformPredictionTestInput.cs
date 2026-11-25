@@ -79,7 +79,7 @@ namespace Mediana.Tests
         {
             picture.Modes.Fill(H264Picture.InterMode);
             picture.Counts(0).Clear();
-            picture.Transforms8x8.Fill((byte)transform);
+            picture.MacroblockFlags.Fill((H264MacroblockFlags)transform);
             picture.ReferenceIndices(H264ReferenceList.L0).Fill(reference < 0 ? byte.MaxValue : (byte)reference);
             picture.MotionX(H264ReferenceList.L0).Fill(value);
             picture.MotionY(H264ReferenceList.L0).Fill(value);
@@ -95,7 +95,7 @@ namespace Mediana.Tests
         {
             H264DeblockingContext context = new(picture, null, null);
             context.BeginMacroblock(4);
-            int step = picture.Transforms8x8[4] == 0 ? 4 : 8;
+            int step = !picture.Uses8x8Transform(4) ? 4 : 8;
             context.FillStrengths(16, 16, true, 0, step, result[..16]);
             context.FillStrengths(16, 16, false, 0, step, result[16..]);
         }
@@ -104,7 +104,7 @@ namespace Mediana.Tests
         {
             Span<byte> expected = stackalloc byte[32];
             Span<byte> actual = stackalloc byte[36];
-            int step = picture.Transforms8x8[4] == 0 ? 4 : 8;
+            int step = !picture.Uses8x8Transform(4) ? 4 : 8;
             H264DeblockingContext scalar = new(picture, null, null);
             scalar.BeginMacroblock(4);
             expected.Clear();

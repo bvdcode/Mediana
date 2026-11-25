@@ -32,13 +32,13 @@ namespace Mediana.Tests
             using (H264Picture picture = new(Sequence(), allocator, H264SliceKind.B))
             {
                 picture.Quantizers.Fill(27);
-                picture.Transforms8x8.Fill(1);
+                picture.MacroblockFlags.Fill(H264MacroblockFlags.Transform8x8);
                 picture.Counts(0).Fill(3);
                 picture.Plane(2).Fill(155);
                 picture.SetMotion(H264ReferenceList.L0, 0, 0, 16, 16, 31, -32768, 32767);
                 picture.SetMotion(H264ReferenceList.L1, 0, 0, 16, 16, 17, 300, -400);
                 Assert.All(picture.Quantizers.ToArray(), value => Assert.Equal(27, value));
-                Assert.All(picture.Transforms8x8.ToArray(), value => Assert.Equal(1, value));
+                Assert.All(picture.MacroblockFlags.ToArray(), value => Assert.Equal(H264MacroblockFlags.Transform8x8, value));
                 Assert.All(picture.Counts(0).ToArray(), value => Assert.Equal(3, value));
                 Assert.All(picture.Plane(2).ToArray(), value => Assert.Equal(155, value));
                 Assert.Equal(714, allocator.AllocatedBytes);

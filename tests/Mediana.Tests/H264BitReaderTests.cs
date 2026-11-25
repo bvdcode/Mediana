@@ -17,6 +17,20 @@ namespace Mediana.Tests
             Assert.True(bits.ByteAligned);
         }
 
+        [Fact]
+        public void PrefetchedBytesRemainVisibleToEndOfPayloadValidation()
+        {
+            Assert.Throws<InvalidDataException>(() => ReadTrailing([0x80, 0x11, 0x22, 0x33]));
+            Assert.Throws<InvalidDataException>(ReadBufferedCabacPadding);
+        }
+
+        private static void ReadBufferedCabacPadding()
+        {
+            H264BitReader bits = new([0x9f, 0x11, 0x22, 0x33]);
+            bits.ReadBits(3);
+            bits.ReadCabacPadding();
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(1)]

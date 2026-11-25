@@ -32,58 +32,41 @@ namespace Mediana.Codecs.H264
         private static void ReadLuma<TReader>(ref H264BitReader bits, TReader reader, H264Picture target, int x, int y, int type, int pattern, int qp, bool constrained, int plane = 0)
             where TReader : IH264ResidualReader
         {
-            bool field = target.IsFieldMacroblock(x, y);
-            bool intra16 = type != 0;
-            if (!intra16 && target.Transforms8x8[target.Grid.Address(x, y)] != 0)
+            if (type != 0)
+            {
+                H264Intra16Reconstruction.Read(ref bits, reader, target, plane, x, y, (type - 1) % 4, pattern & 15, qp, constrained);
+                return;
+            }
+            if (target.Uses8x8Transform(target.Grid.Address(x, y)))
             {
                 H264Luma8x8Reconstruction.Read(ref bits, reader, target, x, y, pattern, qp, true, constrained, [], plane);
                 return;
             }
+            bool field = target.IsFieldMacroblock(x, y);
             Span<int> coefficients = stackalloc int[16];
-            Span<int> dc = stackalloc int[16];
-            Span<byte> macroPrediction = stackalloc byte[target.LumaMacroblockBytes];
             Span<byte> prediction = stackalloc byte[16 * target.SampleBytes];
-            Span<int> residual = stackalloc int[16];
-            if (intra16)
-            {
-                reader.Read(ref bits, H264ResidualCategory.Intra16LumaDc, plane, x, y, coefficients);
-                H264InverseTransform.LumaDc(coefficients, qp, dc, target.Sequence.LumaBitDepth, field: field);
-                target.PredictMacroblock(plane, x, y, (type - 1) % 4, macroPrediction, constrained);
-            }
+            Span<byte> counts = target.Counts(plane);
+            Span<byte> modes = target.Modes;
             for (int index = 0; index < 16; index++)
             {
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
-                int position = target.BlockIndex(plane, x + blockX, y + blockY);
-                Span<int> block = intra16 ? coefficients[..15] : coefficients;
+                int column = x + blockX;
+                int row = y + blockY;
+                int position = target.BlockIndex(plane, column, row);
                 int count = 0;
-                block.Clear();
                 if ((pattern & (1 << (index / 4))) != 0)
                 {
-                    count = reader.Read(ref bits, intra16 ? H264ResidualCategory.Intra16LumaAc : H264ResidualCategory.Luma4x4,
-                        plane, x + blockX, y + blockY, block);
+                    coefficients.Clear();
+                    count = reader.Read(ref bits, H264ResidualCategory.Luma4x4, plane, column, row, coefficients);
                 }
-                target.Counts(plane)[position] = (byte)count;
-                if (intra16)
+                counts[position] = (byte)count;
+                target.PredictLuma4x4(column, row, modes[position] & 127, prediction, constrained, plane);
+                if (count == 0)
                 {
-                    if (count == 0 && dc[(blockY / 4) * 4 + blockX / 4] == 0)
-                    {
-                        target.WriteZeroResidualBlock(plane, x + blockX, y + blockY, 4, macroPrediction[((blockY * 16 + blockX) * target.SampleBytes)..], 16);
-                        continue;
-                    }
-                    H264Residuals.CopyPrediction(macroPrediction, 16, blockX, blockY, prediction, target.SampleBytes);
-                    H264InverseTransform.Residual4x4(block, qp, residual, dc[(blockY / 4) * 4 + blockX / 4], target.Sequence.LumaBitDepth, field: field);
+                    target.WriteZeroResidualBlock(plane, column, row, 4, prediction, 4);
+                    continue;
                 }
-                else
-                {
-                    target.PredictLuma4x4(x + blockX, y + blockY, target.Modes[position] & 127, prediction, constrained, plane);
-                    if (count == 0)
-                    {
-                        target.WriteZeroResidualBlock(plane, x + blockX, y + blockY, 4, prediction, 4);
-                        continue;
-                    }
-                    H264InverseTransform.Residual4x4(block, qp, residual, bitDepth: target.Sequence.LumaBitDepth, field: field);
-                }
-                target.WriteBlock(plane, x + blockX, y + blockY, prediction, residual);
+                target.Reconstruct4x4(plane, column, row, prediction, 4, coefficients, qp, field: field);
             }
         }
 

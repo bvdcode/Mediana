@@ -100,9 +100,25 @@ namespace Mediana.Tests
             {
                 Assert.False(decoder.ReadBypass(ref reader));
             }
-            Assert.True(reader.ByteAligned);
+            Assert.Equal(40, decoder.GetBitPosition(ref reader));
             Assert.Equal(510, decoder.Range);
             Assert.Equal(0, decoder.Offset);
+        }
+
+        [Fact]
+        public void TerminationReturnsLookaheadBeforePcmAndRestart()
+        {
+            H264BitReader reader = new([0x7f, 0x40, 0xde, 0xad, 0x12, 0x34]);
+            H264CabacDecoder decoder = new(ref reader);
+            Assert.False(decoder.ReadBypass(ref reader));
+            Assert.Equal(10, decoder.GetBitPosition(ref reader));
+            Assert.True(decoder.ReadTermination(ref reader));
+            Assert.Equal(10, reader.BitPosition);
+            reader.AlignZero();
+            Assert.Equal(0xdeadU, reader.ReadBits(16));
+            H264CabacDecoder next = new(ref reader);
+            Assert.Equal(36, next.Offset);
+            Assert.Equal(41, next.GetBitPosition(ref reader));
         }
 
         private static void Initialize(byte[] payload, int prefixBits = 0)
@@ -144,7 +160,7 @@ namespace Mediana.Tests
             H264CabacDecoder decoder = new(ref reader);
             H264CabacContext context = new(63, false);
             Assert.True(decoder.ReadBin(ref reader, ref context));
-            Assert.True(reader.ByteAligned);
+            Assert.Equal(16, decoder.GetBitPosition(ref reader));
             decoder.ReadBin(ref reader, ref context);
         }
 

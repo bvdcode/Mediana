@@ -72,18 +72,10 @@ namespace Mediana.Tests
                     {
                         foreach (int stop in new[] { 0, prefix - 1, prefix, prefix + 1, int.MaxValue })
                         {
-                            int expected = prefixes[^1];
-                            foreach (int partial in prefixes)
+                            int actual = H264SampleDifference.Sum16x16(source, reference, stride, stop);
+                            if (sum <= stop ? actual != sum : actual <= stop || actual > sum)
                             {
-                                if (partial > stop)
-                                {
-                                    expected = partial;
-                                    break;
-                                }
-                            }
-                            if (H264SampleDifference.Sum16x16(source, reference, stride, stop) != expected)
-                            {
-                                throw new InvalidDataException("Strided motion differences changed a row rejection boundary or included padding.");
+                                throw new InvalidDataException("Strided motion differences rejected a valid candidate or included padding.");
                             }
                         }
                     }

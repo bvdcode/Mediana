@@ -39,7 +39,9 @@ namespace Mediana
             IMediaEncoder<VideoFrame> encoder = input.Resources.Own(request.Encoder.Create(preparation.OutputFormat, outputClock, input.Allocator, request.OutputStreamIndex));
             VideoFrame? opening = input.Resources.Own(first.Retain());
             MediaInputProgress progress = new();
-            MediaEncodeSource<VideoFrame> source = new(ReadPreparedAsync, encoder);
+            IEncodedPacketSource source = request.BufferPreparedFrames
+                ? new BufferedMediaEncodeSource<VideoFrame>(ReadPreparedAsync, encoder)
+                : new MediaEncodeSource<VideoFrame>(ReadPreparedAsync, encoder, request.OverlapPreparation);
             return new(source, () => new(stream.StreamIndex, encoder.Stream, progress.Frames, 0, 0, 0, null, null), progress);
 
             async ValueTask<VideoFrame?> ReadDecodedAsync(CancellationToken cancellationToken)

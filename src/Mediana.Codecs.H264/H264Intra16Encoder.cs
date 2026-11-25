@@ -27,6 +27,16 @@ namespace Mediana.Codecs.H264
             return TryWrite(new H264CavlcEncodingSyntax(bits, target), target, x, y, qp, pattern, prediction, coefficients);
         }
 
+        public static void WriteCabac(H264CabacEncodingSyntax syntax, H264SourceMacroblock source, H264Picture target,
+            int address, int x, int y, int quantizer, int mode, int chromaMode, ReadOnlySpan<byte> prediction, Span<int> coefficients)
+        {
+            int intraPattern = AnalyzePrediction(source, quantizer, prediction, coefficients);
+            syntax.WriteIntra16Type(address, mode, intraPattern);
+            syntax.WriteChromaMode(address, chromaMode);
+            syntax.WriteQuantizerDelta(0);
+            TryWrite(syntax, target, x, y, quantizer, intraPattern, prediction, coefficients);
+        }
+
         public static int Analyze(H264SourceMacroblock source, H264Picture target, int x, int y, int qp, int mode,
             Span<byte> prediction, Span<int> coefficients)
         {
@@ -37,6 +47,11 @@ namespace Mediana.Codecs.H264
             {
                 target.PredictMacroblock(plane, x / 2, y / 2, 0, prediction.Slice(256 + (plane - 1) * 64, 64));
             }
+            return AnalyzePrediction(source, qp, prediction, coefficients);
+        }
+
+        public static int AnalyzePrediction(H264SourceMacroblock source, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
+        {
             Span<int> luma = coefficients[..240];
             Span<int> rawDc = stackalloc int[16];
             for (int index = 0; index < 16; index += 2)
@@ -65,8 +80,6 @@ namespace Mediana.Codecs.H264
             }
             Span<int> rawDc = stackalloc int[16];
             H264InverseTransform.LumaDc(dc, qp, rawDc);
-            Span<byte> blockPrediction = stackalloc byte[16];
-            Span<int> residual = stackalloc int[16];
             for (int index = 0; index < 16; index++)
             {
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
@@ -79,9 +92,8 @@ namespace Mediana.Codecs.H264
                 }
                 target.Counts(0)[target.BlockIndex(0, x + blockX, y + blockY)] = (byte)count;
                 target.SetLumaMode(x + blockX, y + blockY, 2);
-                H264Residuals.CopyPrediction(prediction, 16, blockX, blockY, blockPrediction);
-                H264InverseTransform.Residual4x4(levels, qp, residual, rawDc[blockY / 4 * 4 + blockX / 4]);
-                target.WriteBlock(0, x + blockX, y + blockY, blockPrediction, residual);
+                target.Reconstruct4x4(0, x + blockX, y + blockY, prediction[(blockY * 16 + blockX)..], 16,
+                    levels, qp, rawDc[blockY / 4 * 4 + blockX / 4]);
             }
             target.Quantizers[y / 16 * target.Sequence.WidthInMbs + x / 16] = (byte)qp;
             return H264ChromaEncoder.TryWrite(syntax, target, x / 2, y / 2, qp, pattern >> 4, prediction[256..], coefficients[256..]);

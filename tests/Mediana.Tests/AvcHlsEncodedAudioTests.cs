@@ -20,8 +20,10 @@ namespace Mediana.Tests
 {
     public class AvcHlsEncodedAudioTests
     {
-        [Fact]
-        public async Task ColdEncodedAudioWindowsPreservePacketClocksAndSignalWithoutReadingThePrecedingMedia()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ColdEncodedAudioWindowsPreservePacketClocksAndSignalWithoutReadingThePrecedingMedia(bool overlap)
         {
             byte[] bytes = await Mp4TestData.ReadAsync("avc-aac-on-demand.mp4");
             MediaBufferAllocator allocator = new(8 * 1024 * 1024);
@@ -78,7 +80,7 @@ namespace Mediana.Tests
                 {
                     source.Reads.Clear();
                     using MemoryStream output = new();
-                    await session.WriteSegmentAsync(number, output);
+                    await session.WriteSegmentAsync(number, output, overlap, CancellationToken.None);
                     byte[] fragment = output.ToArray();
                     Assert.True(source.Reads.Sum(read => read.Length) < bytes.Length / 2);
                     if (number != 0)

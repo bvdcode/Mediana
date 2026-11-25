@@ -89,22 +89,19 @@ namespace Mediana.Tests
             byte[] guarded = new byte[262];
             Array.Fill(guarded, (byte)183);
             byte[] unchanged = (byte[])comparison.Clone();
-            int actual = neighborhood.Evaluate(x, y, comparison, guarded.AsSpan(3, 256), limit);
+            H264LumaCandidate candidate = neighborhood.Select(x, y);
+            int actual = candidate.Difference(comparison, limit);
+            candidate.Write(guarded.AsSpan(3, 256));
             int error = 0;
-            int count = 0;
-            do
+            for (int index = 0; index < expected.Length; index++)
             {
-                for (int column = 0; column < 16; column++)
-                {
-                    error += Math.Abs(comparison[count] - expected[count]);
-                    count++;
-                }
-            } while (count < 256 && error <= limit);
-            if (actual != error || !guarded.AsSpan(3, count).SequenceEqual(expected.AsSpan(0, count))
-                || guarded.AsSpan(0, 3).ContainsAnyExcept((byte)183) || guarded.AsSpan(3 + count).ContainsAnyExcept((byte)183)
+                error += Math.Abs(comparison[index] - expected[index]);
+            }
+            if ((error <= limit ? actual != error : actual <= limit || actual > error) || !guarded.AsSpan(3, 256).SequenceEqual(expected)
+                || guarded.AsSpan(0, 3).ContainsAnyExcept((byte)183) || guarded.AsSpan(259).ContainsAnyExcept((byte)183)
                 || !comparison.AsSpan().SequenceEqual(unchanged))
             {
-                throw new InvalidDataException("Candidate evaluation changed its row rejection boundary, prediction prefix, input or output guards.");
+                throw new InvalidDataException("Candidate evaluation changed its rejection boundary, prediction, input or output guards.");
             }
         }
     }
