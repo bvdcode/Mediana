@@ -7,8 +7,8 @@ signature; filenames do not select the reader. Register the factory with
 
 The reader implements `IIndexedPacketTimingReader` and
 `IIndexedPresentationTimingReader`. Opening reads stream headers and indexes,
-with allocator-backed packet tables. MJPEG and PCM payload is read only when a
-packet is requested. MPEG-4 Visual also reads bounded picture-header prefixes
+with allocator-backed packet tables. MJPEG, PCM, Microsoft MPEG-4 v3 and WMV2
+payload is read only when a packet is requested. MPEG-4 Visual reads bounded picture-header prefixes
 to build its presentation clock. Supported index representations are `idx1`
 with movie-relative or file-relative addresses, OpenDML standard chunk indexes,
 and super indexes. Each referenced packet's chunk identifier and length are
@@ -32,6 +32,10 @@ for unsupported reordered video remain unknown rather than copying decode time.
 Declared MPEG-4 Part 2 FourCCs use the shared [MPEG-4 Visual decoder](mpeg4-visual.md).
 AVI chunk decode clocks remain distinct from exact reordered VOP presentation
 clocks. Display duration can differ from a chunk's transport duration.
+
+`MP43`, `DIV3` and `WMV2` map to separate [codec representations](mpeg4-visual.md#microsoft-mpeg-4-v3-and-wmv2)
+with coded dimensions from `strf`. Their presentation clocks follow the AVI
+index because these streams decode in display order.
 
 DivX/Xvid packed bitstreams are normalized into one VOP per logical packet.
 Opening structurally scans packed reference chunks with bounded scratch storage

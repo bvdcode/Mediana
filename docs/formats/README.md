@@ -3,9 +3,9 @@
 Mediana's target formats and independently tracked operations. This is a development map,
 not a claim that every listed format is currently supported. Priorities and scope may evolve.
 
-**469 variants · 1066 operations · 19 groups.**
+**471 variants · 1070 operations · 19 groups.**
 
-**Existing implementations: 140 variants · 173 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 144 variants · 177 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -30,8 +30,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 26 | 35 | 26 | 71 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
-| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 18 | 62 | 19 | 124 |
-| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 18 | 63 | 24 | 128 |
+| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 20 | 64 | 21 | 128 |
+| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 20 | 63 | 26 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
 | [Fonts and text presentation resources](#fonts-and-text-presentation-resources) | 6 | 14 | 7 | 27 |
@@ -293,12 +293,14 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `mpeg2-high` | MPEG-2 Video — 4:2:2 / High / scalable profiles | .m2v | D □ · E □ | C | [mpeg-video](sources.md#mpeg-video) | — |
 | `mpeg4-simple` | MPEG-4 Visual — Simple profile | .m4v | D ◐ · E □ | B | Managed progressive I/P decoding, spatial prediction, resynchronization and AVI/MP4 mappings. [API](../mpeg4-visual.md). [mpeg-video](sources.md#mpeg-video) | — |
 | `mpeg4-asp` | MPEG-4 Visual — Advanced Simple profile | .m4v | D ◐ · E □ | B | Managed progressive I/P/B and quarter-pixel motion; interlace, sprites and partitioned layers remain separate tools. [API](../mpeg4-visual.md). [mpeg-video](sources.md#mpeg-video) | — |
+| `msmpeg4-v3` | Microsoft MPEG-4 — v3 (MP43 / DIV3) | .avi | D ◐ · E □ | B | Managed I/P decoding and indexed AVI seeking. [API](../mpeg4-visual.md#microsoft-mpeg-4-v3-and-wmv2). [discovery](sources.md#discovery) | — |
 | `h261` | H.261 — Video coding | .h261 | D □ · E □ | C | [itu-video](sources.md#itu-video) | — |
 | `h263` | H.263 — Baseline | .h263 | D □ · E □ | C | [itu-video](sources.md#itu-video) | — |
 | `h263-extensions` | H.263 — Annex extensions / H.263+ | .h263 | D □ · E □ | C | [itu-video](sources.md#itu-video) | — |
 | `theora` | Theora — Video coding | .ogv | D ◐ · E □ | B | Managed Theora 3.2, native 4:2:0/4:2:2/4:4:4 planes and indexed Ogg mapping. [API](../theora.md). [theora](sources.md#theora) | — |
 | `vc1` | VC-1 — Simple/Main/Advanced profiles | — | D □ · E □ | C | Select the SMPTE 421M revision and transport mappings before implementation. [discovery](sources.md#discovery) | — |
-| `wmv-legacy` | Windows Media Video — Earlier WMV revisions | — | D □ · E □ | C | Split WMV1/WMV2 and concrete bitstream revisions when scoped. [discovery](sources.md#discovery) | — |
+| `wmv-legacy` | Windows Media Video — WMV1 and earlier revisions | — | D □ · E □ | C | Split concrete bitstream revisions when scoped. [discovery](sources.md#discovery) | — |
+| `wmv2` | Windows Media Video — WMV2 (Windows Media Video 8) | .avi | D ◐ · E □ | B | Managed I/P decoding and indexed AVI seeking. IntraX8 is unsupported. [API](../mpeg4-visual.md#microsoft-mpeg-4-v3-and-wmv2). [discovery](sources.md#discovery) | — |
 | `vp6` | VP6 — Legacy web video | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `vp7` | VP7 — Legacy video | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `avs-family` | AVS — AVS1 / AVS2 / AVS3 families | — | D □ · E □ | C | These are separate standards; split them before implementation. [discovery](sources.md#discovery) | — |
@@ -329,9 +331,9 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `pcm-validbits` | PCM — Valid bits within aligned storage | — | D ◐ · E □ | B | Includes non-byte-aligned precision and extensible WAVE valid-bit declarations. [riff](sources.md#riff), [aiff](sources.md#aiff) | — |
 | `pcm-f32` | PCM — IEEE float32, LE/BE | — | D ◐ · E ◐ | A | [riff](sources.md#riff), [aiff](sources.md#aiff) | — |
 | `pcm-f64` | PCM — IEEE float64, LE/BE | — | D ◐ · E ◐ | B | [riff](sources.md#riff), [aiff](sources.md#aiff) | — |
-| `g711-alaw` | G.711 — A-law | — | D □ · E □ | B | [itu-audio](sources.md#itu-audio) | — |
+| `g711-alaw` | G.711 — A-law | — | D ◐ · E □ | B | [itu-audio](sources.md#itu-audio) | — |
 | `g711-mulaw` | G.711 — Mu-law | — | D □ · E □ | B | [itu-audio](sources.md#itu-audio) | — |
-| `adpcm-ima-wave` | IMA ADPCM — WAVE block layout | — | D □ · E □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
+| `adpcm-ima-wave` | IMA ADPCM — WAVE block layout | — | D ◐ · E □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `adpcm-ima-qt` | IMA ADPCM — QuickTime block layout | — | D □ · E □ | B | [quicktime](sources.md#quicktime), [discovery](sources.md#discovery) | — |
 | `adpcm-ms` | Microsoft ADPCM — WAVE block layout | — | D □ · E □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `adpcm-g726` | G.726 — ADPCM bit-rate modes | — | D □ · E □ | C | [itu-audio](sources.md#itu-audio) | — |

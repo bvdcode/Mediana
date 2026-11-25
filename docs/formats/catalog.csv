@@ -210,12 +210,14 @@ mpeg2-main,Video codecs and substantial profiles,MPEG-2 Video,Simple/Main profil
 mpeg2-high,Video codecs and substantial profiles,MPEG-2 Video,4:2:2 / High / scalable profiles,video-codec,.m2v,C,mpeg-video,
 mpeg4-simple,Video codecs and substantial profiles,MPEG-4 Visual,Simple profile,video-codec,.m4v,B,mpeg-video,"Managed progressive I/P decoding, spatial prediction, resynchronization and AVI/MP4 mappings. [API](../mpeg4-visual.md)."
 mpeg4-asp,Video codecs and substantial profiles,MPEG-4 Visual,Advanced Simple profile,video-codec,.m4v,B,mpeg-video,"Managed progressive I/P/B and quarter-pixel motion; interlace, sprites and partitioned layers remain separate tools. [API](../mpeg4-visual.md)."
+msmpeg4-v3,Video codecs and substantial profiles,Microsoft MPEG-4,v3 (MP43 / DIV3),video-codec,.avi,B,discovery,Managed I/P decoding and indexed AVI seeking. [API](../mpeg4-visual.md#microsoft-mpeg-4-v3-and-wmv2).
 h261,Video codecs and substantial profiles,H.261,Video coding,video-codec,.h261,C,itu-video,
 h263,Video codecs and substantial profiles,H.263,Baseline,video-codec,.h263,C,itu-video,
 h263-extensions,Video codecs and substantial profiles,H.263,Annex extensions / H.263+,video-codec,.h263,C,itu-video,
 theora,Video codecs and substantial profiles,Theora,Video coding,video-codec,.ogv,B,theora,"Managed Theora 3.2, native 4:2:0/4:2:2/4:4:4 planes and indexed Ogg mapping. [API](../theora.md)."
 vc1,Video codecs and substantial profiles,VC-1,Simple/Main/Advanced profiles,video-codec,,C,discovery,Select the SMPTE 421M revision and transport mappings before implementation.
-wmv-legacy,Video codecs and substantial profiles,Windows Media Video,Earlier WMV revisions,video-codec,,C,discovery,Split WMV1/WMV2 and concrete bitstream revisions when scoped.
+wmv-legacy,Video codecs and substantial profiles,Windows Media Video,WMV1 and earlier revisions,video-codec,,C,discovery,Split concrete bitstream revisions when scoped.
+wmv2,Video codecs and substantial profiles,Windows Media Video,WMV2 (Windows Media Video 8),video-codec,.avi,B,discovery,"Managed I/P decoding and indexed AVI seeking. IntraX8 is unsupported. [API](../mpeg4-visual.md#microsoft-mpeg-4-v3-and-wmv2)."
 vp6,Video codecs and substantial profiles,VP6,Legacy web video,video-codec,,C,discovery,
 vp7,Video codecs and substantial profiles,VP7,Legacy video,video-codec,,C,discovery,
 avs-family,Video codecs and substantial profiles,AVS,AVS1 / AVS2 / AVS3 families,video-codec,,C,discovery,These are separate standards; split them before implementation.

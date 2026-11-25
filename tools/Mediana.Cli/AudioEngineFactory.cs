@@ -11,6 +11,7 @@ using Mediana.Codecs.Alac;
 using Mediana.Codecs.Dts;
 using Mediana.Codecs.Pcm;
 using Mediana.Containers.Mp4;
+using Mediana.Formats.Audio;
 
 namespace Mediana.Cli
 {
@@ -24,6 +25,8 @@ namespace Mediana.Cli
             .AddAudioDecoder(new DtsDecoderFactory())
             .AddAudioDecoder(new PcmDecoderFactory())
             .AddAudioDecoder(new AiffPcmDecoderFactory())
+            .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ALaw))
+            .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ImaAdpcm))
             .AddAudioDecoder(new AacDecoderFactory())
             .AddAudioDecoder(new Ac3DecoderFactory())
             .AddAudioDecoder(new Eac3DecoderFactory())

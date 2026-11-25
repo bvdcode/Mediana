@@ -3,7 +3,6 @@
 
 using System.Buffers.Binary;
 using Mediana.Core;
-using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
@@ -14,12 +13,13 @@ using Mediana.Formats;
 
 namespace Mediana.Containers.Wave
 {
-    /// <summary>Reads one RIFF/WAVE PCM data chunk sequentially. Borrows its source.
+    /// <summary>Reads one RIFF/WAVE audio data chunk sequentially. Borrows its source.
     /// Trailing chunks and padding are validated when the packet stream is drained.
-    /// RF64, RIFX, compressed WAVE and nested audio lists are not supported.</summary>
+    /// Supports PCM, IEEE float, G.711 A-law and IMA ADPCM.</summary>
     public class WaveReader : IContainerReader
     {
         private const uint FormatChunk = 0x20746d66;
+        private const uint FactChunk = 0x74636166;
         private const uint DataChunk = 0x61746164;
         private const uint ListChunk = 0x5453494c;
         private const int ReadBufferBytes = 4096;
@@ -27,6 +27,11 @@ namespace Mediana.Containers.Wave
         private readonly MediaBufferAllocator allocator;
         private readonly WaveReadOptions options;
         private readonly WritableMediaBuffer scratch;
+        private PcmConfiguration? pcmConfiguration;
+        private WaveCompressedAudioConfiguration? compressedConfiguration;
+        private int blockAlignment;
+        private int samplesPerBlock = 1;
+        private uint? factSampleCount;
         private long remaining;
         private long metadataBytes;
         private long dataRemaining;
@@ -47,9 +52,11 @@ namespace Mediana.Containers.Wave
 
         public ContainerInfo Info { get; private set; } = null!;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
-        public PcmConfiguration Configuration { get; private set; } = null!;
+        /// <summary>The storage description for a PCM or IEEE float stream.</summary>
+        public PcmConfiguration Configuration => pcmConfiguration
+            ?? throw new InvalidOperationException("The WAVE stream does not contain PCM or IEEE float data.");
         public long SamplesPerChannel { get; private set; }
-        public MediaDuration Duration => new(SamplesPerChannel, new TimeBase(1, Configuration.Format.SampleRate));
+        public MediaDuration Duration => new(SamplesPerChannel, Streams[0].TimeBase);
 
         public static async ValueTask<WaveReader> OpenAsync(IByteSource source, MediaBufferAllocator allocator,
             WaveReadOptions? options = null, CancellationToken cancellationToken = default)
@@ -110,22 +117,29 @@ namespace Mediana.Containers.Wave
                         using (WritableMediaBuffer format = allocator.Allocate((int)chunkSize))
                         {
                             await ReadAsync(format.Memory, cancellationToken).ConfigureAwait(false);
-                            Configuration = PcmConfiguration.ReadWaveFormat(format.Memory.Span, out string? reason)
-                                ?? throw new NotSupportedException(reason);
-                            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, PcmConfiguration.CodecId, StreamFormats.WavePcm,
-                                new TimeBase(1, Configuration.Format.SampleRate), format.Memory.Span) });
+                            ReadFormat(format.Memory.Span);
                         }
                         formatRead = true;
                         await SkipMetadataAsync(chunkSize & 1, cancellationToken).ConfigureAwait(false);
                         break;
-                    case DataChunk:
-                        if (!formatRead || chunkSize % Configuration.BlockAlignment != 0)
+                    case FactChunk when compressedConfiguration?.Encoding == WaveCompressedAudioEncoding.ImaAdpcm:
+                        if (factSampleCount is not null || chunkSize < sizeof(uint))
                         {
-                            throw new InvalidDataException("WAVE data requires an earlier format and complete PCM blocks.");
+                            throw new InvalidDataException("The WAVE IMA ADPCM fact chunk is duplicated or truncated.");
+                        }
+                        CountMetadata(sizeof(uint));
+                        await ReadAsync(scratch.Memory[..sizeof(uint)], cancellationToken).ConfigureAwait(false);
+                        factSampleCount = BinaryPrimitives.ReadUInt32LittleEndian(scratch.Memory.Span);
+                        await SkipMetadataAsync((long)chunkSize - sizeof(uint) + (chunkSize & 1), cancellationToken).ConfigureAwait(false);
+                        break;
+                    case DataChunk:
+                        if (!formatRead)
+                        {
+                            throw new InvalidDataException("WAVE data requires an earlier format chunk.");
                         }
                         dataRemaining = chunkSize;
                         dataPadding = (chunkSize & 1) != 0;
-                        SamplesPerChannel = chunkSize / Configuration.BlockAlignment;
+                        SamplesPerChannel = GetDataSampleCount(chunkSize);
                         EncodedStreamInfo stream = Streams[0];
                         Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(stream.StreamIndex, stream.Kind, stream.CodecId, stream.Format,
                             stream.TimeBase, stream.Configuration.Span, codedDuration: Duration) });
@@ -136,6 +150,52 @@ namespace Mediana.Containers.Wave
                 }
             }
             throw new InvalidDataException("The WAVE file has no data chunk.");
+        }
+
+        private void ReadFormat(ReadOnlySpan<byte> bytes)
+        {
+            compressedConfiguration = WaveCompressedAudioConfiguration.ReadWaveFormat(bytes);
+            string codecId;
+            EncodedStreamFormat streamFormat;
+            int rate;
+            if (compressedConfiguration is not null)
+            {
+                blockAlignment = compressedConfiguration.BlockAlignment;
+                samplesPerBlock = compressedConfiguration.SamplesPerBlock;
+                rate = compressedConfiguration.DecodedFormat.SampleRate;
+                codecId = compressedConfiguration.CodecId;
+                streamFormat = WaveCompressedAudioConfiguration.GetStreamFormat(compressedConfiguration.Encoding);
+            }
+            else
+            {
+                pcmConfiguration = PcmConfiguration.ReadWaveFormat(bytes, out string? reason)
+                    ?? throw new NotSupportedException(reason);
+                blockAlignment = pcmConfiguration.BlockAlignment;
+                rate = pcmConfiguration.Format.SampleRate;
+                codecId = PcmConfiguration.CodecId;
+                streamFormat = StreamFormats.WavePcm;
+            }
+            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, codecId, streamFormat,
+                new TimeBase(1, rate), bytes) });
+        }
+
+        private long GetDataSampleCount(long bytes)
+        {
+            if (compressedConfiguration is null && bytes % blockAlignment != 0)
+            {
+                throw new InvalidDataException("WAVE data ends in an incomplete PCM block.");
+            }
+            long capacity = compressedConfiguration?.GetSampleCapacity(bytes) ?? bytes / blockAlignment;
+            if (factSampleCount is not uint count)
+            {
+                return capacity;
+            }
+            long firstSampleInLastBlock = bytes == 0 ? 0 : (bytes - 1) / blockAlignment * samplesPerBlock + 1;
+            if (count < firstSampleInLastBlock || count > capacity)
+            {
+                throw new InvalidDataException("The WAVE IMA ADPCM fact sample count does not match the data blocks.");
+            }
+            return count;
         }
 
         public async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)
@@ -156,8 +216,10 @@ namespace Mediana.Containers.Wave
                     succeeded = true;
                     return null;
                 }
-                int samples = (int)Math.Min(options.SamplesPerPacket, dataRemaining / Configuration.BlockAlignment);
-                int bytes = checked(samples * Configuration.BlockAlignment);
+                int blocks = Math.Max(1, options.SamplesPerPacket / samplesPerBlock);
+                int bytes = checked((int)Math.Min(dataRemaining, (long)blocks * blockAlignment));
+                long capacity = compressedConfiguration?.GetSampleCapacity(bytes) ?? bytes / blockAlignment;
+                long samples = Math.Min(capacity, SamplesPerChannel - samplePosition);
                 using WritableMediaBuffer writable = allocator.Allocate(bytes);
                 await ReadAsync(writable.Memory, cancellationToken).ConfigureAwait(false);
                 TimeBase timeBase = Streams[0].TimeBase;

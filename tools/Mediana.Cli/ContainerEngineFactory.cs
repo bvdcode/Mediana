@@ -21,6 +21,7 @@ using Mediana.Containers.Mp4;
 using Mediana.Containers.Matroska;
 using Mediana.Containers.Ogg;
 using Mediana.Containers.Wave;
+using Mediana.Formats.Video;
 
 namespace Mediana.Cli
 {
@@ -38,6 +39,8 @@ namespace Mediana.Cli
                 .AddVideoDecoder(new Vp8DecoderFactory())
                 .AddVideoDecoder(new Vp9DecoderFactory())
                 .AddVideoDecoder(new Mpeg4DecoderFactory())
+                .AddVideoDecoder(new MicrosoftMpeg4DecoderFactory(MicrosoftMpeg4Configuration.Version3CodecId))
+                .AddVideoDecoder(new MicrosoftMpeg4DecoderFactory(MicrosoftMpeg4Configuration.Wmv2CodecId))
                 .AddVideoDecoder(new TheoraDecoderFactory())
                 .AddVideoDecoder(new Av1DecoderFactory());
         }

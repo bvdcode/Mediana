@@ -86,7 +86,7 @@ namespace Mediana.Codecs.Mpeg4Visual
             return Predictions[(offset + y * (plane == 0 ? mbWidth * 2 : mbWidth) + x) * 16 + 15] != 0;
         }
         private static int RoundDivide(int value, int divisor) => value >= 0 ? (value + divisor / 2) / divisor : (value - divisor / 2) / divisor;
-        private static int DcScale(int quantizer, bool luma)
+        internal static int DcScale(int quantizer, bool luma)
         {
             if (quantizer < 5) { return 8; }
             if (!luma) { return quantizer < 25 ? (quantizer + 13) / 2 : quantizer - 6; }
