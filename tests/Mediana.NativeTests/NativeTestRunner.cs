@@ -118,6 +118,8 @@ namespace Mediana.NativeTests
             await NativeAlacTests.RunAsync();
             await NativeDtsTests.RunAsync();
             await NativeProResTests.RunAsync();
+            await DvAviTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Dv"));
+            Console.WriteLine("PASS PAL DV25 AVI: reference samples, frame timing and indexed seeking.");
             await NativeAdtsTests.RunAsync();
             await NativeAacSbrTests.RunAsync();
             await NativeAc3Tests.RunAsync();

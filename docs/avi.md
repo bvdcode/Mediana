@@ -37,6 +37,10 @@ clocks. Display duration can differ from a chunk's transport duration.
 with coded dimensions from `strf`. Their presentation clocks follow the AVI
 index because these streams decode in display order.
 
+PAL DV25 Type-2 `dvsd` tracks use the [DV decoder](dv.md). Every DV video
+packet is independently accessible. OpenDML `vprp` describes display geometry
+and supplies a sample aspect ratio when the relevant terms are present.
+
 DivX/Xvid packed bitstreams are normalized into one VOP per logical packet.
 Opening structurally scans packed reference chunks with bounded scratch storage
 to locate secondary VOPs. It retains only packet ranges and timing metadata,

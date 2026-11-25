@@ -71,7 +71,7 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
 | `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/AV1/VP8/VP9/AAC/MP3/AC-3 packet mapping](docs/matroska-ebml.md) |
 | `Mediana.Containers.Mp4` | Ordinary and fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AV1/MPEG-4 Visual/AAC/MP3/AC-3/E-AC-3 packet reading |
-| `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
+| `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML DV25/MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM, G.711 A-law and IMA ADPCM reading |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
@@ -90,6 +90,7 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Codecs.Alac` | Managed Apple Lossless decoding, M4A metadata and indexed seeking; [details](docs/alac.md) |
 | `Mediana.Codecs.Dts` | Managed DTS Core decoding, MKV metadata and indexed seeking; [details](docs/dts.md) |
 | `Mediana.Codecs.ProRes` | Six ProRes profiles, MOV decoding and full alpha precision; [details](docs/prores.md) |
+| `Mediana.Codecs.Dv` | Managed PAL DV25 video decode and AVI seeking ([API](docs/dv.md)) |
 | `Mediana.Codecs.Ac3` | Managed AC-3/E-AC-3 transforms, coupling, spectral extension, transient processing and dependent channels ([API](src/Mediana.Codecs.Ac3/README.md)) |
 | `Mediana.Codecs.Av1` | Managed eight-bit Main intra/compound inter reconstruction, loop filters and indexed MP4/Matroska input ([coverage](src/Mediana.Codecs.Av1/README.md)) |
 | `Mediana.Codecs.Mpeg4Visual` | Managed MPEG-4 Part 2 I/P/B video, half/quarter-pixel motion and indexed AVI/MP4 seeking ([API](docs/mpeg4-visual.md)) |

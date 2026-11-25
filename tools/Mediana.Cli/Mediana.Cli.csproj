@@ -12,6 +12,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Mediana.Codecs.Dts/Mediana.Codecs.Dts.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Dv/Mediana.Codecs.Dv.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.OpenExr/Mediana.Codecs.OpenExr.csproj" />
     <ProjectReference Include="../../src/Mediana.Images.Metadata/Mediana.Images.Metadata.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Mpeg4Visual/Mediana.Codecs.Mpeg4Visual.csproj" />

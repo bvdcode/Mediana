@@ -225,7 +225,7 @@ prores-422,Video codecs and substantial profiles,ProRes,422 Proxy/LT/standard/HQ
 prores-4444,Video codecs and substantial profiles,ProRes,4444 / 4444 XQ with alpha,video-codec,,B,prores,
 dnxhd,Video codecs and substantial profiles,DNxHD,HD editing profiles,video-codec,,C,mxf;discovery,
 dnxhr,Video codecs and substantial profiles,DNxHR,Resolution-independent profiles,video-codec,,C,mxf;discovery,
-dv,Video codecs and substantial profiles,DV,DV25 / DV50 / DV100,video-codec,,C,discovery,
+dv,Video codecs and substantial profiles,DV,DV25 / DV50 / DV100,video-codec,.avi,C,discovery,Managed PAL DV25 Type-2 AVI decoding and indexed seeking. [API](../dv.md).
 ffv1-v1,Video codecs and substantial profiles,FFV1,Version 1 archival coding,video-codec,,B,ffv1,
 ffv1-v3,Video codecs and substantial profiles,FFV1,"Version 3, slices and integrity checks",video-codec,,B,ffv1,
 huffyuv,Video codecs and substantial profiles,HuffYUV,Lossless video,video-codec,,C,discovery,

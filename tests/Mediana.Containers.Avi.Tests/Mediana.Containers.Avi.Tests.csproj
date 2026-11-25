@@ -4,6 +4,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/DvAviTestInput.cs" Link="DvAviTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Dv/Mediana.Codecs.Dv.csproj" />
     <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Avi/Mediana.Containers.Avi.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />

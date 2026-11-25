@@ -131,6 +131,7 @@ namespace Mediana.Containers.Avi
             AviChunk? header = null;
             AviChunk? format = null;
             AviChunk? index = null;
+            AviChunk? videoProperties = null;
             for (long offset = list.Data + 4; offset < list.End;)
             {
                 AviChunk chunk = await ReadChunkAsync(offset, list.End, cancellationToken).ConfigureAwait(false);
@@ -147,6 +148,10 @@ namespace Mediana.Containers.Avi
                     case 0x78646e69:
                         if (index is not null) { throw new InvalidDataException("An AVI stream has multiple OpenDML indexes."); }
                         index = chunk;
+                        break;
+                    case 0x70727076:
+                        if (videoProperties is not null) { throw new InvalidDataException("An AVI stream has multiple video properties headers."); }
+                        videoProperties = chunk;
                         break;
                 }
                 offset = chunk.Next;
@@ -168,16 +173,49 @@ namespace Mediana.Containers.Avi
             while (b != 0) { (a, b) = (b, a % b); }
             if (scale / a > int.MaxValue || rate / a > int.MaxValue) { throw new NotSupportedException("The reduced AVI clock exceeds the supported rational terms."); }
             TimeBase clock = new((int)(scale / a), (int)(rate / a));
+            VideoAspectRatioDescription? aspectRatio = type == 0x73646976 && videoProperties is AviChunk properties
+                ? await ReadAspectRatioAsync(properties, cancellationToken).ConfigureAwait(false) : null;
             using WritableMediaBuffer storage = allocator.Allocate((int)format.Value.Length);
             await source.ReadExactlyAtAsync(format.Value.Data, storage.Memory, cancellationToken).ConfigureAwait(false);
-            EncodedStreamInfo stream = CreateStream(type, sampleSize, clock, length, storage.Span);
+            EncodedStreamInfo stream = CreateStream(type, sampleSize, clock, length, storage.Span, aspectRatio);
             AviTrack track = new(stream, sampleSize, start, length, new(allocator)) { Index = index };
             bool added = false;
             try { tracks.Add(track); added = true; }
             finally { if (!added) { track.Dispose(); } }
         }
 
-        private EncodedStreamInfo CreateStream(uint type, uint sampleSize, TimeBase clock, uint length, ReadOnlySpan<byte> format)
+        private async ValueTask<VideoAspectRatioDescription?> ReadAspectRatioAsync(AviChunk chunk, CancellationToken cancellationToken)
+        {
+            const int propertiesSize = 36;
+            if (chunk.Length < propertiesSize)
+            {
+                throw new InvalidDataException("An AVI video properties header is truncated.");
+            }
+            await source.ReadExactlyAtAsync(chunk.Data, scratch.Memory[..propertiesSize], cancellationToken).ConfigureAwait(false);
+            uint display = BinaryPrimitives.ReadUInt32LittleEndian(scratch.Span[20..]);
+            uint width = BinaryPrimitives.ReadUInt32LittleEndian(scratch.Span[24..]);
+            uint height = BinaryPrimitives.ReadUInt32LittleEndian(scratch.Span[28..]);
+            long numerator = (long)(display >> 16) * height;
+            long denominator = (long)(display & 65535) * width;
+            if (numerator == 0 || denominator == 0)
+            {
+                return null;
+            }
+            long a = numerator;
+            long b = denominator;
+            while (b != 0)
+            {
+                (a, b) = (b, a % b);
+            }
+            if (numerator / a > int.MaxValue || denominator / a > int.MaxValue)
+            {
+                throw new NotSupportedException("The reduced AVI sample aspect ratio exceeds the supported integer terms.");
+            }
+            return new(new((int)(numerator / a), (int)(denominator / a)));
+        }
+
+        private EncodedStreamInfo CreateStream(uint type, uint sampleSize, TimeBase clock, uint length, ReadOnlySpan<byte> format,
+            VideoAspectRatioDescription? aspectRatio)
         {
             MediaDuration duration = new(length, clock);
             int streamIndex = tracks.Count;
@@ -193,12 +231,18 @@ namespace Mediana.Containers.Avi
                     if (compression == 0x47504a4d)
                     {
                         return new(streamIndex, MediaKind.Video, "mjpeg", StreamFormats.Mjpeg, clock,
-                            displayMatrix: VideoDisplayMatrix.Identity, codedDuration: duration);
+                            displayMatrix: VideoDisplayMatrix.Identity, codedDuration: duration, aspectRatioDescription: aspectRatio);
+                    }
+                    if (compression == 0x64737664)
+                    {
+                        return new(streamIndex, MediaKind.Video, DvFrameHeader.CodecId, StreamFormats.Dv, clock,
+                            displayMatrix: VideoDisplayMatrix.Identity, codedDuration: duration, aspectRatioDescription: aspectRatio);
                     }
                     if (compression is 0x34504d46 or 0x58564944 or 0x30355844 or 0x44495658 or 0x64697678 or 0x5634504d or 0x7634706d or 0x32564933)
                     {
                         return new(streamIndex, MediaKind.Video, Mpeg4VisualConfiguration.CodecId, StreamFormats.Mpeg4Visual, clock,
-                            format[checked((int)BinaryPrimitives.ReadUInt32LittleEndian(format))..], VideoDisplayMatrix.Identity, duration);
+                            format[checked((int)BinaryPrimitives.ReadUInt32LittleEndian(format))..], VideoDisplayMatrix.Identity, duration,
+                            aspectRatioDescription: aspectRatio);
                     }
                     if (compression is 0x3334504d or 0x33564944 or 0x32564d57)
                     {
@@ -216,9 +260,10 @@ namespace Mediana.Containers.Avi
                             _ => throw new InvalidOperationException()
                         };
                         return new(streamIndex, MediaKind.Video, codec, packetFormat, clock, config.Write(),
-                            VideoDisplayMatrix.Identity, duration);
+                            VideoDisplayMatrix.Identity, duration, aspectRatioDescription: aspectRatio);
                     }
-                    return new(streamIndex, MediaKind.Video, NativeId(compression), NativeFormat, clock, format, codedDuration: duration);
+                    return new(streamIndex, MediaKind.Video, NativeId(compression), NativeFormat, clock, format, codedDuration: duration,
+                        aspectRatioDescription: aspectRatio);
                 case 0x73647561:
                     if (format.Length < 16) { throw new InvalidDataException("An AVI audio stream requires a complete WAVE format."); }
                     if (BinaryPrimitives.ReadUInt16LittleEndian(format) == 0x55)
