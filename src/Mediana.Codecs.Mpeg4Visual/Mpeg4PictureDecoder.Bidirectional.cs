@@ -16,10 +16,12 @@ namespace Mediana.Codecs.Mpeg4Visual
             for (int mb = 0; mb < mbWidth * mbHeight; mb++)
             {
                 token.ThrowIfCancellationRequested();
-                int priorBound = bound; ReadResynchronization(ref bits, header, mb, ref quantizer, ref bound);
+                bool implicitSkip = ReferenceMotion[mb * 10 + 8] == SkippedMacroblockMode;
+                int priorBound = bound;
+                ReadResynchronization(ref bits, header, mb, ref quantizer, ref bound, implicitSkip);
                 if (mb % mbWidth == 0 || bound != priorBound) { forwardX = forwardY = backwardX = backwardY = 0; }
                 vectors.Clear(); int mode, cbp = 0;
-                if (ReferenceMotion[mb * 10 + 8] == 16) { mode = 3; }
+                if (implicitSkip) { mode = 3; }
                 else
                 {
                     if (bits.Flag()) { mode = 4; }

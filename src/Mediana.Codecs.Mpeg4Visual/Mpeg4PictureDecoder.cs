@@ -9,6 +9,7 @@ namespace Mediana.Codecs.Mpeg4Visual
 {
     internal partial class Mpeg4PictureDecoder : IDisposable
     {
+        private const int SkippedMacroblockMode = 16;
         private readonly Mpeg4VisualConfiguration config;
         private readonly MediaBufferAllocator allocator;
         private readonly int mbWidth, mbHeight, lumaSize, blockCount;
@@ -102,7 +103,7 @@ namespace Mediana.Codecs.Mpeg4Visual
                     { ReadOnlySpan<int> changes = [-1, -2, 1, 2]; quantizer = Math.Clamp(quantizer + changes[bits.Read(2)], 1, 31); }
                     if (!intra) { ReadMotion(ref bits, mb, mode == 2, header.ForwardCode, bound); }
                 }
-                Motion[mb * 10 + 8] = skipped ? 16 : mode; Motion[mb * 10 + 9] = quantizer;
+                Motion[mb * 10 + 8] = skipped ? SkippedMacroblockMode : mode; Motion[mb * 10 + 9] = quantizer;
                 if (mode is not 3 and not 4) { Predict(picture, future!.Memory.Span, mb, Motion.Slice(mb * 10, 8), mode == 2, header.Rounding, false); }
                 for (int block = 0; block < 6; block++)
                 {
