@@ -156,3 +156,43 @@ With both shadows and ambient occlusion disabled, the 384 × 384 pooled Spot
 JIT case took 8.96 → 8.30 ms/frame elapsed and 11.50 → 10.54 ms/frame CPU. These
 measurements cover rendering on the tested Linux host. Window presentation and
 Windows performance are separate measurements.
+
+## Depth rasterization and normal generation during rotation
+
+This series starts at `6a1163fa`, which already includes the lighting changes
+above. It compares the complete render call on the same host and two cores,
+with four alternating process pairs per case and 12 warm-up frames per process.
+The 384 × 384 cases share one allocator pool. The 512 × 512 case uses the
+default unpooled allocation strategy. Full shading enables shadows and ambient
+occlusion. The plain case disables both.
+
+The renderer groups incident corners once per vertex position during normal
+generation. During rasterization it shares the scanline terms of the triangle
+edge equations across samples and tests four depths at once with `Vector128`.
+Coverage, equal-depth ordering and normal interpolation use the same rules in
+both paths. Each of nine configurations matched the baseline RGBA byte for byte
+over a total of 168 rotated frames in JIT, Native AOT and JIT with hardware
+intrinsics disabled (504 comparisons).
+
+| Runtime and workload | Frames/process | Elapsed ms/frame | CPU ms/frame | Peak RSS, MiB |
+| --- | ---: | ---: | ---: | ---: |
+| JIT, Spot triangles, 384 × 384, 1 sample, plain | 72 | 7.97 → 6.53 | 10.44 → 9.02 | 51.3 → 51.2 |
+| JIT, Spot triangles, 384 × 384, 1 sample, full | 60 | 23.16 → 20.64 | 32.56 → 29.61 | 52.8 → 52.9 |
+| JIT, Spot quads, 512 × 512, 4 samples, full | 20 | 107.15 → 96.59 | 172.90 → 161.98 | 121.8 → 122.1 |
+| JIT, Dog assembly, 384 × 384, 1 sample, full | 36 | 30.95 → 21.66 | 35.10 → 26.56 | 128.8 → 128.8 |
+| Native AOT, Spot triangles, 384 × 384, 1 sample, plain | 72 | 7.82 → 6.14 | 10.46 → 8.67 | 26.2 → 26.3 |
+| Native AOT, Spot triangles, 384 × 384, 1 sample, full | 60 | 22.98 → 20.09 | 32.14 → 29.22 | 27.7 → 27.8 |
+| Native AOT, Spot quads, 512 × 512, 4 samples, full | 20 | 106.85 → 92.66 | 168.31 → 160.88 | 95.9 → 96.0 |
+| Native AOT, Dog assembly, 384 × 384, 1 sample, full | 36 | 31.82 → 22.06 | 36.53 → 27.19 | 97.2 → 98.2 |
+
+Separate instrumented JIT runs at 384 × 384 timed preparation, the main depth
+pass, the shadow-map pass and final shading. Each value is the mean of 30
+measured frames in each of two runs per version, with reversed run order.
+Both depth stages include their camera setup and buffer allocation. On Spot,
+final shading, including shadow filtering, ambient occlusion and RGBA output,
+accounted for 69% of the new frame time in these runs.
+
+| Model | Preparation, ms | Main depth, ms | Shadow map, ms | Shading and output, ms |
+| --- | ---: | ---: | ---: | ---: |
+| Spot triangles | 1.50 → 0.71 | 3.52 → 2.56 | 5.10 → 2.69 | 12.33 → 13.30 |
+| Dog assembly | 9.44 → 4.60 | 7.00 → 4.92 | 8.81 → 5.50 | 6.25 → 6.73 |
