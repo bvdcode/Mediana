@@ -29,6 +29,63 @@ namespace Mediana.Tests
             Assert.Equal(lastRow.Select(sample => (ushort)(sample + 512)), wide[12..]);
         }
 
+        [Theory]
+        [InlineData(4)]
+        [InlineData(8)]
+        public void ByteDirectionalPredictionMatchesScalarForEveryAvailableReferenceCombination(int size)
+        {
+            byte[] top = new byte[size * 2];
+            byte[] left = new byte[size];
+            ushort[] wideTop = new ushort[top.Length];
+            ushort[] wideLeft = new ushort[left.Length];
+            byte[] actual = new byte[size * size];
+            ushort[] expected = new ushort[actual.Length];
+            Random random = new(4281);
+            for (int trial = 0; trial < 32; trial++)
+            {
+                random.NextBytes(top);
+                random.NextBytes(left);
+                for (int sample = 0; sample < top.Length; sample++)
+                {
+                    wideTop[sample] = top[sample];
+                }
+                for (int sample = 0; sample < left.Length; sample++)
+                {
+                    wideLeft[sample] = left[sample];
+                }
+                byte cornerValue = (byte)random.Next(256);
+                for (int mask = 0; mask < 8; mask++)
+                {
+                    bool hasTop = (mask & 1) != 0;
+                    bool hasLeft = (mask & 2) != 0;
+                    byte? corner = (mask & 4) != 0 ? cornerValue : null;
+                    for (int mode = 3; mode <= 8; mode++)
+                    {
+                        if (!H264IntraPrediction.IsLumaModeAvailable(mode, hasTop, hasLeft, corner.HasValue))
+                        {
+                            continue;
+                        }
+                        if (size == 4)
+                        {
+                            H264IntraPrediction.Luma4x4(mode, hasTop ? top : [], hasLeft ? left : [], corner, actual);
+                            H264IntraPrediction<ushort>.Luma4x4(mode, hasTop ? wideTop : [], hasLeft ? wideLeft : [], corner,
+                                expected, byte.MaxValue);
+                        }
+                        else
+                        {
+                            H264IntraPrediction.Luma8x8(mode, hasTop ? top : [], hasLeft ? left : [], corner, actual);
+                            H264IntraPrediction<ushort>.Luma8x8(mode, hasTop ? wideTop : [], hasLeft ? wideLeft : [], corner,
+                                expected, byte.MaxValue);
+                        }
+                        for (int sample = 0; sample < actual.Length; sample++)
+                        {
+                            Assert.Equal(expected[sample], (ushort)actual[sample]);
+                        }
+                    }
+                }
+            }
+        }
+
         [Fact]
         public void ChromaDcUsesDifferentNeighboursInItsFourQuadrants()
         {

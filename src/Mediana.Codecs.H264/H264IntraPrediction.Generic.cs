@@ -128,6 +128,13 @@ namespace Mediana.Codecs.H264
                     output[..(size * size)].Fill(TSample.CreateTruncating(Dc(top[..Math.Min(top.Length, size)], left[..Math.Min(left.Length, size)], maximum)));
                     return;
             }
+            if (H264SampleAverage.SupportsByteShuffle && typeof(TSample) == typeof(byte) &&
+                (top.IsEmpty || top.Length == size * 2) && (left.IsEmpty || left.Length == size))
+            {
+                H264DirectionalIntraPrediction.Write(mode, size, MemoryMarshal.AsBytes(top), MemoryMarshal.AsBytes(left),
+                    corner.HasValue ? (byte)int.CreateTruncating(corner.Value) : null, MemoryMarshal.AsBytes(output));
+                return;
+            }
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
