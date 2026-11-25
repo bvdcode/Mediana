@@ -66,6 +66,33 @@ namespace Mediana.Tests
         }
 
         [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void Luma16PredictionWritesOnlyTheDestinationColumns(int mode)
+        {
+            const int stride = 53;
+            byte[] top = new byte[16];
+            byte[] left = new byte[16];
+            Random random = new(125);
+            random.NextBytes(top);
+            random.NextBytes(left);
+            byte[] expected = new byte[256];
+            byte[] actual = new byte[stride * 16];
+            actual.AsSpan().Fill(37);
+
+            H264IntraPrediction.Luma16x16(mode, top, left, 10, expected);
+            H264IntraPrediction<byte>.Luma16x16(mode, top, left, 10, actual, byte.MaxValue, stride);
+
+            for (int row = 0; row < 16; row++)
+            {
+                Assert.True(expected.AsSpan(row * 16, 16).SequenceEqual(actual.AsSpan(row * stride, 16)));
+                Assert.False(actual.AsSpan(row * stride + 16, stride - 16).ContainsAnyExcept((byte)37));
+            }
+        }
+
+        [Theory]
         [InlineData(8, 8)]
         [InlineData(8, 16)]
         [InlineData(16, 16)]

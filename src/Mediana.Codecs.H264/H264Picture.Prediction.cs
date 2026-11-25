@@ -130,6 +130,31 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        public Span<byte> PredictIntra16InPlace(int plane, int x, int y, int mode, bool constrained, out int stride)
+        {
+            (int offset, int sampleStride) = SampleLocation(plane, x, y);
+            Span<byte> output = Plane(plane)[(offset * SampleBytes)..];
+            if (SampleBytes == 1)
+            {
+                PredictMacroblock<byte>(plane, x, y, mode, output, constrained, sampleStride);
+            }
+            else
+            {
+                PredictMacroblock<ushort>(plane, x, y, mode, MemoryMarshal.Cast<byte, ushort>(output), constrained, sampleStride);
+            }
+            stride = sampleStride;
+            return output;
+        }
+
+        public void FinishIntra16(int plane, int x, int y, bool clearCounts)
+        {
+            if (clearCounts)
+            {
+                ClearBlockCounts(plane, x, y, 16, 16);
+            }
+            MarkReconstructed(BlockIndex(plane, x, y), Stride(plane) / 4, 4);
+        }
+
         internal bool TryReadLuma16Neighbours(int x, int y, Span<byte> top, Span<byte> left, out byte corner)
         {
             (bool hasTop, bool hasLeft, byte? topLeft) = ReadMacroblockNeighbours(0, x, y, 16, 16, top, left, false);
@@ -137,7 +162,7 @@ namespace Mediana.Codecs.H264
             return hasTop && hasLeft && topLeft.HasValue;
         }
 
-        private void PredictMacroblock<TSample>(int plane, int x, int y, int mode, Span<TSample> output, bool constrained)
+        private void PredictMacroblock<TSample>(int plane, int x, int y, int mode, Span<TSample> output, bool constrained, int lumaStride = 16)
             where TSample : unmanaged, IBinaryInteger<TSample>
         {
             int size = 16 / HorizontalScale(plane);
@@ -147,7 +172,7 @@ namespace Mediana.Codecs.H264
             (bool hasTop, bool hasLeft, TSample? corner) = ReadMacroblockNeighbours(plane, x, y, size, height, top, left, constrained);
             if (plane == 0 || FullResolutionChroma)
             {
-                H264IntraPrediction<TSample>.Luma16x16(mode, hasTop ? top : [], hasLeft ? left : [], corner, output, MaximumSample);
+                H264IntraPrediction<TSample>.Luma16x16(mode, hasTop ? top : [], hasLeft ? left : [], corner, output, MaximumSample, lumaStride);
             }
             else
             {

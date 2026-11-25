@@ -157,28 +157,40 @@ namespace Mediana.Codecs.H264
         };
 
         public static void Luma16x16(int mode, ReadOnlySpan<TSample> top, ReadOnlySpan<TSample> left,
-            TSample? corner, Span<TSample> output, int maximum)
+            TSample? corner, Span<TSample> output, int maximum, int stride = 16)
         {
+            ArgumentOutOfRangeException.ThrowIfLessThan(stride, 16);
             ValidateNeighbours(mode is 0 or 3, mode is 1 or 3, mode == 3, top, left, corner);
             switch (mode)
             {
                 case 0:
                     for (int row = 0; row < 16; row++)
                     {
-                        top[..16].CopyTo(output.Slice(row * 16, 16));
+                        top[..16].CopyTo(output.Slice(row * stride, 16));
                     }
                     return;
                 case 1:
                     for (int row = 0; row < 16; row++)
                     {
-                        output.Slice(row * 16, 16).Fill(left[row]);
+                        output.Slice(row * stride, 16).Fill(left[row]);
                     }
                     return;
                 case 2:
-                    output[..256].Fill(TSample.CreateTruncating(Dc(top, left, maximum)));
+                    TSample value = TSample.CreateTruncating(Dc(top, left, maximum));
+                    if (stride == 16)
+                    {
+                        output[..256].Fill(value);
+                    }
+                    else
+                    {
+                        for (int row = 0; row < 16; row++)
+                        {
+                            output.Slice(row * stride, 16).Fill(value);
+                        }
+                    }
                     return;
                 case 3:
-                    Plane(top, left, corner!.Value, output, 16, 16, maximum);
+                    Plane(top, left, corner!.Value, output, 16, 16, stride, maximum);
                     return;
                 default:
                     throw new InvalidDataException("Invalid H.264 intra 16x16 prediction mode.");
@@ -212,7 +224,7 @@ namespace Mediana.Codecs.H264
                     }
                     return;
                 case 3:
-                    Plane(top, left, corner!.Value, output, 8, height, maximum);
+                    Plane(top, left, corner!.Value, output, 8, height, 8, maximum);
                     return;
                 default:
                     throw new InvalidDataException("Invalid H.264 chroma prediction mode.");
@@ -280,7 +292,7 @@ namespace Mediana.Codecs.H264
             return (y & 1) == 0 ? Half(a, b) : Quarter(a, b, c);
         }
 
-        private static void Plane(ReadOnlySpan<TSample> top, ReadOnlySpan<TSample> left, TSample corner, Span<TSample> output, int size, int height, int maximum)
+        private static void Plane(ReadOnlySpan<TSample> top, ReadOnlySpan<TSample> left, TSample corner, Span<TSample> output, int size, int height, int stride, int maximum)
         {
             int half = size / 2;
             int halfHeight = height / 2;
@@ -300,19 +312,20 @@ namespace Mediana.Codecs.H264
             int a = 16 * (Read(top, size - 1) + Read(left, height - 1)) + b * (1 - half) + c * (1 - halfHeight) + 16;
             if (typeof(TSample) == typeof(byte) && Vector128.IsHardwareAccelerated)
             {
-                WriteBytePlane(MemoryMarshal.Cast<TSample, byte>(output[..(size * height)]), size, a, b, c, maximum);
+                Span<TSample> region = output[..checked((height - 1) * stride + size)];
+                WriteBytePlane(MemoryMarshal.Cast<TSample, byte>(region), size, height, stride, a, b, c, maximum);
                 return;
             }
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    output[y * size + x] = TSample.CreateTruncating(Math.Clamp((a + b * x + c * y) >> 5, 0, maximum));
+                    output[y * stride + x] = TSample.CreateTruncating(Math.Clamp((a + b * x + c * y) >> 5, 0, maximum));
                 }
             }
         }
 
-        private static void WriteBytePlane(Span<byte> output, int size, int a, int b, int c, int maximum)
+        private static void WriteBytePlane(Span<byte> output, int size, int height, int stride, int a, int b, int c, int maximum)
         {
             // For 8-bit references, even the steepest 8- and 16-sample gradients fit in signed 16-bit lanes.
             Vector128<short> columns = Vector128.Create((short)0, 1, 2, 3, 4, 5, 6, 7);
@@ -320,8 +333,9 @@ namespace Mediana.Codecs.H264
             Vector128<short> down = Vector128.Create((short)c);
             Vector128<short> rightOffset = Vector128.Create((short)(8 * b));
             Vector128<short> cap = Vector128.Create((short)maximum);
-            for (int offset = 0; offset < output.Length; offset += size)
+            for (int rowIndex = 0; rowIndex < height; rowIndex++)
             {
+                int offset = rowIndex * stride;
                 Vector128<ushort> low = ClipBytePlane(left, cap);
                 if (size == 8)
                 {
