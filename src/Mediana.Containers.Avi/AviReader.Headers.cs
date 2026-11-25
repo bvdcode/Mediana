@@ -16,6 +16,7 @@ namespace Mediana.Containers.Avi
 {
     public partial class AviReader
     {
+        private const int BitmapInfoHeaderSize = 40;
         private async ValueTask InitializeAsync(CancellationToken cancellationToken)
         {
             sourceLength = source.Length ?? throw new NotSupportedException("AVI indexing requires a known source length.");
@@ -183,7 +184,8 @@ namespace Mediana.Containers.Avi
             switch (type)
             {
                 case 0x73646976:
-                    if (format.Length < 40 || BinaryPrimitives.ReadUInt32LittleEndian(format) < 40 || BinaryPrimitives.ReadUInt32LittleEndian(format) > format.Length)
+                    if (format.Length < BitmapInfoHeaderSize || BinaryPrimitives.ReadUInt32LittleEndian(format) < BitmapInfoHeaderSize ||
+                        BinaryPrimitives.ReadUInt32LittleEndian(format) > format.Length)
                     {
                         throw new InvalidDataException("An AVI video stream requires a complete bitmap header.");
                     }
@@ -197,6 +199,24 @@ namespace Mediana.Containers.Avi
                     {
                         return new(streamIndex, MediaKind.Video, Mpeg4VisualConfiguration.CodecId, StreamFormats.Mpeg4Visual, clock,
                             format[checked((int)BinaryPrimitives.ReadUInt32LittleEndian(format))..], VideoDisplayMatrix.Identity, duration);
+                    }
+                    if (compression is 0x3334504d or 0x33564944 or 0x32564d57)
+                    {
+                        int width = BinaryPrimitives.ReadInt32LittleEndian(format[4..]);
+                        int height = BinaryPrimitives.ReadInt32LittleEndian(format[8..]);
+                        if (width <= 0 || height <= 0)
+                        {
+                            throw new InvalidDataException("An AVI Microsoft MPEG-4 stream requires positive dimensions.");
+                        }
+                        MicrosoftMpeg4Configuration config = new(width, height, format[BitmapInfoHeaderSize..].ToArray());
+                        (string codec, EncodedStreamFormat packetFormat) = compression switch
+                        {
+                            0x3334504d or 0x33564944 => (MicrosoftMpeg4Configuration.Version3CodecId, StreamFormats.MicrosoftMpeg4V3),
+                            0x32564d57 => (MicrosoftMpeg4Configuration.Wmv2CodecId, StreamFormats.Wmv2),
+                            _ => throw new InvalidOperationException()
+                        };
+                        return new(streamIndex, MediaKind.Video, codec, packetFormat, clock, config.Write(),
+                            VideoDisplayMatrix.Identity, duration);
                     }
                     return new(streamIndex, MediaKind.Video, NativeId(compression), NativeFormat, clock, format, codedDuration: duration);
                 case 0x73647561:

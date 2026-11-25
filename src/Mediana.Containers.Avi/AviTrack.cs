@@ -4,12 +4,15 @@
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
+using Mediana.Formats.Video;
 
 namespace Mediana.Containers.Avi
 {
     internal class AviTrack(EncodedStreamInfo stream, uint sampleSize, uint start, uint length, AviPacketIndex packets) : IDisposable
     {
         public EncodedStreamInfo Stream { get; private set; } = stream;
+        public bool PresentsInPacketOrder => Stream.Kind == MediaKind.Audio ||
+            Stream.CodecId is "mjpeg" or MicrosoftMpeg4Configuration.Version3CodecId or MicrosoftMpeg4Configuration.Wmv2CodecId;
         public TimeBase PresentationClock { get; set; } = stream.TimeBase;
         public void SetConfiguration(ReadOnlySpan<byte> configuration)
         {

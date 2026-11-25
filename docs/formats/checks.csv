@@ -423,6 +423,8 @@ mpeg4-simple,decode,partial,partial,partial,planned,planned,partial,../mpeg4-vis
 mpeg4-simple,encode,planned,planned,planned,planned,planned,planned,
 mpeg4-asp,decode,partial,partial,partial,partial,partial,partial,../mpeg4-visual.md
 mpeg4-asp,encode,planned,planned,planned,planned,planned,planned,
+msmpeg4-v3,decode,partial,partial,partial,planned,planned,planned,../mpeg4-visual.md;../../tests/Mediana.Codecs.Mpeg4Visual.Tests/Data/Microsoft/README.md
+msmpeg4-v3,encode,planned,planned,planned,planned,planned,planned,
 h261,decode,planned,planned,planned,planned,planned,planned,
 h261,encode,planned,planned,planned,planned,planned,planned,
 h263,decode,planned,planned,planned,planned,planned,planned,
@@ -435,6 +437,8 @@ vc1,decode,planned,planned,planned,planned,planned,planned,
 vc1,encode,planned,planned,planned,planned,planned,planned,
 wmv-legacy,decode,planned,planned,planned,planned,planned,planned,
 wmv-legacy,encode,planned,planned,planned,planned,planned,planned,
+wmv2,decode,partial,partial,partial,planned,planned,planned,../mpeg4-visual.md;../../tests/Mediana.Codecs.Mpeg4Visual.Tests/Data/Microsoft/README.md
+wmv2,encode,planned,planned,planned,planned,planned,planned,
 vp6,decode,planned,planned,planned,planned,planned,planned,
 vp6,encode,planned,planned,planned,planned,planned,planned,
 vp7,decode,planned,planned,planned,planned,planned,planned,

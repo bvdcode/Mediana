@@ -28,6 +28,8 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Flac { get; } = new("flac.stream-info", "flac.frames", EncodedPacketBoundary.ArbitraryBytes);
         public static EncodedStreamFormat Opus { get; } = new("opus.identification-header", "opus.packet", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mpeg4Visual { get; } = new("mpeg4.visual.headers", "mpeg4.visual.vop", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat MicrosoftMpeg4V3 { get; } = new("msmpeg4v3.picture-description", "msmpeg4v3.picture", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat Wmv2 { get; } = new("wmv2.picture-description", "wmv2.picture", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Theora { get; } = new("theora.xiph-laced-headers", "theora.packet", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Vorbis { get; } = new("vorbis.xiph-laced-headers", "vorbis.packet", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat WavePcm { get; } = new("wave.format", "pcm.samples", EncodedPacketBoundary.SampleBlock);

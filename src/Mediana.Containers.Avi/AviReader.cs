@@ -73,7 +73,7 @@ namespace Mediana.Containers.Avi
             AviPacketEntry entry = track.Packets[packetIndex];
             MediaTimestamp time = new(entry.Time, track.Stream.TimeBase);
             MediaTimestamp? presentation = entry.PresentationTime is long ticks ? new(ticks, track.PresentationClock) : null;
-            if (track.Stream.Kind == MediaKind.Audio || track.Stream.CodecId == "mjpeg") { presentation = time; }
+            if (track.PresentsInPacketOrder) { presentation = time; }
             return new(presentation, time, new(entry.Duration, track.Stream.TimeBase), entry.KeyFrame);
         }
 

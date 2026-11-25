@@ -98,6 +98,26 @@ MP4 output timing is checked against independent frame PTS and duration records.
 A packed Xvid AVI verifies normalization without changing its 22 displayed
 pictures. A separate one-fps sequence checks the fixed-period boundary.
 
+## Microsoft MPEG-4 v3 and WMV2
+
+`Mediana.Codecs.Mpeg4Visual` also decodes Microsoft MPEG-4 v3 (`MP43`/`DIV3`)
+and Windows Media Video 8 (`WMV2`) from AVI. Register the factories for either
+codec with the same builder. The codec identifiers are defined in
+`Mediana.Formats.Video.MicrosoftMpeg4Configuration`.
+
+```csharp
+builder
+    .AddVideoDecoder(new MicrosoftMpeg4DecoderFactory(MicrosoftMpeg4Configuration.Version3CodecId))
+    .AddVideoDecoder(new MicrosoftMpeg4DecoderFactory(MicrosoftMpeg4Configuration.Wmv2CodecId));
+```
+
+AVI supplies one picture per packet and the coded dimensions through
+`MicrosoftMpeg4Configuration`. WMV2 also carries its codec header in this
+configuration. Both streams decode in display order, with indexed seeks
+restarting from an intra picture. WMV2 supports in-loop filtering, modified
+subpixel motion and adaptive block transforms. WMV2 IntraX8 pictures are
+unsupported.
+
 ## Complete-operation performance
 
 [Paired decode measurements](performance/results/2026-11-07-mpeg4/README.md)
