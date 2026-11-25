@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Runtime.CompilerServices;
 using Mediana.Core.Metadata;
 using Mediana.Formats.Audio;
 using Mediana.IO;
@@ -16,10 +15,7 @@ namespace Mediana.Containers.Matroska
         {
             long count = index.GetPacketCount(stream);
             if (count == 0) { return; }
-            int entryBytes = Unsafe.SizeOf<MatroskaAudioFrameTiming>();
-            if (count > int.MaxValue / entryBytes)
-            { throw new NotSupportedException("The Matroska audio timing index exceeds the maximum managed workspace size."); }
-            storage[stream] = index.AllocatePacketMetadataStorage(checked((int)count * entryBytes));
+            AllocateEntries(stream, index, count);
             int cachedBlock = -1, preceding = 0, rate = 0;
             for (long packet = 0; packet < count; packet++)
             {
