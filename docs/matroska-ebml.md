@@ -93,6 +93,14 @@ configuration extents and independent per-track and cumulative configuration byt
 limits are checked. Configuration snapshots survive source and workspace lifetimes.
 Container code depends on Formats and Core contracts, without decoder references.
 
+Opus uses the stored OpusHead and a 48 kHz sample clock. The packet index reads
+up to two TOC bytes per packet for exact sample counts and laced timestamps.
+CodecDelay sets the coded timeline origin, and the decoder applies OpusHead
+pre-skip. Positive DiscardPadding trims the end of a block, including laced
+packets. Indexed restart honours the track's SeekPreRoll. Audio track settings
+provide sample rate, channel count and declared precision to the common probe
+when codec-derived metadata is unavailable.
+
 AC-3 and E-AC-3 use the mapping's empty initialization and individual syncframes.
 `A_EAC3` exposes `StreamFormats.Eac3Syncframe`: independent and dependent packets
 retain their original payload boundaries. Only independent packets advance the
@@ -132,9 +140,9 @@ is converted from Track Ticks. A total laced BlockDuration is not divided into
 guessed equal frame durations. DTS remains unknown. MP3 packets must retain their
 opening sampling format and contain one complete Layer III frame.
 
-Invisible frames, codec state changes, BlockAdditions and nonzero DiscardPadding
-are explicitly rejected by this packet adapter until their required common packet
-semantics are implemented. Native index metadata still preserves these declarations.
+Invisible frames, codec state changes, BlockAdditions and other nonzero
+DiscardPadding modes require additional packet semantics. Native index metadata
+preserves these declarations.
 ContentEncodings, TrackOperation and unmapped codecs retain native stored frames.
 They require a compatible decoder/adapter before decoding or normalized stream copy.
 Color labels and representable aspect ratios are passed to the common video

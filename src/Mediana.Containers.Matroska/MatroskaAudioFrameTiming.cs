@@ -9,6 +9,7 @@ namespace Mediana.Containers.Matroska
     internal readonly record struct MatroskaAudioFrameTiming(int SampleRate, int Samples, int PrecedingSamples,
         int FrameBytes, ushort HeaderIdentity, bool IsFinalFrameSetInBlock)
     {
+        public int PresentedSamples { get; init; } = Samples;
         public MediaTimestamp PresentationTime { get; init; }
         public bool IsDependent => (HeaderIdentity & 0x8000) == 0 && (HeaderIdentity >> 5 & 3) == 1;
         public static ushort GetIdentity(DtsFrameHeader header) => (ushort)(0x8000 | header.ChannelMode | header.LfeMode << 8);

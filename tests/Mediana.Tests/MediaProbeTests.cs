@@ -75,7 +75,7 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task UnknownMp3ExtentIsNotEstimatedFromFileLengthOrReadToEof()
+        public async Task InvalidMp3FrameChainLeavesDurationUnknown()
         {
             byte[] frame = Mp3TestInput.Frame();
             await using TrackingRandomAccessSource source = new([.. frame, .. new byte[1024 * 1024]]);
@@ -83,7 +83,32 @@ namespace Mediana.Tests
             Assert.Equal("mp3", info.Container!.FormatId);
             Assert.Null(info.Container!.DeclaredDuration);
             Assert.Null(Assert.Single(info.Streams).CodedDuration);
-            Assert.All(source.Reads, read => Assert.True(read.Offset + read.Length <= frame.Length));
+            Assert.All(source.Reads, read => Assert.True(read.Offset + read.Length <= frame.Length + 4));
+        }
+
+        [Fact]
+        public async Task Mp3WithoutXingCountsVariableFramesWithoutReadingTheirPayloads()
+        {
+            byte[] opening = Mp3TestInput.Tag(4, Mp3TestInput.MetadataFrame("TIT2", [3, .. "Variable rate"u8]));
+            byte[] first = Mp3TestInput.Frame();
+            byte[] second = Mp3TestInput.Frame("FFFB5264");
+            byte[] third = Mp3TestInput.Frame("FFFBB064");
+            byte[] trailer = [.. "TAG"u8, .. new byte[125]];
+            long firstEnd = opening.Length + first.Length;
+            long[] laterHeaders = [firstEnd, firstEnd + second.Length, firstEnd + second.Length + third.Length];
+            byte[] file = [.. opening, .. first, .. second, .. third, .. trailer];
+            MediaEngine engine = MediaProbeTestInput.CreateEngine();
+            await using (TrackingRandomAccessSource source = new(file, 2))
+            {
+                MediaInfo info = await engine.ProbeAsync(source);
+                MediaDuration duration = new(3 * 1152, new(1, 44100));
+                Assert.Equal(duration, info.Container!.DeclaredDuration);
+                Assert.Equal(duration, Assert.Single(info.Streams).CodedDuration);
+                Assert.All(source.Reads.Where(read => read.Offset >= firstEnd), read =>
+                    Assert.Contains(laterHeaders, offset => read.Offset >= offset && read.Offset + read.Length <= offset + 4));
+            }
+            await using ShortReadSource sequential = new(file);
+            Assert.Null((await engine.ProbeAsync(sequential)).Container!.DeclaredDuration);
         }
 
         [Fact]

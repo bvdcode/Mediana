@@ -1,5 +1,13 @@
 # Matroska fixtures
 
+`opus-mono.webm` is a 97 Hz mono tone with Opus pre-skip and final
+DiscardPadding. FFmpeg decodes 48,816 samples at 48 kHz.
+
+```sh
+ffmpeg -v error -f lavfi -i 'sine=frequency=97:sample_rate=48000:duration=1.017' \
+  -c:a libopus -b:a 32k -frame_duration 20 opus-mono.webm
+```
+
 `avc-aac-attachment.mkv` copies the authored AVC/AAC streams from
 `../Mp4/avc-aac.mp4` and attaches `../Metadata/cover.png`, without re-encoding.
 The video is 64 by 48 pixels. The attachment is declared as `image/png` and

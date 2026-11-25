@@ -17,7 +17,7 @@ namespace Mediana.Containers.Mp3
     /// <summary>Forward-only Layer III frames and ID3 metadata; borrows its source at the file start.
     /// Packets include complete frame headers and share bit-reservoir dependencies. Coded timestamps
     /// preserve delay/padding. No PCM decoding, CRC checking, gapless trimming or resynchronization.</summary>
-    public partial class Mp3Reader : IContainerPresentationReader
+    public partial class Mp3Reader : IContainerPresentationReader, IContainerProbeInfoProvider
     {
         private readonly IByteSource source;
         private readonly MediaBufferAllocator allocator;
@@ -69,9 +69,7 @@ namespace Mediana.Containers.Mp3
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
                 reader.InitializePictureInfo();
                 MediaDuration? declaredDuration = reader.CodedDuration;
-                IReadOnlyList<Id3TextFrame> textFrames = reader.TextFrames;
-                reader.info = new Lazy<ContainerInfo>(() => new ContainerInfo("mp3", declaredDuration,
-                    textFrames.Select(frame => new MediaTag("id3v2", frame.FrameId, frame.Values, frame.Description))));
+                reader.info = new Lazy<ContainerInfo>(() => reader.CreateInfo(declaredDuration));
                 opened = true;
                 return reader;
             }
@@ -83,6 +81,9 @@ namespace Mediana.Containers.Mp3
                 }
             }
         }
+
+        private ContainerInfo CreateInfo(MediaDuration? duration) => new("mp3", duration,
+            TextFrames.Select(frame => new MediaTag("id3v2", frame.FrameId, frame.Values, frame.Description)));
 
         private async ValueTask InitializeAsync(CancellationToken cancellationToken)
         {

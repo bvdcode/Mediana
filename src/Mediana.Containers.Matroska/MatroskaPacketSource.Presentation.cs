@@ -21,7 +21,21 @@ namespace Mediana.Containers.Matroska
                 configurations, options, token).ConfigureAwait(false);
         }
 
-        public AudioStreamMetadata? GetStreamMetadata(int stream) => audioTiming?.GetMetadata(stream);
+        public AudioStreamMetadata? GetStreamMetadata(int stream)
+        {
+            if (audioTiming?.GetMetadata(stream) is AudioStreamMetadata metadata)
+            {
+                return metadata;
+            }
+            if (tracks[stream].Type != 2 || tracks[stream].Audio is not MatroskaAudioSettings audio ||
+                audio.OutputSamplingFrequency is < 1 or > int.MaxValue ||
+                audio.OutputSamplingFrequency != Math.Truncate(audio.OutputSamplingFrequency) || audio.Channels > int.MaxValue)
+            {
+                return null;
+            }
+            int? precision = audio.BitDepth is > 0 and <= int.MaxValue ? (int)audio.BitDepth.Value : null;
+            return new((int)audio.OutputSamplingFrequency, (int)audio.Channels, precision);
+        }
 
         internal MediaTimestamp? GetDecodeTime(int stream, long packet, CancellationToken token)
         {

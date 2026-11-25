@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core.Timing;
+using Mediana.Formats;
 
 namespace Mediana.Containers.Matroska
 {
@@ -21,6 +22,7 @@ namespace Mediana.Containers.Matroska
                 }
                 MediaTimestamp? next = null;
                 MediaTimestamp? independent = null;
+                MatroskaCodecConfiguration configuration = configurations[stream];
                 int previousBlock = -1;
                 long count = index.GetPacketCount(stream);
                 for (long packet = 0; packet < count; packet++)
@@ -40,7 +42,9 @@ namespace Mediana.Containers.Matroska
                     if (!audio.IsDependent)
                     {
                         independent = timestamp;
-                        MediaDuration period = configurations[stream].FrameDuration ?? timing.Duration!.Value;
+                        MediaDuration period = configuration.Stream.Format == StreamFormats.Opus
+                            ? new(audio.Samples, new(1, audio.SampleRate))
+                            : configuration.FrameDuration ?? timing.Duration!.Value;
                         next = AddExactDuration(timestamp, period);
                     }
                     previousBlock = address.BlockIndex;

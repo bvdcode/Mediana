@@ -54,6 +54,12 @@ namespace Mediana.Containers.Matroska
                         await result.ReadDtsStreamAsync(stream, source, index, blocks, tracks[stream].Audio!.Value, prefix.Memory, token).ConfigureAwait(false);
                         continue;
                     }
+                    if (codec == OpusConfiguration.CodecId)
+                    {
+                        await result.ReadOpusStreamAsync(stream, source, index, blocks, tracks[stream],
+                            configuration.Stream, prefix.Memory, token).ConfigureAwait(false);
+                        continue;
+                    }
                     long count = index.GetPacketCount(stream);
                     if (count == 0) { continue; }
                     result.AllocateEntries(stream, index, count);
@@ -132,7 +138,7 @@ namespace Mediana.Containers.Matroska
 
         private static bool RequiresTiming(MatroskaCodecConfiguration configuration) =>
             configuration.Stream.Format == StreamFormats.Ac3 || configuration.Stream.Format == StreamFormats.Eac3Syncframe ||
-            configuration.Stream.Format == StreamFormats.Dts ||
+            configuration.Stream.Format == StreamFormats.Dts || configuration.Stream.Format == StreamFormats.Opus ||
             (configuration.Stream.Kind == MediaKind.Audio && configuration.FrameDuration is not null);
 
         private void IndexFixedStream(int stream, MatroskaPacketIndex index, MediaDuration period, CancellationToken token)
@@ -167,10 +173,17 @@ namespace Mediana.Containers.Matroska
         public void ValidatePacket(int stream, long packet, ReadOnlySpan<byte> data, MatroskaTrack track)
         {
             MatroskaAudioFrameTiming timing = Entries(stream)[checked((int)packet)];
-            if (track.CodecId == "A_DTS")
+            switch (track.CodecId)
             {
-                ValidateDtsPacket(data, timing);
-                return;
+                case "A_DTS":
+                    ValidateDtsPacket(data, timing);
+                    return;
+                case "A_OPUS":
+                    if (data.Length != timing.FrameBytes || OpusPacketInfo.ReadTiming(data).SampleCount != timing.Samples)
+                    {
+                        throw new InvalidDataException("The Matroska Opus packet no longer matches its timing index.");
+                    }
+                    return;
             }
             Ac3FrameHeader header = Ac3FrameHeader.Read(data);
             if (header.IsEnhanced != (track.CodecId == "A_EAC3") || header.FrameBytes != data.Length ||

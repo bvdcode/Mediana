@@ -842,7 +842,9 @@ The declared frame count is checked at EOF. `ByteCount` remains descriptive.
 multiple values. `Pictures` describes APIC bytes, and `ReadPicture` returns a
 lease that survives reader disposal. Linked-picture URLs are returned as bytes
 and never retrieved. `TrailingTag` becomes available after EOF and is kept
-separate from ID3v2 text. The metadata probe does not scan the full file.
+separate from ID3v2 text. Without a Xing/Info frame count, the metadata probe
+counts frames on known-length random-access sources. It reads frame headers
+without decoding audio or moving the packet cursor.
 
 Metadata/frame sizes and counts are bounded. Unsynchronisation, grouping,
 v2.4 data-length indicators and plain extended headers are handled. Compressed
@@ -1524,8 +1526,9 @@ mediana probe input.bin
 
 Content selects the reader, including for renamed files. WAVE/AIFF frame counts,
 FLAC STREAMINFO, MP3 Xing/Info frame counts and MP4 movie headers supply declared
-duration in its original time base. Missing declarations stay unknown; file size
-and bit rate are not used to guess duration. MP3 duration includes coded delay and
+duration in its original time base. For a seekable MP3 without a frame count, probe
+uses the complete chain of frame headers. Other missing durations stay unknown.
+MP3 duration includes coded delay and
 padding, and MP4 movie duration need not equal the last presented timestamp.
 Headers and decoder configuration are inspected; this is not a complete file
 validation, a packet index export or a cover-art API. The existing
