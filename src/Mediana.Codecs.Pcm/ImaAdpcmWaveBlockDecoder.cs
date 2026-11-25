@@ -21,22 +21,7 @@ namespace Mediana.Codecs.Pcm
         private static ReadOnlySpan<sbyte> IndexDeltas4 => [-1, -1, -1, -1, 2, 4, 6, 8];
         private static ReadOnlySpan<sbyte> IndexDeltas3 => [-1, -1, 1, 2];
 
-        public static void Decode(ReadOnlySpan<byte> source, Span<short> destination, WaveCompressedAudioConfiguration format,
-            CancellationToken cancellationToken)
-        {
-            int channels = format.DecodedFormat.Channels.Count;
-            while (!source.IsEmpty)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                int blockBytes = Math.Min(format.BlockAlignment, source.Length);
-                int outputSamples = Math.Min(format.SamplesPerBlock * channels, destination.Length);
-                DecodeBlock(source[..blockBytes], destination[..outputSamples], channels, format.CodeBits, cancellationToken);
-                source = source[blockBytes..];
-                destination = destination[outputSamples..];
-            }
-        }
-
-        private static void DecodeBlock(ReadOnlySpan<byte> block, Span<short> destination, int channels, int bits,
+        public static void DecodeBlock(ReadOnlySpan<byte> block, Span<short> destination, int channels, int bits,
             CancellationToken cancellationToken)
         {
             int wordStride = WordBytes * channels;

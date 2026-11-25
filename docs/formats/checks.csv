@@ -491,13 +491,13 @@ pcm-f64,decode,partial,partial,partial,planned,planned,planned,../../tests/Media
 pcm-f64,encode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/Data/Wave/README.md;../../tests/Mediana.Tests/Data/Aiff/README.md
 g711-alaw,decode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/WaveCompressedAudioTests.cs
 g711-alaw,encode,planned,planned,planned,planned,planned,planned,
-g711-mulaw,decode,planned,planned,planned,planned,planned,planned,
+g711-mulaw,decode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/WaveCompressedAudioTests.cs
 g711-mulaw,encode,planned,planned,planned,planned,planned,planned,
 adpcm-ima-wave,decode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/WaveCompressedAudioTests.cs
 adpcm-ima-wave,encode,planned,planned,planned,planned,planned,planned,
 adpcm-ima-qt,decode,planned,planned,planned,planned,planned,planned,
 adpcm-ima-qt,encode,planned,planned,planned,planned,planned,planned,
-adpcm-ms,decode,planned,planned,planned,planned,planned,planned,
+adpcm-ms,decode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/WaveCompressedAudioTests.cs
 adpcm-ms,encode,planned,planned,planned,planned,planned,planned,
 adpcm-g726,decode,planned,planned,planned,planned,planned,planned,
 adpcm-g726,encode,planned,planned,planned,planned,planned,planned,

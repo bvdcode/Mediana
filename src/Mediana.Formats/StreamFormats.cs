@@ -35,8 +35,11 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Vorbis { get; } = new("vorbis.xiph-laced-headers", "vorbis.packet", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat WavePcm { get; } = new("wave.format", "pcm.samples", EncodedPacketBoundary.SampleBlock);
         public static EncodedStreamFormat WaveALaw { get; } = new("wave.format", "g711.alaw.samples", EncodedPacketBoundary.SampleBlock);
+        public static EncodedStreamFormat WaveMuLaw { get; } = new("wave.format", "g711.mulaw.samples", EncodedPacketBoundary.SampleBlock);
         /// <summary>Blocks with WAVE channel headers. Packet duration, if set, counts valid sample frames and may trim the final block.</summary>
         public static EncodedStreamFormat WaveImaAdpcm { get; } = new("wave.format", "adpcm.ima.wave.blocks", EncodedPacketBoundary.SampleBlock);
+        /// <summary>Blocks with WAVE predictor headers. Packet duration, if set, counts valid sample frames and may trim the final block.</summary>
+        public static EncodedStreamFormat WaveMicrosoftAdpcm { get; } = new("wave.format", "adpcm.ms.wave.blocks", EncodedPacketBoundary.SampleBlock);
         public static EncodedStreamFormat AiffPcm { get; } = new("aiff.common", "pcm.samples", EncodedPacketBoundary.SampleBlock);
         public static EncodedStreamFormat QuickTimeTimecode32 { get; } = new("quicktime.timecode-description", "quicktime.timecode32-be", EncodedPacketBoundary.SampleBlock);
     }
