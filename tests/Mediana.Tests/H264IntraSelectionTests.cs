@@ -17,7 +17,9 @@ namespace Mediana.Tests
         {
             using H264Picture picture = new(new H264SequenceParameterSet
             {
-                WidthInMbs = 2, HeightInMapUnits = 2, FrameMbsOnly = true
+                WidthInMbs = 2,
+                HeightInMapUnits = 2,
+                FrameMbsOnly = true
             }, new MediaBufferAllocator(65536), H264SliceKind.I);
             picture.Modes.Clear();
             Span<byte> pixels = picture.Plane(0);
