@@ -55,8 +55,13 @@ namespace Mediana.Tests
             TriangleMesh both = new(vertices, [0, 1, 2, 0, 1, 2], [.. first.CornerNormals.Span, .. second.CornerNormals.Span]);
             MeshRenderOptions options = new()
             {
-                Width = 67, Height = 39, Supersampling = 1, CameraDirection = Vector3.UnitZ, CameraUp = Vector3.UnitY,
-                Shadows = false, AmbientOcclusion = false
+                Width = 67,
+                Height = 39,
+                Supersampling = 1,
+                CameraDirection = Vector3.UnitZ,
+                CameraUp = Vector3.UnitY,
+                Shadows = false,
+                AmbientOcclusion = false
             };
             using PixelBuffer expected = MeshRenderer.Render(first, options);
             using PixelBuffer other = MeshRenderer.Render(second, options);
@@ -146,8 +151,14 @@ namespace Mediana.Tests
                 [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
             MeshRenderOptions Options(int size, float padding, bool occlusion) => new()
             {
-                Width = size, Height = size, Padding = padding, Supersampling = supersampling,
-                CameraDirection = Vector3.UnitZ, CameraUp = Vector3.UnitY, Shadows = false, AmbientOcclusion = occlusion
+                Width = size,
+                Height = size,
+                Padding = padding,
+                Supersampling = supersampling,
+                CameraDirection = Vector3.UnitZ,
+                CameraUp = Vector3.UnitY,
+                Shadows = false,
+                AmbientOcclusion = occlusion
             };
             using PixelBuffer cropped = MeshRenderer.Render(surface, Options(64, 0, true));
             using PixelBuffer padded = MeshRenderer.Render(surface, Options(128, 0.25f, true));
@@ -251,8 +262,15 @@ namespace Mediana.Tests
             TriangleMesh fan = new(vertices, Enumerable.Range(0, vertices.Length).ToArray());
             MeshRenderOptions Options(bool smooth) => new()
             {
-                Width = 128, Height = 128, Supersampling = 1, Shadows = false, AmbientOcclusion = false,
-                SmoothNormals = smooth, CreaseAngle = 180, CameraDirection = Vector3.UnitZ, CameraUp = Vector3.UnitY
+                Width = 128,
+                Height = 128,
+                Supersampling = 1,
+                Shadows = false,
+                AmbientOcclusion = false,
+                SmoothNormals = smooth,
+                CreaseAngle = 180,
+                CameraDirection = Vector3.UnitZ,
+                CameraUp = Vector3.UnitY
             };
             using PixelBuffer smooth = MeshRenderer.Render(fan, Options(true));
             using PixelBuffer flat = MeshRenderer.Render(fan, Options(false));
