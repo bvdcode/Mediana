@@ -15,8 +15,11 @@ namespace Mediana
             int maximumProbeBytes, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            (ContainerInfo info, IReadOnlyList<EncodedStreamInfo> streams) = container is IContainerProbeInfoProvider probe
+                ? await probe.ReadProbeInfoAsync(cancellationToken).ConfigureAwait(false)
+                : (container.Info, container.Streams);
             Dictionary<int, StreamMetadata> metadata = [];
-            foreach (EncodedStreamInfo stream in container.Streams)
+            foreach (EncodedStreamInfo stream in streams)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 metadataReaders.TryGetValue(stream.CodecId, out IStreamMetadataReader? reader);
@@ -42,7 +45,7 @@ namespace Mediana
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();
-            return new MediaInfo(container.Info, container.Streams, metadata);
+            return new MediaInfo(info, streams, metadata);
         }
 
         private static async ValueTask<StreamMetadata?> ReadPacketMetadataAsync(IIndexedPacketPrefixReader container,

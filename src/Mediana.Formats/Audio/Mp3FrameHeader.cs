@@ -105,8 +105,8 @@ namespace Mediana.Formats.Audio
             HasPadding = (word & 0x200) != 0;
             ModeExtension = (int)((word >> 4) & 3);
             Emphasis = (int)(word & 3);
-            FrameBytes = SamplesPerFrame / 8 * BitRate / SampleRate + (HasPadding ? 1 : 0);
-            if (FrameBytes < HeaderBytes + SideInfoBytes + (HasCrc ? 2 : 0))
+            FrameBytes = GetFrameBytes(BitRate, HasPadding);
+            if (FrameBytes < GetMinimumFrameBytes(HasCrc))
             {
                 throw new InvalidDataException("The MP3 frame cannot contain its header, CRC and side information.");
             }
@@ -167,5 +167,30 @@ namespace Mediana.Formats.Audio
 
         public static bool HasLayer3Sync(ReadOnlySpan<byte> data) => data.Length >= HeaderBytes
             && data[0] == 0xff && (data[1] & 0xe6) == 0xe2 && (data[1] & 0x18) != 8;
+
+        /// <summary>Reads the size of a standard Layer III frame with the same version, sample rate and channel count.</summary>
+        public int? GetMatchingFrameBytes(ReadOnlySpan<byte> data)
+        {
+            if (data.Length != HeaderBytes)
+            {
+                return null;
+            }
+            uint candidate = BinaryPrimitives.ReadUInt32BigEndian(data);
+            const uint samplingFormatMask = 0xfffe0c00;
+            int bitRateIndex = (int)((candidate >> 12) & 15);
+            int channels = ((candidate >> 6) & 3) == 3 ? 1 : 2;
+            if ((candidate & samplingFormatMask) != (word & samplingFormatMask) || bitRateIndex is 0 or 15 ||
+                (candidate & 3) == 2 || channels != ChannelCount)
+            {
+                return null;
+            }
+            ReadOnlySpan<int> rates = Version == MpegAudioVersion.Mpeg1 ? Mpeg1BitRates : LowRateBitRates;
+            int bytes = GetFrameBytes(rates[bitRateIndex] * 1000, (candidate & 0x200) != 0);
+            return bytes >= GetMinimumFrameBytes((candidate & 0x10000) == 0) ? bytes : null;
+        }
+
+        private int GetFrameBytes(int bitRate, bool padded) => SamplesPerFrame / 8 * bitRate / SampleRate + (padded ? 1 : 0);
+
+        private int GetMinimumFrameBytes(bool crc) => HeaderBytes + SideInfoBytes + (crc ? 2 : 0);
     }
 }
