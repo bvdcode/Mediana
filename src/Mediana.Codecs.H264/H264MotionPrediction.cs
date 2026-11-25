@@ -14,7 +14,18 @@ namespace Mediana.Codecs.H264
             return Predict(a, b, c, width, height, reference, partition);
         }
 
-        public static H264PartitionMotion SpatialDirect(H264Picture picture, H264ReferenceList list, int x, int y)
+        public static H264DirectMotion SpatialDirect(H264Picture picture, int x, int y)
+        {
+            H264PartitionMotion past = SpatialDirect(picture, H264ReferenceList.L0, x, y);
+            H264PartitionMotion future = SpatialDirect(picture, H264ReferenceList.L1, x, y);
+            if (past.ReferenceIndex < 0 && future.ReferenceIndex < 0)
+            {
+                past = future = new(0, 0, 0);
+            }
+            return new(past, future);
+        }
+
+        private static H264PartitionMotion SpatialDirect(H264Picture picture, H264ReferenceList list, int x, int y)
         {
             H264MotionSample a = picture.NeighbourMotionAt(list, x, y, x - 1, y);
             H264MotionSample b = picture.NeighbourMotionAt(list, x, y, x, y - 1);

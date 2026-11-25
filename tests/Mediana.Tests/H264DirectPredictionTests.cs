@@ -15,6 +15,8 @@ namespace Mediana.Tests
         [InlineData(8, 8)]
         [InlineData(8, 16)]
         [InlineData(16, 16)]
+        [InlineData(24, 8)]
+        [InlineData(48, 16)]
         public void StationaryPredictionBlendsVisibleColumnsAtEveryImplicitWeight(int width, int height)
         {
             int stride = width + 5;

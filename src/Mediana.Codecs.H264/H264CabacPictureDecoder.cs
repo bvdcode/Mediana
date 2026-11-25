@@ -66,6 +66,7 @@ namespace Mediana.Codecs.H264
             int qp = header.Qp;
             H264Picture? stationaryReference = header.Kind == H264SliceKind.P
                 ? H264InterPrediction.FindStationaryReference(result, header, references.L0) : null;
+            H264CabacSpatialSkipRun spatialRun = new(result, header, references, order);
             Span<byte> types = state.Types;
             Span<byte> quantizers = result.Quantizers;
             Span<byte> prediction = stackalloc byte[result.MacroblockBytes];
@@ -95,6 +96,13 @@ namespace Mediana.Codecs.H264
                         address = next - 1;
                         continue;
                     }
+                }
+                if (skipped && spatialRun.Enabled && spatialRun.TryRead(ref bits, reader, types, quantizers,
+                    address, endMacroblock, qp, cancellationToken, out int nextAddress, out nonSkippedFlagRead))
+                {
+                    syntax.ResetQuantizerDelta();
+                    address = nextAddress - 1;
+                    continue;
                 }
                 int type = header.Kind switch
                 {

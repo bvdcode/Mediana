@@ -53,13 +53,7 @@ namespace Mediana.Codecs.H264
             H264DirectMotion colocatedZero = default;
             if (header.DirectSpatialMotionPrediction)
             {
-                H264PartitionMotion past = H264MotionPrediction.SpatialDirect(target, H264ReferenceList.L0, mbX, mbY);
-                H264PartitionMotion future = H264MotionPrediction.SpatialDirect(target, H264ReferenceList.L1, mbX, mbY);
-                if (past.ReferenceIndex < 0 && future.ReferenceIndex < 0)
-                {
-                    past = future = new H264PartitionMotion(0, 0, 0);
-                }
-                spatial = new(past, future);
+                spatial = H264MotionPrediction.SpatialDirect(target, mbX, mbY);
                 colocatedZero = new(ApplyColocatedZero(spatial.L0), ApplyColocatedZero(spatial.L1));
                 if ((spatial == colocatedZero || colocated.LongTermIndex is not null) && source.SharesFrameGrid)
                 {
