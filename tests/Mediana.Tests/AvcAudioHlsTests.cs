@@ -4,6 +4,7 @@
 using Mediana.Codecs.H264;
 using Mediana.Core;
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.Streaming.Hls;
 
@@ -63,16 +64,42 @@ namespace Mediana.Tests
             Assert.False(writer.IsComplete);
         }
 
-        [Theory]
-        [InlineData("flac", 44100)]
-        [InlineData("aac", 2147483647)]
-        public void UnsupportedAudioOrUnrepresentableCommonClockIsRejectedWithoutOpeningOutput(string codec, int denominator)
+        [Fact]
+        public void UnsupportedAudioIsRejectedWithoutOpeningOutput()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             using H264Encoder encoder = H264Encoder.Create(H264EncoderTests.Format(16, 16), new(1, 1000), allocator);
-            EncodedStreamInfo audio = new(1, MediaKind.Audio, codec, StreamFormats.Aac, new(1, denominator), [0x12, 0x08]);
+            EncodedStreamInfo audio = new(1, MediaKind.Audio, "flac", StreamFormats.Aac, new(1, 44100), [0x12, 0x08]);
             Assert.Throws<NotSupportedException>(() => AvcHlsWriter.Create(encoder.Stream, audio,
                 (_, _) => throw new InvalidOperationException("No destination should be opened."), allocator));
+        }
+
+        [Fact]
+        public async Task NanosecondVideoAndSampleClockAudioRetainExactPacketOrder()
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            VideoFormat format = H264EncoderTests.Format(16, 16);
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1_000_000_000), allocator);
+            EncodedStreamInfo audio = new(1, MediaKind.Audio, "aac", StreamFormats.Aac, new(1, 48000), [0x11, 0x88]);
+            await using AvcHlsWriter writer = AvcHlsWriter.Create(encoder.Stream, audio,
+                (_, _) => ValueTask.FromResult<Stream>(new MemoryStream()), allocator);
+            using WritableMediaBuffer storage = allocator.Allocate(1);
+            using MediaBuffer data = storage.Publish();
+            using MediaPacket sound = new(1, data, new(0, audio.TimeBase), new(0, audio.TimeBase), new(4096, audio.TimeBase));
+            await writer.WritePacketAsync(sound);
+
+            using VideoFrame frame = H264EncoderTests.Frame(format, allocator, 0);
+            using VideoFrame shifted = frame.WithTiming(new(1, encoder.Stream.TimeBase), frame.Duration);
+            encoder.TrySend(shifted);
+            using MediaPacket video = encoder.Receive().Value!;
+            await writer.WritePacketAsync(video);
+            await writer.CompleteAsync();
+
+            HlsMediaSegment segment = Assert.Single(writer.Segments);
+            TimeBase transport = new(1, 90000);
+            Assert.Equal(new MediaTimestamp(0, transport), segment.Start);
+            Assert.Equal(new MediaDuration(7680, transport), segment.Duration);
+            Assert.True(segment.ByteLength > 0);
         }
     }
 }

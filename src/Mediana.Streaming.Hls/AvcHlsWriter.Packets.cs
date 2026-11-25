@@ -23,18 +23,19 @@ namespace Mediana.Streaming.Hls
                 {
                     throw new NotSupportedException("AVC HLS writing requires a configured stream, known PTS = DTS and a positive duration.");
                 }
-                long start = HlsClock.ExactTicks(pts, clock);
-                long length = HlsClock.ExactTicks(new(duration.Value, duration.TimeBase), clock);
-                long end = checked(start + length);
-                if ((video ? lastEnd : audioEnd) > start || lastDecodeTime > start ||
-                    (video && lastWasAudio && lastDecodeTime == start))
+                TimeBase trackClock = video ? videoClock : audioClock;
+                long start = HlsClock.ExactTicks(pts, trackClock);
+                long length = HlsClock.ExactTicks(new(duration.Value, duration.TimeBase), trackClock);
+                MediaTimestamp end = new(checked(start + length), trackClock);
+                if ((video ? lastEnd : audioEnd) is MediaTimestamp priorEnd && priorEnd.CompareTo(pts) > 0 ||
+                    lastDecodeTime is MediaTimestamp priorDecode && !Follows(priorDecode, pts, video))
                 {
                     throw new InvalidDataException("HLS access units require nonoverlapping track timing and global decode order with video first at equal DTS.");
                 }
                 if (video)
                 {
                     bool first = lastEnd is null;
-                    bool boundary = first || new MediaTimestamp(checked(start - output.SegmentStart), clock)
+                    bool boundary = first || new MediaTimestamp(checked(start - videoSegmentStart), trackClock)
                         .CompareTo(new(options.TargetDuration.Value, options.TargetDuration.TimeBase)) >= 0;
                     if (boundary)
                     {
@@ -45,17 +46,19 @@ namespace Mediana.Streaming.Hls
                         }
                         if (idr && (!first || !output.HasOutput))
                         {
-                            await output.BeginAsync(start, cancellationToken).ConfigureAwait(false);
+                            await output.BeginAsync(SegmentTicks(pts), cancellationToken).ConfigureAwait(false);
+                            videoSegmentStart = start;
                         }
                         if (first)
                         {
-                            output.SegmentStart = start;
+                            videoSegmentStart = start;
+                            output.SegmentStart = SegmentTicks(pts);
                         }
                     }
                 }
                 else if (!output.HasOutput)
                 {
-                    await output.BeginAsync(start, cancellationToken).ConfigureAwait(false);
+                    await output.BeginAsync(SegmentTicks(pts), cancellationToken).ConfigureAwait(false);
                 }
                 await output.WritePacketAsync(packet, cancellationToken).ConfigureAwait(false);
                 if (video)
@@ -66,7 +69,7 @@ namespace Mediana.Streaming.Hls
                 {
                     audioEnd = end;
                 }
-                lastDecodeTime = start;
+                lastDecodeTime = pts;
                 lastWasAudio = !video;
                 success = true;
             }
@@ -74,6 +77,12 @@ namespace Mediana.Streaming.Hls
             {
                 output.FinishOperation(success);
             }
+        }
+
+        private bool Follows(MediaTimestamp previous, MediaTimestamp current, bool video)
+        {
+            int order = previous.CompareTo(current);
+            return order < 0 || order == 0 && (!video || !lastWasAudio);
         }
     }
 }
