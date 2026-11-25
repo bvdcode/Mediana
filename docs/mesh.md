@@ -121,8 +121,12 @@ separate from that render-buffer accounting. Reader byte, vertex, triangle,
 object, instance, XML and nesting limits bound their corresponding work; they do
 not establish a whole-process memory cap.
 
-Normal adjacency uses bounded arrays rather than a dictionary of per-vertex lists.
-Its face accumulation order and existing smoothing work bound are retained.
+Smoothing collects up to 64 adjacent corners per vertex position and accumulates
+their face contributions in source order. Positions with more than 64 corners
+use the individual face normals. The main depth pass and shadow map process
+four horizontal samples at a time on CPUs with 128-bit SIMD. The remaining
+samples use the same scalar coverage and depth rules. At equal depth the
+first triangle retains the sample.
 `MaximumDegreeOfParallelism` controls row shading; the default is the runtime's
 parallel policy. Geometry preparation and triangle rasterization are sequential.
 Concurrent calls share no model mutation or render scratch state.

@@ -45,48 +45,22 @@ namespace Mediana.Models.Mesh
                 int top = Math.Clamp((int)MathF.Floor(MathF.Min(a.Y, MathF.Min(b.Y, c.Y))), 0, camera.Height - 1);
                 int bottom = Math.Clamp((int)MathF.Ceiling(MathF.Max(a.Y, MathF.Max(b.Y, c.Y))), 0, camera.Height - 1);
                 float inverseArea = 1 / area;
+                TriangleNormals surface = default;
+                if (!normals.IsEmpty)
+                {
+                    Vector3 origin = positions[mesh.Indices[corner]];
+                    Vector3 face = Vector3.Cross(positions[mesh.Indices[corner + 1]] - origin, positions[mesh.Indices[corner + 2]] - origin);
+                    surface = new(cornerNormals[corner], cornerNormals[corner + 1], cornerNormals[corner + 2], face, camera.ViewDirection);
+                }
                 for (int y = top; y <= bottom; y++)
                 {
                     token.ThrowIfCancellationRequested();
-                    for (int x = left; x <= right; x++)
-                    {
-                        if ((x & 255) == 0)
-                        {
-                            token.ThrowIfCancellationRequested();
-                        }
-
-                        float wa = Edge(b, c, x + 0.5f, y + 0.5f) * inverseArea;
-                        float wb = Edge(c, a, x + 0.5f, y + 0.5f) * inverseArea;
-                        float wc = 1 - wa - wb;
-                        if (wa < -0.000001f || wb < -0.000001f || wc < -0.000001f)
-                        {
-                            continue;
-                        }
-
-                        float depth = (wa * a.Z) + (wb * b.Z) + (wc * c.Z);
-                        int offset = (y * camera.Width) + x;
-                        if (depth >= depths[offset])
-                        {
-                            continue;
-                        }
-
-                        depths[offset] = depth;
-                        if (!normals.IsEmpty)
-                        {
-                            Vector3 normal = (cornerNormals[corner] * wa) + (cornerNormals[corner + 1] * wb) + (cornerNormals[corner + 2] * wc);
-                            if (normal.LengthSquared() < 0.000001f)
-                            {
-                                normal = Vector3.Cross(positions[mesh.Indices[corner + 1]] - positions[mesh.Indices[corner]],
-                                    positions[mesh.Indices[corner + 2]] - positions[mesh.Indices[corner]]);
-                            }
-
-                            normal = Vector3.Normalize(normal);
-                            normals[offset] = Vector3.Dot(normal, camera.ViewDirection) < 0 ? -normal : normal;
-                        }
-                    }
+                    int offset = (y * camera.Width) + left;
+                    int width = right - left + 1;
+                    TriangleDepthRow row = new(a, b, c, y + 0.5f, inverseArea);
+                    row.Draw(left, depths.Slice(offset, width), normals.IsEmpty ? default : normals.Slice(offset, width), in surface, token);
                 }
             }
-
         }
 
         private static float Edge(Vector3 a, Vector3 b, float x, float y) =>

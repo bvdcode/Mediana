@@ -47,6 +47,25 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void EqualDepthPreservesFirstTriangleNormalsAcrossTheRow()
+        {
+            Vector3[] vertices = [new(-1, -1, 0), new(1, -1, 0), new(0, 1, 0)];
+            TriangleMesh first = new(vertices, [0, 1, 2], [Vector3.UnitZ, Vector3.UnitZ, Vector3.UnitZ]);
+            TriangleMesh second = new(vertices, [0, 1, 2], [Vector3.UnitX, Vector3.UnitX, Vector3.UnitX]);
+            TriangleMesh both = new(vertices, [0, 1, 2, 0, 1, 2], [.. first.CornerNormals.Span, .. second.CornerNormals.Span]);
+            MeshRenderOptions options = new()
+            {
+                Width = 67, Height = 39, Supersampling = 1, CameraDirection = Vector3.UnitZ, CameraUp = Vector3.UnitY,
+                Shadows = false, AmbientOcclusion = false
+            };
+            using PixelBuffer expected = MeshRenderer.Render(first, options);
+            using PixelBuffer other = MeshRenderer.Render(second, options);
+            using PixelBuffer actual = MeshRenderer.Render(both, options);
+            Assert.NotEqual(expected[33, 19], other[33, 19]);
+            Assert.True(expected.Pixels.Span.SequenceEqual(actual.Pixels.Span));
+        }
+
+        [Fact]
         public void FramingHandlesAspectRatioAndVerySmallOrLargeCoordinates()
         {
             Vector3[] vertices = [new(-1, -1, 0), new(1, -1, 0), new(0, 1, 1)];
