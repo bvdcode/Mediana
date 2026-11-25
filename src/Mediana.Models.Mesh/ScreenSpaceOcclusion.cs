@@ -2,12 +2,15 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 
 namespace Mediana.Models.Mesh
 {
     internal class ScreenSpaceOcclusion
     {
-        private const float WorldRadius = 0.18f;
+        internal const float WorldRadius = 0.18f;
+        internal const float MinimumDistance = 0.0001f;
+        internal const float HorizonBias = 0.06f;
         private const int Steps = 3;
         private static readonly Vector2[] Directions =
         [
@@ -16,31 +19,69 @@ namespace Mediana.Models.Mesh
         ];
 
         private readonly RasterCamera _camera;
-        private readonly Vector2[] _offsets = new Vector2[Directions.Length * Steps];
+        private readonly OcclusionSamples[] _samples = Vector128.IsHardwareAccelerated
+            ? new OcclusionSamples[Directions.Length / Vector128<float>.Count * Steps] : [];
+        private readonly Vector2[] _scalarOffsets = Vector128.IsHardwareAccelerated ? [] : new Vector2[Directions.Length * Steps];
 
         internal ScreenSpaceOcclusion(RasterCamera camera)
         {
             _camera = camera;
             float radius = MathF.Max(2, camera.Scale * WorldRadius);
-            for (int direction = 0; direction < Directions.Length; direction++)
+            int tap = 0;
+            for (int first = 0; first < Directions.Length; first += Vector128<float>.Count)
             {
+                ReadOnlySpan<Vector2> directions = Directions.AsSpan(first, Vector128<float>.Count);
                 for (int step = 0; step < Steps; step++)
                 {
                     float distance = (radius * (step + 1)) / Steps;
-                    _offsets[(direction * Steps) + step] = Directions[direction] * distance;
+                    if (Vector128.IsHardwareAccelerated)
+                    {
+                        _samples[tap++] = new OcclusionSamples(directions, distance);
+                    }
+                    else
+                    {
+                        for (int lane = 0; lane < directions.Length; lane++)
+                        {
+                            _scalarOffsets[((first + lane) * Steps) + step] = directions[lane] * distance;
+                        }
+                    }
                 }
             }
         }
 
         internal float Evaluate(int x, int y, Vector3 point, Vector3 normal, ReadOnlySpan<float> depths)
         {
+            float occlusion = Vector128.IsHardwareAccelerated
+                ? SumHorizons(x, y, point, normal, depths)
+                : SumScalarHorizons(x, y, point, normal, depths);
+            return Math.Clamp(1 - (occlusion * (2.5f / Directions.Length)), 0.25f, 1);
+        }
+
+        private float SumHorizons(int x, int y, Vector3 point, Vector3 normal, ReadOnlySpan<float> depths)
+        {
             float occlusion = 0;
-            for (int start = 0; start < _offsets.Length; start += Steps)
+            for (int group = 0; group < _samples.Length; group += Steps)
+            {
+                Vector128<float> horizons = Vector128<float>.Zero;
+                for (int step = 0; step < Steps; step++)
+                {
+                    horizons = Vector128.Max(horizons, _samples[group + step].Evaluate(_camera, x, y, point, normal, depths));
+                }
+                // Keep the scalar direction order when adding the four horizons.
+                for (int lane = 0; lane < Vector128<float>.Count; lane++) { occlusion += horizons[lane]; }
+            }
+            return occlusion;
+        }
+
+        private float SumScalarHorizons(int x, int y, Vector3 point, Vector3 normal, ReadOnlySpan<float> depths)
+        {
+            float occlusion = 0;
+            for (int start = 0; start < _scalarOffsets.Length; start += Steps)
             {
                 float horizon = 0;
                 for (int step = 0; step < Steps; step++)
                 {
-                    Vector2 offset = _offsets[start + step];
+                    Vector2 offset = _scalarOffsets[start + step];
                     int sx = (int)MathF.Round(x + offset.X);
                     int sy = (int)MathF.Round(y + offset.Y);
                     if ((uint)sx >= (uint)_camera.Width || (uint)sy >= (uint)_camera.Height)
@@ -56,19 +97,19 @@ namespace Mediana.Models.Mesh
 
                     Vector3 delta = _camera.Unproject(sx + 0.5f, sy + 0.5f, depth) - point;
                     float length = delta.Length();
-                    if (length < 0.0001f || length >= WorldRadius)
+                    if (length < MinimumDistance || length >= WorldRadius)
                     {
                         continue;
                     }
 
-                    float contribution = MathF.Max((Vector3.Dot(normal, delta) / length) - 0.06f, 0) * (1 - (length / WorldRadius));
+                    float contribution = MathF.Max((Vector3.Dot(normal, delta) / length) - HorizonBias, 0) * (1 - (length / WorldRadius));
                     horizon = MathF.Max(horizon, contribution);
                 }
 
                 occlusion += horizon;
             }
 
-            return Math.Clamp(1 - (occlusion * (2.5f / Directions.Length)), 0.25f, 1);
+            return occlusion;
         }
     }
 }

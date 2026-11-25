@@ -135,6 +135,33 @@ namespace Mediana.Tests
             Assert.Equal(255, image[24, 24].A);
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(3)]
+        public void OcclusionOutsideTheImageMatchesEmptyDepth(int supersampling)
+        {
+            TriangleMesh surface = new(
+                [new(-1, -1, 0), new(1, -1, 0), new(1, 1, 0), new(-1, 1, 0),
+                 new(-1, 0.5f, 0.1f), new(-0.5f, 0.5f, 0.1f), new(-0.5f, 1, 0.1f), new(-1, 1, 0.1f)],
+                [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
+            MeshRenderOptions Options(int size, float padding, bool occlusion) => new()
+            {
+                Width = size, Height = size, Padding = padding, Supersampling = supersampling,
+                CameraDirection = Vector3.UnitZ, CameraUp = Vector3.UnitY, Shadows = false, AmbientOcclusion = occlusion
+            };
+            using PixelBuffer cropped = MeshRenderer.Render(surface, Options(64, 0, true));
+            using PixelBuffer padded = MeshRenderer.Render(surface, Options(128, 0.25f, true));
+            using PixelBuffer plain = MeshRenderer.Render(surface, Options(64, 0, false));
+            Assert.True(DarkerPixels(plain, cropped) > 0);
+            for (int y = 0; y < cropped.Height; y++)
+            {
+                for (int x = 0; x < cropped.Width; x++)
+                {
+                    Assert.Equal(padded[x + 32, y + 32], cropped[x, y]);
+                }
+            }
+        }
+
         [Fact]
         public void ShadowsAndOcclusionDarkenRecesses()
         {

@@ -126,7 +126,9 @@ their face contributions in source order. Positions with more than 64 corners
 use the individual face normals. The main depth pass and shadow map process
 four horizontal samples at a time on CPUs with 128-bit SIMD. The remaining
 samples use the same scalar coverage and depth rules. At equal depth the
-first triangle retains the sample.
+first triangle retains the sample. Ambient occlusion samples eight screen-space
+directions at three distances and evaluates four directions together on CPUs
+with 128-bit SIMD.
 `MaximumDegreeOfParallelism` controls row shading; the default is the runtime's
 parallel policy. Geometry preparation and triangle rasterization are sequential.
 Concurrent calls share no model mutation or render scratch state.

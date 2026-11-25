@@ -4,6 +4,7 @@
 using Mediana.Drawing;
 using System;
 using System.Numerics;
+using System.Runtime.Intrinsics;
 
 namespace Mediana.Models.Mesh
 {
@@ -53,6 +54,16 @@ namespace Mediana.Models.Mesh
             float horizontal = ((x - (Width * 0.5f)) / Scale) + _centerX;
             float vertical = (((Height * 0.5f) - y) / Scale) + _centerY;
             return ((_right * horizontal) + (_up * vertical)) - (_towardCamera * depth);
+        }
+
+        internal void Unproject(Vector128<float> x, Vector128<float> y, Vector128<float> depth,
+            out Vector128<float> worldX, out Vector128<float> worldY, out Vector128<float> worldZ)
+        {
+            Vector128<float> horizontal = ((x - Vector128.Create(Width * 0.5f)) / Scale) + Vector128.Create(_centerX);
+            Vector128<float> vertical = ((Vector128.Create(Height * 0.5f) - y) / Scale) + Vector128.Create(_centerY);
+            worldX = ((horizontal * _right.X) + (vertical * _up.X)) - (depth * _towardCamera.X);
+            worldY = ((horizontal * _right.Y) + (vertical * _up.Y)) - (depth * _towardCamera.Y);
+            worldZ = ((horizontal * _right.Z) + (vertical * _up.Z)) - (depth * _towardCamera.Z);
         }
     }
 }
