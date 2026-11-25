@@ -100,3 +100,59 @@ correctness checks; this real-model timing corpus does not exercise those varian
 The catalog keeps their performance checks open. This series covers complete
 geometry loading and a single preview, rather than model writing, animation,
 textures, other resolutions or other target platforms.
+
+## Repeated rendering during model rotation
+
+This comparison loads each model once, then renders evenly spaced Z-axis
+rotations. It measures the full `MeshRenderer.Render` call, including geometry
+preparation and both depth passes. File loading, display and PNG encoding are
+outside the measurement. Both versions use the same studio lighting, shadow map
+and ambient occlusion. Spot is from
+[Keenan Crane's 3D Model Repository](https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/index.html#spot).
+
+Stage timing for triangulated Spot at 384 × 384 with one sample per pixel
+attributed about 63% of elapsed time to shading, which includes shadow filtering
+and ambient occlusion. At 512 × 512 with four samples per pixel, shading accounted
+for about 77%. The renderer now computes light coefficients and filter offsets
+once per frame, and reuses the horizontal and vertical depth terms in each
+5 × 5 shadow filter. It uses the same taps, weights and depth tests.
+
+The baseline is `66f99794`. Measurements use .NET 11.0.0 on Linux x64,
+Intel Core i5-12450H, two pinned performance cores and
+`MaximumDegreeOfParallelism = 2`. JIT tiering is disabled. Each case alternates
+the order of four independent process pairs, with 12 warm-up frames per
+process. The shadow map is 512 × 512 at one sample per pixel and 1024 × 1024
+at four. A byte-by-byte check across nine configurations and 168 frames per
+runtime matched the baseline RGBA in both JIT and Native AOT.
+
+Each table reports medians of per-process means. CPU time sums user and system
+time for the process. The pooled cases reuse one `MediaBufferAllocator` backed by
+`MemoryPool<byte>.Shared` throughout the rotation in both builds. Peak RSS is
+for the whole process, including the model and any retained pool buffers.
+
+| JIT workload | Elapsed ms/frame | CPU ms/frame | Peak RSS, MiB |
+| --- | ---: | ---: | ---: |
+| Spot triangles, 256 × 256, 1 sample, pooled | 27.11 → 20.86 | 25.85 → 20.85 | 49.9 → 50.0 |
+| Spot triangles, 384 × 384, 1 sample | 41.58 → 33.16 | 46.10 → 36.59 | 71.0 → 61.1 |
+| Spot triangles, 512 × 512, 4 samples | 255.71 → 167.00 | 252.47 → 166.25 | 124.6 → 122.3 |
+| Spot quads, 384 × 384, 1 sample, pooled | 44.73 → 32.90 | 44.29 → 32.01 | 52.5 → 52.4 |
+| Dog assembly, 384 × 384, 1 sample, pooled | 36.25 → 31.29 | 42.32 → 36.13 | 129.1 → 129.2 |
+
+| Native AOT workload | Elapsed ms/frame | CPU ms/frame | Peak RSS, MiB |
+| --- | ---: | ---: | ---: |
+| Spot triangles, 256 × 256, 1 sample, pooled | 22.72 → 19.52 | 23.85 → 20.14 | 25.1 → 24.9 |
+| Spot triangles, 384 × 384, 1 sample | 41.26 → 34.83 | 42.19 → 35.03 | 36.2 → 64.6 |
+| Spot triangles, 512 × 512, 4 samples | 152.35 → 125.66 | 211.75 → 174.59 | 96.5 → 96.3 |
+| Spot quads, 384 × 384, 1 sample, pooled | 23.14 → 19.57 | 36.30 → 29.56 | 27.3 → 27.3 |
+| Dog assembly, 384 × 384, 1 sample, pooled | 30.56 → 28.80 | 37.13 → 33.75 | 97.5 → 97.6 |
+
+The higher unpooled 384 × 384 Native AOT RSS did not recur in a second
+four-pair series. The medians were 35.9 → 36.2 MiB, with about 4.80 MB of
+managed allocation per frame in both builds. With pooling on the same input,
+RSS was 27.8 → 27.7 MiB and allocation was 3.55 → 4.02 KB/frame. The change
+adds fixed-size lighting and filter data per frame.
+
+With both shadows and ambient occlusion disabled, the 384 × 384 pooled Spot
+JIT case took 8.96 → 8.30 ms/frame elapsed and 11.50 → 10.54 ms/frame CPU. These
+measurements cover rendering on the tested Linux host. Window presentation and
+Windows performance are separate measurements.

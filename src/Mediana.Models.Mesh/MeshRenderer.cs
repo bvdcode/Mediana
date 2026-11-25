@@ -29,16 +29,18 @@ namespace Mediana.Models.Mesh
             using MeshBuffer<Vector3> normals = new(checked(width * height), allocator);
             using MeshBuffer<float> depths = new(checked(width * height), allocator);
             TriangleRasterizer.Draw(prepared, camera, depths.Span, normals.Span, allocator, cancellationToken);
-            RasterCamera? shadowCamera = null;
             using MeshBuffer<float>? shadowDepths = options.Shadows ? new(checked(options.ShadowMapSize * options.ShadowMapSize), allocator) : null;
-            if (options.Shadows)
+            StudioShadow? shadow = null;
+            if (shadowDepths is not null)
             {
-                shadowCamera = new RasterCamera(prepared, StudioLighting.KeyDirection, Vector3.UnitZ,
+                RasterCamera shadowCamera = new(prepared, StudioLighting.KeyDirection, Vector3.UnitZ,
                     options.ShadowMapSize, options.ShadowMapSize, 0.03f);
-                TriangleRasterizer.Draw(prepared, shadowCamera, shadowDepths!.Span, Span<Vector3>.Empty, allocator, cancellationToken);
+                TriangleRasterizer.Draw(prepared, shadowCamera, shadowDepths.Span, Span<Vector3>.Empty, allocator, cancellationToken);
+                shadow = new StudioShadow(shadowCamera, shadowDepths, options.ShadowSoftness);
             }
 
-            StudioLighting lighting = new(options, shadowCamera, shadowDepths);
+            StudioLighting lighting = new(options, camera.ViewDirection, shadow);
+            ScreenSpaceOcclusion? occlusion = options.AmbientOcclusion ? new(camera) : null;
             PixelBuffer output = new(options.Width, options.Height, allocator);
             bool completed = false;
             try
@@ -76,9 +78,9 @@ namespace Mediana.Models.Mesh
                                 }
 
                                 Vector3 point = camera.Unproject(sampleX + 0.5f, sampleY + 0.5f, depth);
-                                float occlusion = options.AmbientOcclusion
-                                    ? ScreenSpaceOcclusion.Evaluate(sampleX, sampleY, point, rowNormals[offset], camera, rowDepths) : 1;
-                                sum += lighting.Shade(point, rowNormals[offset], camera.ViewDirection, occlusion);
+                                Vector3 normal = rowNormals[offset];
+                                float visibility = occlusion?.Evaluate(sampleX, sampleY, point, normal, rowDepths) ?? 1;
+                                sum += lighting.Shade(point, normal, visibility);
                                 alpha += 1;
                             }
                         }
