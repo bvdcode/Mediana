@@ -145,9 +145,10 @@ namespace Mediana.Streaming.Hls
         }
 
         /// <summary>Seeks through the existing index and encodes only the selected window after necessary decoder preroll.
+        /// Overlaps video preparation and encoding when more than one processor is available.
         /// Any failed output must be discarded. Cancellation and output failures do not change later requests.</summary>
         public ValueTask<HlsMediaSegment> WriteSegmentAsync(int number, Stream destination, CancellationToken cancellationToken = default) =>
-            WriteSegmentAsync(number, destination, false, cancellationToken);
+            WriteSegmentAsync(number, destination, Environment.ProcessorCount > 1, cancellationToken);
 
         /// <summary>Optionally overlap video preparation and encoding with bounded lookahead.
         /// The queues can retain two prepared frames and one encoded video packet against the allocator budget.

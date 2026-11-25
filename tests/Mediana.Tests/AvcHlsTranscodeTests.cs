@@ -175,7 +175,7 @@ namespace Mediana.Tests
             Assert.False(failed.WasDisposed);
             using MemoryStream retry = new(), repeated = new();
             await session.WriteSegmentAsync(7, retry, overlap, CancellationToken.None);
-            await session.WriteSegmentAsync(7, repeated);
+            await session.WriteSegmentAsync(7, repeated, false, CancellationToken.None);
             Assert.Equal(retry.ToArray(), repeated.ToArray());
             Assert.Equal(retained, allocator.AllocatedBytes);
         }
