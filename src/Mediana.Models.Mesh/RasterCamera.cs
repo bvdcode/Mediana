@@ -28,9 +28,10 @@ namespace Mediana.Models.Mesh
             _up = Vector3.Cross(_towardCamera, _right);
             Vector2 minimum = new(float.PositiveInfinity);
             Vector2 maximum = new(float.NegativeInfinity);
+            ReadOnlySpan<Vector3> positions = mesh.Positions;
             foreach (int index in mesh.Indices)
             {
-                Vector3 vertex = mesh.Positions[index];
+                Vector3 vertex = positions[index];
                 Vector2 position = new(Vector3.Dot(vertex, _right), Vector3.Dot(vertex, _up));
                 minimum = Vector2.Min(minimum, position);
                 maximum = Vector2.Max(maximum, position);

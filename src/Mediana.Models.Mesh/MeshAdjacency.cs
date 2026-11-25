@@ -6,72 +6,75 @@ using System.Numerics;
 
 namespace Mediana.Models.Mesh
 {
-    internal class MeshAdjacency : IDisposable
+    internal static class MeshAdjacency
     {
-        private readonly MeshBuffer<int> _heads;
-        private MeshBuffer<int>? _next;
-        private readonly PreparedMesh _mesh;
-        private readonly int _mask;
+        private const int MaximumNeighbors = 64;
 
-        internal MeshAdjacency(PreparedMesh mesh, ReadOnlySpan<Vector3> faceNormals, MediaBufferAllocator allocator, CancellationToken token)
+        internal static void CreateNormals(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> indices,
+            ReadOnlySpan<Vector3> faceNormals, ReadOnlySpan<Vector3> faceAreas, Span<Vector3> normals,
+            float cosine, MediaBufferAllocator allocator, CancellationToken token)
         {
-            _mesh = mesh;
-            int capacity = checked((int)BitOperations.RoundUpToPowerOf2(checked((uint)mesh.Indices.Length * 2)));
-            _mask = capacity - 1;
-            _heads = new(capacity, allocator);
-            bool completed = false;
-            try
+            int capacity = checked((int)BitOperations.RoundUpToPowerOf2(checked((uint)indices.Length * 2)));
+            using MeshBuffer<int> headBuffer = new(capacity, allocator);
+            using MeshBuffer<int> nextBuffer = new(indices.Length, allocator);
+            Span<int> heads = headBuffer.Span;
+            Span<int> next = nextBuffer.Span;
+            heads.Fill(-1);
+            for (int corner = indices.Length - 1; corner >= 0; corner--)
             {
-                _next = new(mesh.Indices.Length, allocator);
-                _heads.Span.Fill(-1);
-                for (int corner = mesh.Indices.Length - 1; corner >= 0; corner--)
+                if ((corner & 4095) == 0) { token.ThrowIfCancellationRequested(); }
+                Vector3 normal = faceNormals[corner / 3];
+                normals[corner] = normal;
+                if (normal == Vector3.Zero) { continue; }
+                int slot = FindSlot(positions[indices[corner]], positions, indices, heads);
+                next[corner] = heads[slot];
+                heads[slot] = corner;
+            }
+
+            Span<int> neighbors = stackalloc int[MaximumNeighbors];
+            for (int slot = 0; slot < heads.Length; slot++)
+            {
+                if ((slot & 4095) == 0) { token.ThrowIfCancellationRequested(); }
+                if (heads[slot] < 0) { continue; }
+                int count = 0;
+                int corner = heads[slot];
+                while (corner >= 0 && count < neighbors.Length)
                 {
-                    if ((corner & 4095) == 0) { token.ThrowIfCancellationRequested(); }
-                    if (faceNormals[corner / 3] == Vector3.Zero) { continue; }
-                    int slot = Slot(mesh.Positions[mesh.Indices[corner]]);
-                    _next.Span[corner] = _heads.Span[slot];
-                    _heads.Span[slot] = corner;
+                    neighbors[count++] = corner;
+                    corner = next[corner];
                 }
-                completed = true;
-            }
-            finally
-            {
-                if (!completed) { Dispose(); }
-            }
-        }
-
-        internal Vector3 Smooth(int corner, ReadOnlySpan<Vector3> faceNormals, ReadOnlySpan<Vector3> faceAreas, float cosine)
-        {
-            Vector3 normal = faceNormals[corner / 3];
-            int first = _heads.Span[Slot(_mesh.Positions[_mesh.Indices[corner]])];
-            Vector3 sum = Vector3.Zero;
-            int count = 0;
-            for (int current = first; current >= 0; current = _next!.Span[current])
-            {
-                if (++count > 64) { return normal; }
-                int neighbor = current / 3;
-                if (Vector3.Dot(normal, faceNormals[neighbor]) >= cosine - 0.000001f) { sum += faceAreas[neighbor]; }
-            }
-            return sum.LengthSquared() > 1e-24f ? Vector3.Normalize(sum) : normal;
-        }
-
-        private int Slot(Vector3 position)
-        {
-            int slot = position.GetHashCode() & _mask;
-            ReadOnlySpan<int> heads = _heads.Span;
-            ReadOnlySpan<Vector3> positions = _mesh.Positions;
-            while (true)
-            {
-                int head = heads[slot];
-                if (head < 0 || positions[_mesh.Indices[head]] == position) { return slot; }
-                slot = (slot + 1) & _mask;
+                if (corner < 0)
+                {
+                    Smooth(neighbors[..count], normals, faceNormals, faceAreas, cosine);
+                }
             }
         }
 
-        public void Dispose()
+        private static void Smooth(ReadOnlySpan<int> corners, Span<Vector3> normals,
+            ReadOnlySpan<Vector3> faceNormals, ReadOnlySpan<Vector3> faceAreas, float cosine)
         {
-            _next?.Dispose();
-            _heads.Dispose();
+            foreach (int corner in corners)
+            {
+                Vector3 normal = faceNormals[corner / 3];
+                Vector3 sum = Vector3.Zero;
+                foreach (int adjacent in corners)
+                {
+                    int face = adjacent / 3;
+                    if (Vector3.Dot(normal, faceNormals[face]) >= cosine - 0.000001f) { sum += faceAreas[face]; }
+                }
+                if (sum.LengthSquared() > 1e-24f) { normals[corner] = Vector3.Normalize(sum); }
+            }
+        }
+
+        private static int FindSlot(Vector3 position, ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> indices, ReadOnlySpan<int> heads)
+        {
+            int mask = heads.Length - 1;
+            int slot = position.GetHashCode() & mask;
+            while (heads[slot] >= 0 && positions[indices[heads[slot]]] != position)
+            {
+                slot = (slot + 1) & mask;
+            }
+            return slot;
         }
     }
 }

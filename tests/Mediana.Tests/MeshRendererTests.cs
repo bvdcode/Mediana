@@ -188,6 +188,31 @@ namespace Mediana.Tests
             Assert.Throws<ArgumentException>(() => MeshRenderer.Render(source, new MeshRenderOptions { ModelRotation = new Quaternion() }));
         }
 
+        [Theory]
+        [InlineData(64, false)]
+        [InlineData(65, true)]
+        public void SmoothingUsesFaceNormalsBeyondTheNeighborLimit(int faces, bool matchesFlat)
+        {
+            Vector3[] vertices = new Vector3[faces * 3];
+            for (int face = 0; face < faces; face++)
+            {
+                float angle = face * MathF.Tau / faces;
+                float end = (face + 0.8f) * MathF.Tau / faces;
+                vertices[face * 3] = Vector3.UnitZ;
+                vertices[(face * 3) + 1] = new(MathF.Cos(angle), MathF.Sin(angle), 0);
+                vertices[(face * 3) + 2] = new(MathF.Cos(end), MathF.Sin(end), 0);
+            }
+            TriangleMesh fan = new(vertices, Enumerable.Range(0, vertices.Length).ToArray());
+            MeshRenderOptions Options(bool smooth) => new()
+            {
+                Width = 128, Height = 128, Supersampling = 1, Shadows = false, AmbientOcclusion = false,
+                SmoothNormals = smooth, CreaseAngle = 180, CameraDirection = Vector3.UnitZ, CameraUp = Vector3.UnitY
+            };
+            using PixelBuffer smooth = MeshRenderer.Render(fan, Options(true));
+            using PixelBuffer flat = MeshRenderer.Render(fan, Options(false));
+            Assert.Equal(matchesFlat, smooth.Pixels.Span.SequenceEqual(flat.Pixels.Span));
+        }
+
         private static int DarkerPixels(PixelBuffer reference, PixelBuffer shaded)
         {
             int count = 0;
