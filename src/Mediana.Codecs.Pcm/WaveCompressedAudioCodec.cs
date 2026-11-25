@@ -9,7 +9,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Pcm
 {
-    /// <summary>Decodes one WAVE compressed audio encoding to PCM16 and reads its stream metadata from the format chunk.</summary>
+    /// <summary>Decodes a G.711 or ADPCM WAVE encoding to PCM16 and reads its stream metadata from the format chunk.</summary>
     public class WaveCompressedAudioCodec : IAudioDecoderFactory, IStreamMetadataReader
     {
         private readonly WaveCompressedAudioEncoding encoding;

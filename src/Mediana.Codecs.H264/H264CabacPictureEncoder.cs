@@ -149,10 +149,15 @@ namespace Mediana.Codecs.H264
         {
             if (!source.Luma.ContainsAnyExcept(source.Luma[0]))
             {
-                int mode = H264Intra16ModeSearch.Select(source, target, x, y, prediction[..256]);
-                target.PredictMacroblock(0, x, y, mode, prediction[..256]);
+                int mode = H264Intra16ModeSearch.Select(source, target, x, y, prediction[..256], out int luma);
+                bool lumaMatchesPrediction = luma == 0;
+                if (!lumaMatchesPrediction)
+                {
+                    target.PredictMacroblock(0, x, y, mode, prediction[..256]);
+                }
                 int chromaMode = H264ChromaModeSearch.Select(target, x, y, source.Chroma, prediction[256..]);
-                H264Intra16Encoder.WriteCabac(syntax, source, target, address, x, y, quantizer, mode, chromaMode, prediction, coefficients);
+                H264Intra16Encoder.WriteCabac(syntax, source, target, address, x, y, quantizer, mode, chromaMode,
+                    prediction, coefficients, lumaMatchesPrediction);
                 return;
             }
             syntax.WriteIntraType(address);

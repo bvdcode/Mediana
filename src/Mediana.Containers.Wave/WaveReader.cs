@@ -15,7 +15,7 @@ namespace Mediana.Containers.Wave
 {
     /// <summary>Reads one RIFF/WAVE audio data chunk sequentially. Borrows its source.
     /// Trailing chunks and padding are validated when the packet stream is drained.
-    /// Supports PCM, IEEE float, G.711 A-law and IMA ADPCM.</summary>
+    /// Supports PCM, IEEE float, G.711, IMA ADPCM and Microsoft ADPCM.</summary>
     public class WaveReader : IContainerReader
     {
         private const uint FormatChunk = 0x20746d66;
@@ -122,10 +122,10 @@ namespace Mediana.Containers.Wave
                         formatRead = true;
                         await SkipMetadataAsync(chunkSize & 1, cancellationToken).ConfigureAwait(false);
                         break;
-                    case FactChunk when compressedConfiguration?.Encoding == WaveCompressedAudioEncoding.ImaAdpcm:
+                    case FactChunk when compressedConfiguration?.CanTrimFinalBlock == true:
                         if (factSampleCount is not null || chunkSize < sizeof(uint))
                         {
-                            throw new InvalidDataException("The WAVE IMA ADPCM fact chunk is duplicated or truncated.");
+                            throw new InvalidDataException("The WAVE ADPCM fact chunk is duplicated or truncated.");
                         }
                         CountMetadata(sizeof(uint));
                         await ReadAsync(scratch.Memory[..sizeof(uint)], cancellationToken).ConfigureAwait(false);
@@ -181,21 +181,17 @@ namespace Mediana.Containers.Wave
 
         private long GetDataSampleCount(long bytes)
         {
-            if (compressedConfiguration is null && bytes % blockAlignment != 0)
+            if (compressedConfiguration is WaveCompressedAudioConfiguration compressed)
+            {
+                return factSampleCount is uint count
+                    ? compressed.GetSampleCount(bytes, count)
+                    : compressed.GetSampleCapacity(bytes);
+            }
+            if (bytes % blockAlignment != 0)
             {
                 throw new InvalidDataException("WAVE data ends in an incomplete PCM block.");
             }
-            long capacity = compressedConfiguration?.GetSampleCapacity(bytes) ?? bytes / blockAlignment;
-            if (factSampleCount is not uint count)
-            {
-                return capacity;
-            }
-            long firstSampleInLastBlock = bytes == 0 ? 0 : (bytes - 1) / blockAlignment * samplesPerBlock + 1;
-            if (count < firstSampleInLastBlock || count > capacity)
-            {
-                throw new InvalidDataException("The WAVE IMA ADPCM fact sample count does not match the data blocks.");
-            }
-            return count;
+            return bytes / blockAlignment;
         }
 
         public async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)

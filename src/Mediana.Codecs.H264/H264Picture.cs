@@ -219,6 +219,38 @@ namespace Mediana.Codecs.H264
             WriteBlock(plane, x, y, prediction, predictionStride, residual, 4);
         }
 
+        internal void ReconstructLuma8x8(int plane, int x, int y, ReadOnlySpan<byte> prediction,
+            int predictionStride, ReadOnlySpan<int> coefficients, int qp, bool field)
+        {
+            if (!field && TryWriteInverse8x8(plane, x, y, prediction, predictionStride, coefficients, qp))
+            {
+                return;
+            }
+
+            Span<int> residual = stackalloc int[64];
+            H264InverseTransform8x8.Residual(coefficients, qp, residual, Sequence.LumaBitDepth, field: field);
+            WriteLuma8x8(x, y, prediction, predictionStride, residual, plane);
+        }
+
+        private bool TryWriteInverse8x8(int plane, int x, int y, ReadOnlySpan<byte> prediction,
+            int predictionStride, ReadOnlySpan<int> coefficients, int qp)
+        {
+            if (SampleBytes != 1 || Layout.MacroblockAdaptiveFrameField || !H264VectorInverse8x8.IsSupported)
+            {
+                return false;
+            }
+            (int offset, int stride) = SampleLocation(plane, x, y);
+            if (!H264VectorInverse8x8.TryWrite(coefficients, qp, prediction, predictionStride, Plane(plane)[offset..], stride))
+            {
+                return false;
+            }
+            if (plane == 0 || FullResolutionChroma)
+            {
+                MarkReconstructed(BlockIndex(plane, x, y), Stride(plane) / 4, 2);
+            }
+            return true;
+        }
+
         public void WriteLuma8x8(int x, int y, ReadOnlySpan<byte> prediction, int predictionStride, ReadOnlySpan<int> residual, int plane) =>
             WriteBlock(plane, x, y, prediction, predictionStride, residual, 8);
 

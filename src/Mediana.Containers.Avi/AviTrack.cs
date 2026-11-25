@@ -12,7 +12,8 @@ namespace Mediana.Containers.Avi
     {
         public EncodedStreamInfo Stream { get; private set; } = stream;
         public bool PresentsInPacketOrder => Stream.Kind == MediaKind.Audio ||
-            Stream.CodecId is "mjpeg" or MicrosoftMpeg4Configuration.Version3CodecId or MicrosoftMpeg4Configuration.Wmv2CodecId;
+            IsIntraVideo || Stream.CodecId is MicrosoftMpeg4Configuration.Version3CodecId or MicrosoftMpeg4Configuration.Wmv2CodecId;
+        private bool IsIntraVideo => Stream.CodecId is "mjpeg" or DvFrameHeader.CodecId;
         public TimeBase PresentationClock { get; set; } = stream.TimeBase;
         public void SetConfiguration(ReadOnlySpan<byte> configuration)
         {
@@ -48,11 +49,11 @@ namespace Mediana.Containers.Avi
                 {
                     throw new InvalidDataException("AVI packet index entries must not overlap or move backwards within a stream.");
                 }
-                if (Stream.CodecId == "mjpeg" && duration != 1)
+                if (IsIntraVideo && duration != 1)
                 {
-                    throw new NotSupportedException("A Motion JPEG AVI packet must contain one complete picture.");
+                    throw new NotSupportedException("An intra-frame AVI packet must contain one complete picture.");
                 }
-                Packets.Add(new(offset, Time, duration, (int)size, chunkId, keyFrame, offset, (int)size));
+                Packets.Add(new(offset, Time, duration, (int)size, chunkId, keyFrame || IsIntraVideo, offset, (int)size));
                 PayloadBytes = checked(PayloadBytes + size);
             }
             else if (Stream.Kind == MediaKind.Video && Packets.Count != 0 && duration != 0)

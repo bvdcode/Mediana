@@ -71,8 +71,8 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
 | `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/AV1/VP8/VP9/AAC/MP3/AC-3 packet mapping](docs/matroska-ebml.md) |
 | `Mediana.Containers.Mp4` | Ordinary and fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AV1/MPEG-4 Visual/AAC/MP3/AC-3/E-AC-3 packet reading |
-| `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
-| `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM, G.711 A-law and IMA ADPCM reading |
+| `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML DV25/MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
+| `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM, G.711 A-law and μ-law, IMA ADPCM and Microsoft ADPCM reading |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing |
@@ -84,12 +84,13 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo |
 | `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC/MP3 transport-stream writer |
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder/encoder factories |
-| `Mediana.Codecs.Pcm` | Integer/float PCM conversion and WAVE G.711 A-law and IMA ADPCM decoding |
+| `Mediana.Codecs.Pcm` | Integer/float PCM conversion and WAVE G.711 and ADPCM decoding |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
 | `Mediana.Codecs.Aac` | AAC-LC through 7.1 wide, mono/stereo SBR, parametric stereo and experimental mono/stereo AAC-LC encoding ([HE-AAC](docs/he-aac-decoding.md)) |
 | `Mediana.Codecs.Alac` | Managed Apple Lossless decoding, M4A metadata and indexed seeking; [details](docs/alac.md) |
 | `Mediana.Codecs.Dts` | Managed DTS Core decoding, MKV metadata and indexed seeking; [details](docs/dts.md) |
 | `Mediana.Codecs.ProRes` | Six ProRes profiles, MOV decoding and full alpha precision; [details](docs/prores.md) |
+| `Mediana.Codecs.Dv` | Managed PAL DV25 video decode and AVI seeking ([API](docs/dv.md)) |
 | `Mediana.Codecs.Ac3` | Managed AC-3/E-AC-3 transforms, coupling, spectral extension, transient processing and dependent channels ([API](src/Mediana.Codecs.Ac3/README.md)) |
 | `Mediana.Codecs.Av1` | Managed eight-bit Main intra/compound inter reconstruction, loop filters and indexed MP4/Matroska input ([coverage](src/Mediana.Codecs.Av1/README.md)) |
 | `Mediana.Codecs.Mpeg4Visual` | Managed MPEG-4 Part 2 I/P/B video, half/quarter-pixel motion and indexed AVI/MP4 seeking ([API](docs/mpeg4-visual.md)) |
@@ -452,7 +453,9 @@ MediaEngine engine = new MediaEngineBuilder()
     .AddContainer(new WaveReaderFactory())
     .AddAudioDecoder(new PcmDecoderFactory())
     .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ALaw))
+    .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.MuLaw))
     .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ImaAdpcm))
+    .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.MicrosoftAdpcm))
     .Build();
 await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
 await using AudioSession session = await engine.OpenAudioAsync(source, 0);
@@ -473,8 +476,9 @@ The decoder returns interleaved native-endian samples. Signed 24-bit input expan
 to left-aligned signed 32-bit output; float bit patterns retain their precision.
 Channel masks preserve the declared speaker order; unassigned channels remain discrete.
 
-G.711 A-law and 3-/4-bit IMA ADPCM produce interleaved native-endian PCM16.
-An IMA ADPCM `fact` chunk before `data` supplies the exact decoded length, including
+G.711 A-law and μ-law, 3-/4-bit IMA ADPCM, and 4-bit mono/stereo Microsoft ADPCM
+produce interleaved native-endian PCM16.
+An ADPCM `fact` chunk between `fmt ` and `data` supplies the exact decoded length, including
 when the final block is padded. Register `WaveCompressedAudioCodec` through
 `AddStreamMetadataReader` to probe sample rate and channel order without decoding.
 

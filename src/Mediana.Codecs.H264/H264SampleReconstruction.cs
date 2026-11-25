@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -15,10 +16,9 @@ namespace Mediana.Codecs.H264
             {
                 for (int row = 0; row < 8; row++)
                 {
-                    Vector128<byte> samples = Vector128.CreateScalar(MemoryMarshal.Read<ulong>(prediction[(row * predictionStride)..])).AsByte();
                     ReadOnlySpan<int> values = residual[(row * 8)..];
-                    ulong reconstructed = Reconstruct(samples, Vector128.Create(values), Vector128.Create(values[4..])).AsUInt64().GetElement(0);
-                    MemoryMarshal.Write(pixels[(row * stride)..], in reconstructed);
+                    Write8Row(prediction[(row * predictionStride)..], Vector128.Create(values),
+                        Vector128.Create(values[4..]), pixels[(row * stride)..]);
                 }
                 return;
             }
@@ -85,6 +85,18 @@ namespace Mediana.Codecs.H264
             }
             return error;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void Write8Row(ReadOnlySpan<byte> prediction, Vector128<int> lower, Vector128<int> upper, Span<byte> destination)
+        {
+            Vector128<byte> samples = Vector128.CreateScalar(MemoryMarshal.Read<ulong>(prediction)).AsByte();
+            ulong reconstructed = Reconstruct(samples, lower, upper).AsUInt64().GetElement(0);
+            MemoryMarshal.Write(destination, in reconstructed);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void Write4Row(ReadOnlySpan<byte> prediction, Vector128<int> residual, Span<byte> destination) =>
+            WriteFour(Reconstruct(ReadFour(prediction), residual, Vector128<int>.Zero), destination);
 
         private static Vector128<byte> Reconstruct(Vector128<byte> prediction, Vector128<int> lowerResidual, Vector128<int> upperResidual)
         {

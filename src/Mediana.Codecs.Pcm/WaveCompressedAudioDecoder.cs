@@ -14,11 +14,11 @@ namespace Mediana.Codecs.Pcm
         MediaBufferAllocator allocator, int maxSamplesPerFrame) : PcmPacketDecoder(streamIndex, maxSamplesPerFrame)
     {
         private static readonly short[] aLawSamples = CreateALawTable();
+        private static readonly short[] muLawSamples = CreateMuLawTable();
 
         protected override AudioFrame Decode(MediaPacket packet, int maxSamples, CancellationToken cancellationToken)
         {
-            long sampleCapacity = configuration.GetSampleCapacity(packet.Data.Length);
-            long samples = GetSampleCount(packet, sampleCapacity);
+            long samples = GetSampleCount(packet);
             if (samples > maxSamples)
             {
                 throw new NotSupportedException("The compressed WAVE packet exceeds the configured sample limit.");
@@ -30,10 +30,14 @@ namespace Mediana.Codecs.Pcm
             switch (configuration.Encoding)
             {
                 case WaveCompressedAudioEncoding.ALaw:
-                    DecodeALaw(packet.Data.Span, output, cancellationToken);
+                    DecodeG711(packet.Data.Span, output, aLawSamples, cancellationToken);
+                    break;
+                case WaveCompressedAudioEncoding.MuLaw:
+                    DecodeG711(packet.Data.Span, output, muLawSamples, cancellationToken);
                     break;
                 case WaveCompressedAudioEncoding.ImaAdpcm:
-                    ImaAdpcmWaveBlockDecoder.Decode(packet.Data.Span, output, configuration, cancellationToken);
+                case WaveCompressedAudioEncoding.MicrosoftAdpcm:
+                    DecodeAdpcm(packet.Data.Span, output, cancellationToken);
                     break;
                 default:
                     throw new InvalidOperationException("The compressed WAVE encoding is invalid.");
@@ -42,24 +46,51 @@ namespace Mediana.Codecs.Pcm
             return new AudioFrame(format, (int)samples, buffer, packet.PresentationTime);
         }
 
-        private long GetSampleCount(MediaPacket packet, long capacity)
+        private long GetSampleCount(MediaPacket packet)
         {
-            if (configuration.Encoding != WaveCompressedAudioEncoding.ImaAdpcm || packet.Duration is not MediaDuration duration)
+            if (!configuration.CanTrimFinalBlock || packet.Duration is not MediaDuration duration)
             {
-                return capacity;
+                return configuration.GetSampleCapacity(packet.Data.Length);
             }
             TimeBase sampleClock = new(1, configuration.DecodedFormat.SampleRate);
             MediaTimestamp end = new(duration.Value, duration.TimeBase);
             MediaTimestamp sampleEnd = end.Rescale(sampleClock, TimestampRounding.TowardZero);
-            long firstSampleInLastBlock = (packet.Data.Length - 1L) / configuration.BlockAlignment * configuration.SamplesPerBlock + 1;
-            if (sampleEnd != end || sampleEnd.Value < firstSampleInLastBlock || sampleEnd.Value > capacity)
+            if (sampleEnd != end)
             {
-                throw new InvalidDataException("The WAVE IMA ADPCM packet duration does not match its data blocks.");
+                throw new InvalidDataException("The WAVE ADPCM packet duration must be a whole number of sample frames.");
             }
-            return sampleEnd.Value;
+            return configuration.GetSampleCount(packet.Data.Length, sampleEnd.Value);
         }
 
-        private static void DecodeALaw(ReadOnlySpan<byte> source, Span<short> output, CancellationToken cancellationToken)
+        private void DecodeAdpcm(ReadOnlySpan<byte> source, Span<short> destination, CancellationToken cancellationToken)
+        {
+            int channels = configuration.DecodedFormat.Channels.Count;
+            int interleavedSamplesPerBlock = configuration.SamplesPerBlock * channels;
+            while (!source.IsEmpty)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int blockBytes = Math.Min(configuration.BlockAlignment, source.Length);
+                int outputSamples = Math.Min(interleavedSamplesPerBlock, destination.Length);
+                ReadOnlySpan<byte> block = source[..blockBytes];
+                Span<short> output = destination[..outputSamples];
+                switch (configuration.Encoding)
+                {
+                    case WaveCompressedAudioEncoding.ImaAdpcm:
+                        ImaAdpcmWaveBlockDecoder.DecodeBlock(block, output, channels, configuration.CodeBits, cancellationToken);
+                        break;
+                    case WaveCompressedAudioEncoding.MicrosoftAdpcm:
+                        MicrosoftAdpcmWaveBlockDecoder.DecodeBlock(block, output, configuration);
+                        break;
+                    default:
+                        throw new InvalidOperationException("The WAVE ADPCM block encoding is invalid.");
+                }
+                source = source[blockBytes..];
+                destination = destination[outputSamples..];
+            }
+        }
+
+        private static void DecodeG711(ReadOnlySpan<byte> source, Span<short> output, ReadOnlySpan<short> sampleTable,
+            CancellationToken cancellationToken)
         {
             for (int i = 0; i < source.Length; i++)
             {
@@ -67,7 +98,7 @@ namespace Mediana.Codecs.Pcm
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                 }
-                output[i] = aLawSamples[source[i]];
+                output[i] = sampleTable[source[i]];
             }
         }
 
@@ -81,6 +112,20 @@ namespace Mediana.Codecs.Pcm
                 int quantized = ((code & 15) << 4) + 8;
                 int magnitude = segment == 0 ? quantized : (quantized + 256) << (segment - 1);
                 samples[i] = (short)((code & 0x80) == 0 ? -magnitude : magnitude);
+            }
+            return samples;
+        }
+
+        private static short[] CreateMuLawTable()
+        {
+            const int bias = 0x84;
+            short[] samples = new short[256];
+            for (int i = 0; i < samples.Length; i++)
+            {
+                int code = i ^ 0xff;
+                int segment = (code >> 4) & 7;
+                int magnitude = ((((code & 15) << 3) + bias) << segment) - bias;
+                samples[i] = (short)((code & 0x80) == 0 ? magnitude : -magnitude);
             }
             return samples;
         }

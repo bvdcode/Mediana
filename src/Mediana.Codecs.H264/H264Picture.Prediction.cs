@@ -11,8 +11,13 @@ namespace Mediana.Codecs.H264
         public void PredictLuma4x4(int x, int y, int mode, Span<byte> output, bool constrained = false, int plane = 0) =>
             PredictLuma(x, y, mode, output, constrained, 4, plane);
 
-        public void PredictLuma8x8(int x, int y, int mode, Span<byte> output, bool constrained, int plane = 0) =>
-            PredictLuma(x, y, mode, output, constrained, 8, plane);
+        public void PredictLuma8x8(int x, int y, int mode, Span<byte> output, bool constrained, int plane = 0)
+        {
+            if (output.Length != 64 || !TryWritePreparedIntra8(plane, x, y, mode, constrained, output, 8, 0))
+            {
+                PredictLuma(x, y, mode, output, constrained, 8, plane);
+            }
+        }
 
         private void PredictLuma(int x, int y, int mode, Span<byte> output, bool constrained, int size, int plane)
         {
@@ -48,7 +53,10 @@ namespace Mediana.Codecs.H264
             Span<byte> pixels = Plane(plane)[(offset * SampleBytes)..];
             if (SampleBytes == 1)
             {
-                ReconstructSimpleIntra8x8<byte>(plane, x, y, mode, constrained, delta, pixels, stride);
+                if (!TryWritePreparedIntra8(plane, x, y, mode, constrained, pixels, stride, delta))
+                {
+                    ReconstructSimpleIntra8x8<byte>(plane, x, y, mode, constrained, delta, pixels, stride);
+                }
             }
             else
             {
@@ -60,6 +68,44 @@ namespace Mediana.Codecs.H264
                 ClearBlockCounts(plane, x, y, 8, 8);
             }
             MarkReconstructed(BlockIndex(plane, x, y), Stride(plane) / 4, 2);
+        }
+
+        private bool TryWritePreparedIntra8(int plane, int x, int y, int mode, bool constrained,
+            Span<byte> output, int outputStride, int delta)
+        {
+            if (!H264SampleAverage.SupportsByteShuffle || SampleBytes != 1 || Layout.MacroblockAdaptiveFrameField ||
+                (plane != 0 && !FullResolutionChroma) || (uint)mode > 2 || ((x | y) & 7) != 0)
+            {
+                return false;
+            }
+
+            bool hasTop = mode != 1 && IsAvailable(x, y - 1, constrained);
+            bool hasLeft = mode != 0 && IsAvailable(x - 1, y, constrained);
+            if (hasTop && !IsAvailable(x + 4, y - 1, constrained))
+            {
+                return false;
+            }
+            if (!H264IntraPrediction.IsLumaModeAvailable(mode, hasTop, hasLeft, false))
+            {
+                throw new InvalidDataException("An H.264 intra prediction references unavailable neighbours.");
+            }
+
+            int stride = Width;
+            ReadOnlySpan<byte> pixels = Plane(plane);
+            int start = y * stride + x;
+            ReadOnlySpan<byte> top = hasTop
+                ? pixels.Slice(start - stride, IsAvailable(x + 8, y - 1, constrained) ? 9 : 8) : [];
+            Span<byte> left = stackalloc byte[8];
+            if (hasLeft)
+            {
+                for (int row = 0; row < left.Length; row++)
+                {
+                    left[row] = pixels[start - 1 + row * stride];
+                }
+            }
+            byte? corner = IsAvailable(x - 1, y - 1, constrained) ? pixels[start - stride - 1] : null;
+            H264PackedSimpleIntra8.Write(mode, top, hasLeft ? left : [], corner, output, outputStride, delta);
+            return true;
         }
 
         private void ReconstructSimpleIntra8x8<TSample>(int plane, int x, int y, int mode, bool constrained,

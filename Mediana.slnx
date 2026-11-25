@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Mediana.Codecs.ProRes/Mediana.Codecs.ProRes.csproj" />
+    <Project Path="src/Mediana.Codecs.Dv/Mediana.Codecs.Dv.csproj" />
     <Project Path="src/Mediana.Codecs.Dts/Mediana.Codecs.Dts.csproj" />
     <Project Path="src/Mediana.Codecs.Alac/Mediana.Codecs.Alac.csproj" />
     <Project Path="src/Mediana.Codecs.OpenExr/Mediana.Codecs.OpenExr.csproj" />

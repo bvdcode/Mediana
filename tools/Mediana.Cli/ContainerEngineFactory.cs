@@ -7,6 +7,7 @@ using Mediana.Codecs.H264;
 using Mediana.Codecs.Hevc;
 using Mediana.Codecs.Jpeg;
 using Mediana.Codecs.ProRes;
+using Mediana.Codecs.Dv;
 using Mediana.Codecs.Vp8;
 using Mediana.Codecs.Vp9;
 using Mediana.Codecs.Theora;
@@ -35,6 +36,7 @@ namespace Mediana.Cli
                 .AddVideoDecoder(new H264DecoderFactory(new() { IgnoreInconsistentPictureTiming = true }, warningHandler))
                 .AddVideoDecoder(new HevcDecoderFactory())
                 .AddVideoDecoder(new ProResDecoderFactory(new() { RecoverLegacyAlpha = true }, warningHandler))
+                .AddVideoDecoder(new DvDecoderFactory())
                 .AddVideoDecoder(new MjpegDecoderFactory(warningHandler: warningHandler))
                 .AddVideoDecoder(new Vp8DecoderFactory())
                 .AddVideoDecoder(new Vp9DecoderFactory())

@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using Mediana.Codecs.Pcm;
 using Mediana.Containers.Wave;
 using Mediana.Core;
@@ -23,15 +24,25 @@ namespace Mediana.Tests
 
         [Theory]
         [InlineData(WaveCompressedAudioEncoding.ALaw, 3)]
+        [InlineData(WaveCompressedAudioEncoding.MuLaw, 128)]
         [InlineData(WaveCompressedAudioEncoding.ImaAdpcm, 12)]
+        [InlineData(WaveCompressedAudioEncoding.MicrosoftAdpcm, 7)]
         public async Task ProbeAndWaveformUseTheSameExactSampleCount(WaveCompressedAudioEncoding encoding, int samples)
         {
-            byte[] file = encoding == WaveCompressedAudioEncoding.ALaw ? ALaw() : ImaFourBit();
+            byte[] file = encoding switch
+            {
+                WaveCompressedAudioEncoding.ALaw => ALaw(),
+                WaveCompressedAudioEncoding.MuLaw => MuLaw(),
+                WaveCompressedAudioEncoding.ImaAdpcm => ImaFourBit(),
+                WaveCompressedAudioEncoding.MicrosoftAdpcm => MicrosoftAdpcm(stereo: true),
+                _ => throw new ArgumentOutOfRangeException(nameof(encoding))
+            };
             WaveCompressedAudioCodec codec = new(encoding);
             MediaEngineBuilder builder = new MediaEngineBuilder()
                 .AddContainer(new WaveReaderFactory(new WaveReadOptions { SamplesPerPacket = 2 }))
                 .AddStreamMetadataReader(codec);
-            await using (RandomAccessStreamByteSource source = Open(file))
+            using MemoryStream fileStream = new(file);
+            await using (StreamByteSource source = new(fileStream, leaveOpen: true))
             {
                 MediaInfo info = await builder.Build().ProbeAsync(source);
                 EncodedStreamInfo stream = Assert.Single(info.Streams);
@@ -42,6 +53,7 @@ namespace Mediana.Tests
                 Assert.Equal(2, metadata.ChannelCount);
                 Assert.Equal(["front-left", "front-right"], metadata.ChannelOrder);
                 Assert.Null(metadata.BitsPerSample);
+                Assert.Equal(file.AsSpan().IndexOf("data"u8) + 8L, fileStream.Position);
             }
 
             MediaEngine engine = builder.AddAudioDecoder(codec).Build();
@@ -60,6 +72,44 @@ namespace Mediana.Tests
                 Assert.Equal(samples, count);
             }
             Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public async Task MuLawMatchesFfmpegForEveryCode()
+        {
+            await using RandomAccessStreamByteSource source = Open(MuLaw());
+            await using AudioSession session = await AudioEngine(WaveCompressedAudioEncoding.MuLaw).OpenAudioAsync(source, 0);
+            using AudioFrame frame = Assert.IsType<AudioFrame>(await session.ReadFrameAsync());
+            Assert.Equal(AudioSampleFormat.Signed16, frame.Format.SampleFormat);
+            Assert.Equal(128, frame.SamplesPerChannel);
+            short[] samples = Samples(frame);
+            byte[] littleEndian = new byte[samples.Length * sizeof(short)];
+            for (int index = 0; index < samples.Length; index++)
+            {
+                BinaryPrimitives.WriteInt16LittleEndian(littleEndian.AsSpan(index * sizeof(short)), samples[index]);
+            }
+            Assert.Equal("3DAB54339E520BB2C924826E3B72A917A2B612E9FD12FC867500F1D983A75827",
+                Convert.ToHexString(SHA256.HashData(littleEndian)));
+            Assert.Null(await session.ReadFrameAsync());
+        }
+
+        [Theory]
+        [InlineData(false, 6)]
+        [InlineData(true, 4)]
+        public async Task MicrosoftAdpcmMatchesFfmpegThroughTheLastValidSample(bool stereo, int samplesPerBlock)
+        {
+            await using RandomAccessStreamByteSource source = Open(MicrosoftAdpcm(stereo));
+            await using AudioSession session = await AudioEngine(WaveCompressedAudioEncoding.MicrosoftAdpcm, samplesPerBlock)
+                .OpenAudioAsync(source, 0);
+            using AudioFrame first = Assert.IsType<AudioFrame>(await session.ReadFrameAsync());
+            using AudioFrame last = Assert.IsType<AudioFrame>(await session.ReadFrameAsync());
+            Assert.Equal(new MediaTimestamp(samplesPerBlock, sampleClock), last.Timestamp);
+            Assert.Equal(3, last.SamplesPerChannel);
+            short[] expectedFirst = stereo ? [29, -61, -103, 107, 119, 256, -449, 456] : [29, -103, 119, 191, 116, -274];
+            short[] expectedLast = stereo ? [-99, 800, 101, -800, 134, -830] : [-99, 101, 141];
+            Assert.Equal(expectedFirst, Samples(first));
+            Assert.Equal(expectedLast, Samples(last));
+            Assert.Null(await session.ReadFrameAsync());
         }
 
         [Fact]
@@ -124,6 +174,29 @@ namespace Mediana.Tests
 
         private static byte[] ALaw() => WaveTestInput.File(("fmt ", WaveTestInput.Format(8, 2, Rate, 6)),
             ("fact", Fact(3)), ("data", [0xd5, 0x55, 0x80, 0x00, 0xaa, 0x2a]));
+
+        private static byte[] MuLaw() => WaveTestInput.File(("fmt ", WaveTestInput.Format(8, 2, Rate, 7)),
+            ("fact", Fact(128)), ("data", Enumerable.Range(0, 256).Select(static value => (byte)value).ToArray()));
+
+        private static byte[] MicrosoftAdpcm(bool stereo)
+        {
+            ReadOnlySpan<short> coefficients = [256, 0, 512, -256, 0, 0, 192, 64, 240, 0, 460, -208, 392, -232];
+            byte[] format = new byte[50];
+            WaveTestInput.Format(4, stereo ? 2 : 1, Rate, 2).CopyTo(format, 0);
+            BinaryPrimitives.WriteUInt16LittleEndian(format.AsSpan(12), stereo ? (ushort)16 : (ushort)9);
+            BinaryPrimitives.WriteUInt16LittleEndian(format.AsSpan(16), 32);
+            BinaryPrimitives.WriteUInt16LittleEndian(format.AsSpan(18), stereo ? (ushort)4 : (ushort)6);
+            BinaryPrimitives.WriteUInt16LittleEndian(format.AsSpan(20), 7);
+            for (int index = 0; index < coefficients.Length; index++)
+            {
+                BinaryPrimitives.WriteInt16LittleEndian(format.AsSpan(22 + index * sizeof(short)), coefficients[index]);
+            }
+            byte[] data = stereo
+                ? [3, 1, 27, 0, 19, 0, 153, 255, 107, 0, 29, 0, 195, 255, 0x7f, 0x83,
+                    4, 0, 20, 0, 30, 0, 101, 0, 224, 252, 157, 255, 32, 3, 0x2f, 0x83]
+                : [3, 27, 0, 153, 255, 29, 0, 0x72, 0xf8, 0, 20, 0, 101, 0, 157, 255, 0x2f];
+            return WaveTestInput.File(("fmt ", format), ("fact", Fact(stereo ? 7 : 9)), ("data", data));
+        }
 
         private static byte[] ImaFourBit() => WaveTestInput.File(("fmt ", ImaFormat(4, 16, 9)),
             ("fact", Fact(12)), ("data", [232, 3, 0, 0, 24, 252, 0, 0, 0, 0, 0, 0, 0x11, 0x11, 0x11, 0x11,

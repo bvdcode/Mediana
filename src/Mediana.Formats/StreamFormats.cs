@@ -14,6 +14,7 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Vp9 { get; } = new("none", "vp9.access-unit", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Vp8 { get; } = new("none", "vp8.complete-frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat ProRes { get; } = new("none", "prores.frame", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat Dv { get; } = new("none", "dv.dif-frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Dts { get; } = new("none", "dts.core-frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mjpeg { get; } = new("none", "jpeg.complete-picture", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Aac { get; } = new("aac.audio-specific-config", "aac.raw-data-block", EncodedPacketBoundary.AccessUnit);
@@ -34,8 +35,11 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Vorbis { get; } = new("vorbis.xiph-laced-headers", "vorbis.packet", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat WavePcm { get; } = new("wave.format", "pcm.samples", EncodedPacketBoundary.SampleBlock);
         public static EncodedStreamFormat WaveALaw { get; } = new("wave.format", "g711.alaw.samples", EncodedPacketBoundary.SampleBlock);
+        public static EncodedStreamFormat WaveMuLaw { get; } = new("wave.format", "g711.mulaw.samples", EncodedPacketBoundary.SampleBlock);
         /// <summary>Blocks with WAVE channel headers. Packet duration, if set, counts valid sample frames and may trim the final block.</summary>
         public static EncodedStreamFormat WaveImaAdpcm { get; } = new("wave.format", "adpcm.ima.wave.blocks", EncodedPacketBoundary.SampleBlock);
+        /// <summary>Blocks with WAVE predictor headers. Packet duration, if set, counts valid sample frames and may trim the final block.</summary>
+        public static EncodedStreamFormat WaveMicrosoftAdpcm { get; } = new("wave.format", "adpcm.ms.wave.blocks", EncodedPacketBoundary.SampleBlock);
         public static EncodedStreamFormat AiffPcm { get; } = new("aiff.common", "pcm.samples", EncodedPacketBoundary.SampleBlock);
         public static EncodedStreamFormat QuickTimeTimecode32 { get; } = new("quicktime.timecode-description", "quicktime.timecode32-be", EncodedPacketBoundary.SampleBlock);
     }

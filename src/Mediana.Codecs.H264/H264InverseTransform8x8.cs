@@ -6,7 +6,7 @@ namespace Mediana.Codecs.H264
     internal static class H264InverseTransform8x8
     {
         // Rec. ITU-T H.264, clause 8.5.9 (flat scaling lists).
-        private static ReadOnlySpan<byte> Scales =>
+        internal static ReadOnlySpan<byte> Scales =>
             [20, 18, 32, 19, 25, 24, 22, 19, 35, 21, 28, 26,
                 26, 23, 42, 24, 33, 31, 28, 25, 45, 26, 35, 33,
                 32, 28, 51, 30, 40, 38, 36, 32, 58, 34, 46, 43];
