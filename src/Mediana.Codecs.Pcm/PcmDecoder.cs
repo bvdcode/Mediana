@@ -12,52 +12,21 @@ using Mediana.Formats.Audio;
 namespace Mediana.Codecs.Pcm
 {
     internal class PcmDecoder(int streamIndex, PcmConfiguration configuration, MediaBufferAllocator allocator,
-        int maxSamplesPerFrame) : IMediaCodec<MediaPacket, AudioFrame>
+        int maxSamplesPerFrame) : PcmPacketDecoder(streamIndex, maxSamplesPerFrame)
     {
-        private AudioFrame? pending;
-        private bool completed;
-        private bool disposed;
-        private bool faulted;
-
-        public CodecInputStatus TrySend(MediaPacket input, CancellationToken cancellationToken = default)
+        protected override AudioFrame Decode(MediaPacket packet, int maxSamples, CancellationToken cancellationToken)
         {
-            ArgumentNullException.ThrowIfNull(input);
-            EnsureUsable();
-            bool succeeded = false;
-            try
+            if (packet.Data.Length % configuration.BlockAlignment != 0)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (completed)
-                {
-                    throw new InvalidOperationException("PCM input is complete.");
-                }
-                if (pending is not null)
-                {
-                    succeeded = true;
-                    return CodecInputStatus.OutputRequired;
-                }
-                if (input.StreamIndex != streamIndex || input.Data.IsEmpty || input.Data.Length % configuration.BlockAlignment != 0)
-                {
-                    throw new InvalidDataException("The PCM packet does not contain complete blocks for the selected stream.");
-                }
-                int samples = input.Data.Length / configuration.BlockAlignment;
-                if (samples > maxSamplesPerFrame)
-                {
-                    throw new NotSupportedException("The PCM packet exceeds the configured sample limit.");
-                }
-                using MediaBuffer buffer = DecodeStorage(input, samples, cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                pending = new AudioFrame(configuration.Format, samples, buffer, input.PresentationTime);
-                succeeded = true;
-                return CodecInputStatus.Accepted;
+                throw new InvalidDataException("The PCM packet does not contain complete sample blocks.");
             }
-            finally
+            int samples = packet.Data.Length / configuration.BlockAlignment;
+            if (samples > maxSamples)
             {
-                if (!succeeded)
-                {
-                    Fault();
-                }
+                throw new NotSupportedException("The PCM packet exceeds the configured sample limit.");
             }
+            using MediaBuffer buffer = DecodeStorage(packet, samples, cancellationToken);
+            return new AudioFrame(configuration.Format, samples, buffer, packet.PresentationTime);
         }
 
         private MediaBuffer DecodeStorage(MediaPacket input, int samples, CancellationToken cancellationToken)
@@ -137,64 +106,6 @@ namespace Mediana.Codecs.Pcm
             {
                 throw new InvalidDataException("Unused PCM precision bits must be zero.");
             }
-        }
-
-        public CodecOutput<AudioFrame> Receive(CancellationToken cancellationToken = default)
-        {
-            EnsureUsable();
-            if (cancellationToken.IsCancellationRequested)
-            {
-                Fault();
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-            if (pending is not null)
-            {
-                AudioFrame frame = pending;
-                pending = null;
-                return CodecOutput<AudioFrame>.Available(frame);
-            }
-            return completed ? CodecOutput<AudioFrame>.EndOfStream : CodecOutput<AudioFrame>.InputRequired;
-        }
-
-        public void CompleteInput()
-        {
-            EnsureUsable();
-            completed = true;
-        }
-
-        public void Reset()
-        {
-            ObjectDisposedException.ThrowIf(disposed, this);
-            pending?.Dispose();
-            pending = null;
-            completed = false;
-            faulted = false;
-        }
-
-        private void Fault()
-        {
-            pending?.Dispose();
-            pending = null;
-            faulted = true;
-        }
-
-        private void EnsureUsable()
-        {
-            ObjectDisposedException.ThrowIf(disposed, this);
-            if (faulted)
-            {
-                throw new InvalidOperationException("The PCM decoder has failed and requires reset or disposal.");
-            }
-        }
-
-        public void Dispose()
-        {
-            if (!disposed)
-            {
-                Reset();
-                disposed = true;
-            }
-            GC.SuppressFinalize(this);
         }
     }
 }

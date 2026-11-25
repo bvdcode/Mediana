@@ -10,6 +10,7 @@ using Mediana.Codecs.H264;
 using Mediana.Codecs.Mp3;
 using Mediana.Codecs.Pcm;
 using Mediana.Codecs.ProRes;
+using Mediana.Formats.Audio;
 
 namespace Mediana.Cli
 {
@@ -18,6 +19,8 @@ namespace Mediana.Cli
         public static MediaEngine Create() => ImageEngineFactory.AddDecoders(ContainerEngineFactory.CreateBuilder())
             .AddStreamMetadataReader(new PcmStreamMetadataReader())
             .AddStreamMetadataReader(new AiffPcmStreamMetadataReader())
+            .AddStreamMetadataReader(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ALaw))
+            .AddStreamMetadataReader(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ImaAdpcm))
             .AddStreamMetadataReader(new FlacStreamMetadataReader())
             .AddStreamMetadataReader(new AlacStreamMetadataReader())
             .AddStreamMetadataReader(new DtsStreamMetadataReader())

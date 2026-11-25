@@ -72,7 +72,7 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/AV1/VP8/VP9/AAC/MP3/AC-3 packet mapping](docs/matroska-ebml.md) |
 | `Mediana.Containers.Mp4` | Ordinary and fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AV1/MPEG-4 Visual/AAC/MP3/AC-3/E-AC-3 packet reading |
 | `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
-| `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading |
+| `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM, G.711 A-law and IMA ADPCM reading |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing |
@@ -84,7 +84,7 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo |
 | `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC/MP3 transport-stream writer |
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder/encoder factories |
-| `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
+| `Mediana.Codecs.Pcm` | Integer/float PCM conversion and WAVE G.711 A-law and IMA ADPCM decoding |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
 | `Mediana.Codecs.Aac` | AAC-LC through 7.1 wide, mono/stereo SBR, parametric stereo and experimental mono/stereo AAC-LC encoding ([HE-AAC](docs/he-aac-decoding.md)) |
 | `Mediana.Codecs.Alac` | Managed Apple Lossless decoding, M4A metadata and indexed seeking; [details](docs/alac.md) |
@@ -443,7 +443,7 @@ both float precisions and six-channel speaker order. Returned audio frames retai
 their storage after session disposal. CI is configured to build and run both native
 executables on Linux, Windows and macOS.
 
-## Reading WAVE PCM
+## Reading WAVE audio
 
 Reference the `Mediana.Containers.Wave` and `Mediana.Codecs.Pcm` source projects:
 
@@ -451,6 +451,8 @@ Reference the `Mediana.Containers.Wave` and `Mediana.Codecs.Pcm` source projects
 MediaEngine engine = new MediaEngineBuilder()
     .AddContainer(new WaveReaderFactory())
     .AddAudioDecoder(new PcmDecoderFactory())
+    .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ALaw))
+    .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ImaAdpcm))
     .Build();
 await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
 await using AudioSession session = await engine.OpenAudioAsync(source, 0);
@@ -458,7 +460,7 @@ using AudioFrame? frame = await session.ReadFrameAsync();
 ```
 
 The namespaces are Mediana, Mediana.Codecs.Pcm, Mediana.Containers.Wave,
-Mediana.Core.Audio and Mediana.IO. Sequential byte sources are also supported.
+Mediana.Core.Audio, Mediana.Formats.Audio and Mediana.IO. Sequential byte sources are also supported.
 Sessions borrow the source, own decoder/reader state, enforce cancellation and
 configured resource limits, and return independently owned PCM frames. Frame PTS
 and duration use exact sample counts. Random-access opening preserves the source cursor.
@@ -471,9 +473,14 @@ The decoder returns interleaved native-endian samples. Signed 24-bit input expan
 to left-aligned signed 32-bit output; float bit patterns retain their precision.
 Channel masks preserve the declared speaker order; unassigned channels remain discrete.
 
-Metadata chunks are skipped within byte/chunk limits. Trailing chunks and padding
-are checked when the stream is drained. RF64, RIFX, compressed WAVE, nested audio
-lists and tag/artwork extraction are unsupported.
+G.711 A-law and 3-/4-bit IMA ADPCM produce interleaved native-endian PCM16.
+An IMA ADPCM `fact` chunk before `data` supplies the exact decoded length, including
+when the final block is padded. Register `WaveCompressedAudioCodec` through
+`AddStreamMetadataReader` to probe sample rate and channel order without decoding.
+
+Other metadata chunks are skipped within byte/chunk limits. Trailing chunks and padding
+are checked when the stream is drained. RF64, RIFX, nested audio lists and
+tag/artwork extraction are unsupported.
 The `audio decode` command takes input, a raw PCM output path and `--stream`;
 it reports the sample format, rate and channels needed to interpret its output.
 It does not write a WAVE header. The output directory must exist; replacement of
