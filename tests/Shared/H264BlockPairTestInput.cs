@@ -50,6 +50,7 @@ namespace Mediana.Tests
                     pairs++;
                 }
             }
+            pairs += VerifyNearZeroBounds(source, prediction, guarded);
             H264ForwardTransform.QuantizePair(source.AsSpan(3), 8, prediction.AsSpan(5), 8, 26,
                 guarded.AsSpan(2, 16), guarded.AsSpan(32, 16));
             long before = GC.GetAllocatedBytesForCurrentThread();
@@ -63,6 +64,31 @@ namespace Mediana.Tests
                 throw new InvalidDataException("The paired residual kernel allocated heap storage.");
             }
             Console.WriteLine($"PASS {pairs} independent block pairs; all QPs, both scans, raw DC, guards, inputs and allocation; sse2={Sse2.IsSupported}");
+        }
+
+        private static int VerifyNearZeroBounds(byte[] source, byte[] prediction, int[] guarded)
+        {
+            int pairs = 0;
+            foreach ((int sourceStride, int predictionStride) in new[] { (8, 8), (11, 17), (32, 16) })
+            {
+                for (int qp = 0; qp <= 51; qp++)
+                {
+                    int bound = H264ForwardTransform.GetSkipBounds(qp).Luma;
+                    foreach (int residual in new[] { -bound - 1, -bound, bound, bound + 1 })
+                    {
+                        for (int row = 0; row < 4; row++)
+                        {
+                            int start = 3 + row * sourceStride;
+                            source.AsSpan(start, 4).Fill((byte)(128 + residual));
+                            source.AsSpan(start + 4, 4).Fill((byte)(128 - residual));
+                            prediction.AsSpan(5 + row * predictionStride, 8).Fill(128);
+                        }
+                        VerifyPair(source, sourceStride, prediction, predictionStride, qp, guarded);
+                        pairs++;
+                    }
+                }
+            }
+            return pairs;
         }
 
         private static void VerifyPair(byte[] source, int sourceStride, byte[] prediction, int predictionStride,

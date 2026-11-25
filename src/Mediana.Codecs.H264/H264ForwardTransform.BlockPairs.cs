@@ -9,6 +9,18 @@ namespace Mediana.Codecs.H264
 {
     internal static partial class H264ForwardTransform
     {
+        private static readonly byte[] ZeroPairBounds = CreateZeroPairBounds();
+
+        private static byte[] CreateZeroPairBounds()
+        {
+            byte[] bounds = new byte[52];
+            for (int qp = 0; qp < bounds.Length; qp++)
+            {
+                bounds[qp] = TransformBound(qp);
+            }
+            return bounds;
+        }
+
         public static (int FirstDc, int SecondDc) QuantizePair(ReadOnlySpan<byte> source, int sourceStride,
             ReadOnlySpan<byte> prediction, int predictionStride, int qp, Span<int> first, Span<int> second)
         {
@@ -33,6 +45,15 @@ namespace Mediana.Codecs.H264
             Vector128<short> row1 = ReadPairRow(source, sourceStride, prediction, predictionStride);
             Vector128<short> row2 = ReadPairRow(source, sourceStride * 2, prediction, predictionStride * 2);
             Vector128<short> row3 = ReadPairRow(source, sourceStride * 3, prediction, predictionStride * 3);
+            Vector128<short> maximum = Vector128.Max(Vector128.Max(Vector128.Abs(row0), Vector128.Abs(row1)),
+                Vector128.Max(Vector128.Abs(row2), Vector128.Abs(row3)));
+            if (!Vector128.GreaterThanAny(maximum, Vector128.Create((short)ZeroPairBounds[qp])))
+            {
+                Vector128<short> columnSums = (row0 + row1) + (row2 + row3);
+                first.Clear();
+                second.Clear();
+                return (Vector64.Sum(columnSums.GetLower()), Vector64.Sum(columnSums.GetUpper()));
+            }
             TransformPairVectors(ref row0, ref row1, ref row2, ref row3);
             TransposePair(ref row0, ref row1, ref row2, ref row3);
             TransformPairVectors(ref row0, ref row1, ref row2, ref row3);
