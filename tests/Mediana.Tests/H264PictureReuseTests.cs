@@ -61,14 +61,22 @@ namespace Mediana.Tests
             H264SequenceParameterSet sequence = H264Configuration.Parse(encoder.Stream.Configuration.Span, new()).Sequences[0];
             using H264Picture picture = new(sequence, allocator, H264SliceKind.P);
             picture.Plane(0).Fill(73);
+            picture.Plane(1).Fill(101);
+            picture.Plane(2).Fill(145);
             using MediaBuffer published = picture.PublishPixels();
             Assert.Throws<InvalidOperationException>(picture.ResetForEncoding);
-            Assert.False(published.Memory.Span[..1024].ContainsAnyExcept((byte)73));
+            Assert.Throws<InvalidOperationException>(() => picture.Plane(1).Clear());
+            Assert.False(picture.ReadPlane(1).ContainsAnyExcept((byte)101));
             using H264Picture bidirectional = new(sequence, allocator, H264SliceKind.B);
             Assert.Throws<InvalidOperationException>(bidirectional.ResetForEncoding);
             picture.Dispose();
             Assert.Throws<ObjectDisposedException>(picture.ResetForEncoding);
+            Assert.Throws<ObjectDisposedException>(() => picture.Modes.Clear());
+            Assert.Throws<ObjectDisposedException>(() => picture.Plane(2).Clear());
+            Assert.Throws<ObjectDisposedException>(() => _ = picture.ReadPlane(2).Length);
             Assert.False(published.Memory.Span[..1024].ContainsAnyExcept((byte)73));
+            Assert.False(published.Memory.Span.Slice(1024, 256).ContainsAnyExcept((byte)101));
+            Assert.False(published.Memory.Span[1280..].ContainsAnyExcept((byte)145));
         }
 
         [Theory]
