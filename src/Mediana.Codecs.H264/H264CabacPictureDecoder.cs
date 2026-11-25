@@ -64,12 +64,38 @@ namespace Mediana.Codecs.H264
             H264AdaptiveReferences? adaptive = header.Layout.MacroblockAdaptiveFrameField && header.Kind != H264SliceKind.I
                 ? new(references) : null;
             int qp = header.Qp;
+            H264Picture? stationaryReference = header.Kind == H264SliceKind.P
+                ? H264InterPrediction.FindStationaryReference(result, header, references.L0) : null;
+            Span<byte> types = state.Types;
+            Span<byte> quantizers = result.Quantizers;
             Span<byte> prediction = stackalloc byte[result.MacroblockBytes];
+            bool nonSkippedFlagRead = false;
             for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                bool skipped = pairSyntax.ReadSkip(ref bits, address);
+                bool skipped = !nonSkippedFlagRead && pairSyntax.ReadSkip(ref bits, address);
+                nonSkippedFlagRead = false;
                 predictionReader?.BeginMacroblock(address);
+                if (skipped && stationaryReference is not null)
+                {
+                    int columns = header.Sequence.WidthInMbs;
+                    (int row, int column) = Math.DivRem(address, columns);
+                    int runX = column * 16;
+                    int runY = row * 16;
+                    if (H264MotionPrediction.Skip(result, runX, runY) == (0, 0))
+                    {
+                        int rowEnd = address + Math.Min(endMacroblock - address, columns - column);
+                        int next = H264CabacStationaryRun.Read(ref bits, reader, types, address, rowEnd,
+                            endMacroblock, columns, header.FirstMacroblock, cancellationToken, out nonSkippedFlagRead);
+                        int length = next - address;
+                        types.Slice(address, length).Fill(H264CabacMacroblockState.Skipped);
+                        quantizers.Slice(address, length).Fill((byte)qp);
+                        result.WriteStationarySkip(stationaryReference, runX, runY, length);
+                        syntax.ResetQuantizerDelta();
+                        address = next - 1;
+                        continue;
+                    }
+                }
                 int type = header.Kind switch
                 {
                     H264SliceKind.I => syntax.ReadType(ref bits, address),
@@ -163,10 +189,9 @@ namespace Mediana.Codecs.H264
                         H264IntraReconstruction.Read(ref bits, residuals, result, header, x, y, intraType, state.ChromaModes[address], pattern, qp);
                     }
                 }
-                bool ended = (!header.Layout.MacroblockAdaptiveFrameField || (address & 1) != 0) && reader.Termination(ref bits);
-                if (ended != (address == endMacroblock - 1))
+                if (!header.Layout.MacroblockAdaptiveFrameField || (address & 1) != 0)
                 {
-                    throw new InvalidDataException("The H.264 CABAC slice does not end at its declared macroblock boundary.");
+                    reader.ReadSliceBoundary(ref bits, address == endMacroblock - 1);
                 }
             }
             bits.ReadCabacPadding();

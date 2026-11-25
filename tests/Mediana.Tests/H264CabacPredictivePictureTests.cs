@@ -24,6 +24,68 @@ namespace Mediana.Tests
                 "avc-cabac-motion", 18, 190, 126, 2);
 
         [Fact]
+        public async Task StationarySkipRunsRespectRowsCodedBlocksAndTermination()
+        {
+            string data = Path.Combine(AppContext.BaseDirectory, "Data");
+            H264SliceHeader header = await H264CabacPredictionTestInput.ReadHeaderAsync(Path.Combine(data, "Mp4"));
+            header = header with
+            {
+                Sequence = header.Sequence with { WidthInMbs = 4, HeightInMapUnits = 2, Width = 64, Height = 32 },
+                ActiveReferencesL0 = 1,
+                Weights = null,
+                DeblockingIdc = 1
+            };
+            byte[] states = await File.ReadAllBytesAsync(Path.Combine(data, "H264", "cabac-predictive-contexts.bin"));
+            H264CabacIntervalWriter writer = H264CabacPredictionTestInput.CreateWriter(states, header);
+            for (int address = 0; address < 8; address++)
+            {
+                bool skipped = address != 2;
+                writer.Decision(skipped, address is 3 or 6 ? 12 : 11, 0, 0);
+                if (!skipped)
+                {
+                    foreach (int context in new[] { 14, 15, 16, 40, 47, 74, 74, 76, 76, 77 })
+                    {
+                        writer.Decision(false, context, 0, 0);
+                    }
+                }
+                writer.Termination(address == 7);
+            }
+
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using H264Picture reference = new(header.Sequence, allocator, H264SliceKind.P);
+            for (int plane = 0; plane < 3; plane++)
+            {
+                Span<byte> samples = reference.Plane(plane);
+                for (int index = 0; index < samples.Length; index++)
+                {
+                    samples[index] = (byte)(index * 13 + plane * 7);
+                }
+            }
+            H264ReferencePicture[] references = [new(reference, 0, new H264PictureOrder(0, 0))];
+            long retained = allocator.AllocatedBytes;
+            using (H264Picture decoded = DecodePayload(writer.ToEbsp(endAtArithmeticByte: true), header, references, allocator))
+            {
+                for (int plane = 0; plane < 3; plane++)
+                {
+                    Assert.True(reference.ReadPlane(plane).SequenceEqual(decoded.ReadPlane(plane)));
+                }
+                for (int address = 0; address < 8; address++)
+                {
+                    Assert.Equal(address != 2, decoded.MacroblockFlags[address].HasFlag(H264MacroblockFlags.StationarySkip));
+                    Assert.Equal(header.Qp, decoded.Quantizers[address]);
+                }
+            }
+
+            H264CabacIntervalWriter premature = H264CabacPredictionTestInput.CreateWriter(states, header);
+            premature.Decision(true, 11, 0, 0);
+            premature.Termination(true);
+            byte[] truncated = premature.ToEbsp(endAtArithmeticByte: true);
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => DecodePayload(truncated, header, references, allocator));
+            Assert.Contains("declared macroblock boundary", error.Message);
+            Assert.Equal(retained, allocator.AllocatedBytes);
+        }
+
+        [Fact]
         public async Task EveryWorkerAllocationFailureAndMissingReferencesReleasePictureStorage()
         {
             (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-cabac-p0.mp4"), 1);

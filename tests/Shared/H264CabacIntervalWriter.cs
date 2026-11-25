@@ -76,14 +76,16 @@ namespace Mediana.Tests
             }
         }
 
-        public byte[] ToEbsp()
+        public byte[] ToEbsp(bool endAtArithmeticByte = false)
         {
             byte[] point = (low + width / 2).ToByteArray(isUnsigned: true, isBigEndian: true);
             byte[] rbsp = new byte[CodeBits / 8];
             point.CopyTo(rbsp.AsSpan(rbsp.Length - point.Length));
+            int usedBits = CodeBits - (int)unit.GetBitLength() + 1;
+            int length = endAtArithmeticByte ? (usedBits + 7) / 8 : rbsp.Length;
             List<byte> ebsp = new();
             int zeros = 0;
-            foreach (byte value in rbsp)
+            foreach (byte value in rbsp.AsSpan(0, length))
             {
                 if (zeros == 2 && value <= 3)
                 {

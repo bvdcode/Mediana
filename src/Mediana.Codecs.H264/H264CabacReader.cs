@@ -26,5 +26,13 @@ namespace Mediana.Codecs.H264
         public uint Bits(ref H264BitReader bits, int count) => decoder.ReadBypassBits(ref bits, count);
         public bool Termination(ref H264BitReader bits) => decoder.ReadTermination(ref bits);
         public void Restart(ref H264BitReader bits) => decoder = new H264CabacDecoder(ref bits);
+
+        public void ReadSliceBoundary(ref H264BitReader bits, bool expectedEnd)
+        {
+            if (Termination(ref bits) != expectedEnd)
+            {
+                throw new InvalidDataException("The H.264 CABAC slice does not end at its declared macroblock boundary.");
+            }
+        }
     }
 }

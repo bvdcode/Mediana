@@ -9,16 +9,26 @@ namespace Mediana.Codecs.H264
             int x, int y, scoped Span<byte> prediction)
         {
             (int motionX, int motionY) = H264MotionPrediction.Skip(target, x, y);
-            if ((motionX | motionY) == 0 && references.Count > 0 && references[0] is H264ReferencePicture previous
-                && previous.Companion is null && previous.Structure == target.Structure && previous.Picture.Structure == target.Structure
-                && !target.Layout.MacroblockAdaptiveFrameField && !previous.Picture.Layout.MacroblockAdaptiveFrameField
-                && ReferenceEquals(target.Sequence, previous.Picture.Sequence) && (header.Weights is null || header.Weights.IsIdentity(0)))
+            if ((motionX | motionY) == 0 && FindStationaryReference(target, header, references) is H264Picture reference)
             {
-                target.WriteStationarySkip(previous.Picture, x, y);
+                target.WriteStationarySkip(reference, x, y);
                 return;
             }
             PredictPartition(target, header, references, x, y, 16, 16, 0, motionX, motionY, prediction);
             target.WriteInterPrediction(x, y, prediction);
+        }
+
+        internal static H264Picture? FindStationaryReference(H264Picture target, H264SliceHeader header,
+            IReadOnlyList<H264ReferencePicture?> references)
+        {
+            if (target.Layout.MacroblockAdaptiveFrameField || references.Count == 0 || references[0] is not H264ReferencePicture previous
+                || previous.Companion is not null || previous.Structure != target.Structure || previous.Picture.Structure != target.Structure
+                || previous.Picture.Layout.MacroblockAdaptiveFrameField || !ReferenceEquals(target.Sequence, previous.Picture.Sequence)
+                || (header.Weights is not null && !header.Weights.IsIdentity(0)))
+            {
+                return null;
+            }
+            return previous.Picture;
         }
 
         public static bool Read<TReader>(ref H264BitReader bits, TReader reader, H264Picture target, H264SliceHeader header,
