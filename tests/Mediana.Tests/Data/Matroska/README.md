@@ -8,6 +8,17 @@ ffmpeg -v error -f lavfi -i 'sine=frequency=97:sample_rate=48000:duration=1.017'
   -c:a libopus -b:a 32k -frame_duration 20 opus-mono.webm
 ```
 
+`flac-offset.mka` starts at 137 ms and yields 11,157 mono samples at 44.1 kHz.
+`vorbis-mono.webm` contains the same 97 Hz tone with Vorbis block transitions;
+FFmpeg decodes 45,632 mono samples at 44.1 kHz.
+
+```sh
+ffmpeg -v error -itsoffset 0.137 -f lavfi -i 'sine=frequency=97:sample_rate=44100:duration=0.253' \
+  -c:a flac flac-offset.mka
+ffmpeg -v error -f lavfi -i 'sine=frequency=97:sample_rate=44100:duration=1.017' \
+  -c:a libvorbis vorbis-mono.webm
+```
+
 `avc-aac-attachment.mkv` copies the authored AVC/AAC streams from
 `../Mp4/avc-aac.mp4` and attaches `../Metadata/cover.png`, without re-encoding.
 The video is 64 by 48 pixels. The attachment is declared as `image/png` and

@@ -66,6 +66,7 @@ namespace Mediana.Containers.Matroska
                 }
                 token.ThrowIfCancellationRequested();
                 MediaDuration? duration = null;
+                ReadOnlySpan<byte> normalized = bytes.Memory.Span;
                 if (!native)
                 {
                     switch (codecId)
@@ -92,6 +93,10 @@ namespace Mediana.Containers.Matroska
                         case "mjpeg":
                         case "vp8":
                         case OpusConfiguration.CodecId:
+                        case VorbisIdentification.CodecId:
+                            break;
+                        case FlacConfiguration.CodecId:
+                            normalized = MatroskaFlacConfiguration.ReadStreamInfo(normalized);
                             break;
                         case Mp3FrameHeader.CodecId:
                             duration = new(mp3!.SamplesPerFrame, new TimeBase(1, mp3.SampleRate));
@@ -100,7 +105,7 @@ namespace Mediana.Containers.Matroska
                             throw new InvalidOperationException("The Matroska codec mapping is inconsistent.");
                     }
                 }
-                configurations[streamIndex] = new(CreateStream(streamIndex, kind, codecId, format, track, native, aspectRatio, bytes.Memory.Span), duration, mp3);
+                configurations[streamIndex] = new(CreateStream(streamIndex, kind, codecId, format, track, native, aspectRatio, normalized), duration, mp3);
                 totalBytes += configurationBytes;
             }
             token.ThrowIfCancellationRequested();
@@ -124,7 +129,7 @@ namespace Mediana.Containers.Matroska
                 _ => MediaKind.Data
             };
             if (((track.CodecId is "V_MPEG4/ISO/AVC" or "V_MPEGH/ISO/HEVC" or "V_MJPEG" or "V_VP8" or "V_VP9" or "V_AV1") && track.Type != 1) ||
-                ((track.CodecId is "A_AAC" or "A_MPEG/L3" or "A_AC3" or "A_EAC3" or "A_DTS" or "A_OPUS") && track.Type != 2))
+                ((track.CodecId is "A_AAC" or "A_MPEG/L3" or "A_AC3" or "A_EAC3" or "A_DTS" or "A_OPUS" or "A_FLAC" or "A_VORBIS") && track.Type != 2))
             {
                 throw new InvalidDataException("The Matroska codec and track type disagree.");
             }
@@ -156,6 +161,8 @@ namespace Mediana.Containers.Matroska
                 (2, "A_MPEG/L3") => (kind, Mp3FrameHeader.CodecId, StreamFormats.Mp3, null),
                 (2, "A_DTS") => (kind, DtsFrameHeader.CodecId, StreamFormats.Dts, null),
                 (2, "A_OPUS") => (kind, OpusConfiguration.CodecId, StreamFormats.Opus, null),
+                (2, "A_FLAC") => (kind, FlacConfiguration.CodecId, StreamFormats.FlacFrame, null),
+                (2, "A_VORBIS") => (kind, VorbisIdentification.CodecId, StreamFormats.Vorbis, null),
                 (2, "A_AC3") => (kind, Ac3FrameHeader.CodecId, StreamFormats.Ac3, null),
                 (2, "A_EAC3") => (kind, Ac3FrameHeader.EnhancedCodecId, StreamFormats.Eac3Syncframe, null),
                 (_, "V_MPEG4/ISO/AVC" or "V_MPEGH/ISO/HEVC" or "V_AV1" or "V_MJPEG" or "V_VP8" or "V_VP9" or "A_AAC" or "A_MPEG/L3" or "A_AC3" or "A_EAC3" or "A_DTS" or "A_OPUS") =>

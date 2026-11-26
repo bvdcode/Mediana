@@ -23,7 +23,10 @@ namespace Mediana.Codecs.Flac
             {
                 throw new ArgumentException("The stream is not FLAC audio.", nameof(stream));
             }
-            StreamFormats.Flac.Require(stream.Format);
+            if (stream.Format != StreamFormats.FlacFrame)
+            {
+                StreamFormats.Flac.Require(stream.Format);
+            }
             FlacConfiguration configuration = FlacConfiguration.ReadStreamInfo(stream.Configuration.Span);
             return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount, configuration.BitsPerSample);
         }

@@ -69,7 +69,7 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
-| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/AV1/VP8/VP9/AAC/MP3/AC-3 packet mapping](docs/matroska-ebml.md) |
+| `Mediana.Containers.Matroska` | [Indexed MKV/MKA/WebM reading and packet mapping for AVC, HEVC, AV1, VP8/VP9, AAC, MP3, AC-3, Opus, Vorbis and FLAC](docs/matroska-ebml.md) |
 | `Mediana.Containers.Mp4` | Ordinary and fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AV1/MPEG-4 Visual/AAC/MP3/AC-3/E-AC-3 packet reading |
 | `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML DV25/MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM, G.711 A-law and μ-law, IMA ADPCM and Microsoft ADPCM reading |

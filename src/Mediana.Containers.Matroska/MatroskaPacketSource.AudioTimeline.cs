@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core.Timing;
-using Mediana.Formats;
 
 namespace Mediana.Containers.Matroska
 {
@@ -39,10 +38,10 @@ namespace Mediana.Containers.Matroska
                         timestamp = candidate;
                     }
                     audioTiming.SetPresentationTime(stream, packet, timestamp);
-                    if (!audio.IsDependent)
+                    if (!audio.IsDependent && audio.Samples != 0)
                     {
                         independent = timestamp;
-                        MediaDuration period = configuration.Stream.Format == StreamFormats.Opus
+                        MediaDuration period = MatroskaAudioPacketSamples.HasNativeSampleCounts(configuration.Stream.Format)
                             ? new(audio.Samples, new(1, audio.SampleRate))
                             : configuration.FrameDuration ?? timing.Duration!.Value;
                         next = AddExactDuration(timestamp, period);

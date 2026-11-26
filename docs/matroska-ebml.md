@@ -101,6 +101,16 @@ packets. Indexed restart honours the track's SeekPreRoll. Audio track settings
 provide sample rate, channel count and declared precision to the common probe
 when codec-derived metadata is unavailable.
 
+FLAC's CodecPrivate contains the native marker and metadata block sequence.
+The container passes STREAMINFO and one complete frame per packet to the FLAC
+decoder. Indexed sample counts come from frame headers, and decoding retains
+the Matroska presentation timeline.
+
+Vorbis uses the Xiph-laced identification, comment and setup headers from
+CodecPrivate. The index calculates output sample counts from consecutive block
+sizes and retains the first packet for overlap priming. Positive DiscardPadding
+can shorten the last decoded portion of a block.
+
 AC-3 and E-AC-3 use the mapping's empty initialization and individual syncframes.
 `A_EAC3` exposes `StreamFormats.Eac3Syncframe`: independent and dependent packets
 retain their original payload boundaries. Only independent packets advance the
