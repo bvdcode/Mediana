@@ -15,13 +15,7 @@ namespace Mediana.Images.Svg
             CancellationToken cancellationToken = default)
         {
             options ??= new SvgReaderOptions();
-            Validate(options);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (xml.Length > options.MaximumInputBytes)
-            {
-                throw new InvalidDataException("SVG exceeds MaximumInputBytes.");
-            }
-            using ReadOnlyMemoryStream source = new(xml);
+            using ReadOnlyMemoryStream source = OpenXml(xml, options, cancellationToken);
             using XmlReader reader = XmlReader.Create(source, Settings(options));
             if (reader.MoveToContent() != XmlNodeType.Element)
             {
