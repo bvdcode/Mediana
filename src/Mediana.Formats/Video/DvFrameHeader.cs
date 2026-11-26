@@ -5,7 +5,7 @@ using Mediana.Core.Video;
 
 namespace Mediana.Formats.Video
 {
-    /// <summary>Video properties of a PAL DV25 DIF frame.</summary>
+    /// <summary>Video properties of an SD DV25 DIF frame.</summary>
     public readonly record struct DvFrameHeader(SampleAspectRatio SampleAspectRatio, VideoScanMode ScanMode)
     {
         public const string CodecId = "dvvideo";
@@ -15,18 +15,36 @@ namespace Mediana.Formats.Video
         public const int SequenceBlocks = 150;
         public const int SequenceCount = 12;
         public const int FrameBytes = DifBlockBytes * SequenceBlocks * SequenceCount;
+        public const int NtscHeight = 480;
+        public const int NtscSequenceCount = 10;
+        public const int PrefixBytes = 6 * DifBlockBytes;
+        public bool IsNtsc { get; private init; }
+        public int CodedHeight => IsNtsc ? NtscHeight : Height;
+        public int DifSequences => IsNtsc ? NtscSequenceCount : SequenceCount;
 
         public static DvFrameHeader Read(ReadOnlySpan<byte> data)
+        {
+            DvFrameHeader header = ReadPrefix(data);
+            if (data.Length != DifBlockBytes * SequenceBlocks * header.DifSequences)
+            {
+                throw new InvalidDataException("A DV25 packet must contain exactly one complete DIF frame.");
+            }
+            return header;
+        }
+
+        public static DvFrameHeader ReadPrefix(ReadOnlySpan<byte> data)
         {
             if (data.Length < DifBlockBytes || (data[0] >> 5) != 0 || (data[1] >> 4) != 0 || data[2] != 0)
             {
                 throw new InvalidDataException("A DV frame must start with the first DIF sequence header.");
             }
-            if ((data[3] & 0x80) == 0 || (data[4] & 7) != 0)
+            bool ntsc = (data[3] & 0x80) == 0;
+            int applicationId = data[4] & 7;
+            if (!ntsc && applicationId != 0)
             {
-                throw new NotSupportedException("The DV decoder supports PAL DV25 with 4:2:0 chroma.");
+                throw new NotSupportedException("Only 4:2:0 PAL DV25 and 4:1:1 NTSC DV25 are supported.");
             }
-            if (data.Length < 6 * DifBlockBytes)
+            if (data.Length < PrefixBytes)
             {
                 throw new InvalidDataException("The DV video auxiliary data is truncated.");
             }
@@ -48,22 +66,25 @@ namespace Mediana.Formats.Video
             {
                 throw new NotSupportedException("The DV video source pack does not declare the DV25 profile.");
             }
-            if (data.Length != FrameBytes)
-            {
-                throw new InvalidDataException("A PAL DV25 packet must contain exactly one 144000-byte DIF frame.");
-            }
             int control = FindPack(data, 0x61);
             if (control < 0)
             {
                 throw new InvalidDataException("The DV frame is missing its video source control pack.");
             }
 
-            bool widescreen = (data[control + 2] & 7) is 2 or 7;
-            SampleAspectRatio aspect = widescreen ? new(64, 45) : new(16, 15);
+            int display = data[control + 2] & 7;
+            bool widescreen = display == 2 || (applicationId == 0 && display == 7);
+            SampleAspectRatio aspect = (ntsc, widescreen) switch
+            {
+                (true, true) => new(32, 27),
+                (true, false) => new(8, 9),
+                (false, true) => new(64, 45),
+                (false, false) => new(16, 15)
+            };
             byte flags = data[control + 3];
             VideoScanMode scanMode = (flags & 0x10) == 0 ? VideoScanMode.Progressive
                 : (flags & 0x40) == 0 ? VideoScanMode.TopFieldFirst : VideoScanMode.BottomFieldFirst;
-            return new(aspect, scanMode);
+            return new(aspect, scanMode) { IsNtsc = ntsc };
         }
 
         private static int FindPack(ReadOnlySpan<byte> data, byte type)

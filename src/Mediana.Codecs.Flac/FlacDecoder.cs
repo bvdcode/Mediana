@@ -18,11 +18,14 @@ namespace Mediana.Codecs.Flac
         private readonly MediaBufferAllocator allocator;
         private readonly int maxFrameBytes;
         private readonly AudioFormat format;
+        private readonly bool framed;
         private readonly FlacSubframeDecoder subframe = new();
         private WritableMediaBuffer? encoded;
         private WritableMediaBuffer? workspace;
         private MediaPacket? packet;
         private int packetOffset;
+        private int framedPacketBytes;
+        private MediaTimestamp? framedTimestamp;
         private int used;
         private int bitPosition;
         private int channel;
@@ -35,11 +38,12 @@ namespace Mediana.Codecs.Flac
         private bool disposed;
         private bool faulted;
 
-        public FlacDecoder(int streamIndex, FlacConfiguration configuration, MediaBufferAllocator allocator, int maxFrameBytes)
+        public FlacDecoder(int streamIndex, FlacConfiguration configuration, MediaBufferAllocator allocator, int maxFrameBytes, bool framed)
         {
             this.streamIndex = streamIndex;
             this.configuration = configuration;
             this.allocator = allocator;
+            this.framed = framed;
             this.maxFrameBytes = configuration.MaximumFrameBytes == 0
                 ? maxFrameBytes : Math.Min(maxFrameBytes, configuration.MaximumFrameBytes);
             string[] channels = configuration.ChannelCount switch
@@ -77,6 +81,15 @@ namespace Mediana.Codecs.Flac
                 if (input.StreamIndex != streamIndex || input.Data.IsEmpty)
                 {
                     throw new InvalidDataException("A nonempty FLAC packet for the selected stream is required.");
+                }
+                if (framed)
+                {
+                    if (used != 0)
+                    {
+                        throw new InvalidDataException("The previous FLAC packet ended before its frame was complete.");
+                    }
+                    framedPacketBytes = input.Data.Length;
+                    framedTimestamp = input.PresentationTime;
                 }
                 packet = input.Retain();
                 packetOffset = 0;
@@ -224,6 +237,10 @@ namespace Mediana.Codecs.Flac
                 throw new InvalidDataException("The FLAC frame padding or CRC is invalid.");
             }
             int frameBytes = reader.Position / 8;
+            if (framed && frameBytes != framedPacketBytes)
+            {
+                throw new InvalidDataException("A framed FLAC packet must contain exactly one complete frame.");
+            }
             if (frameBytes < configuration.MinimumFrameBytes)
             {
                 throw new InvalidDataException("The FLAC frame is smaller than STREAMINFO declares.");
@@ -231,7 +248,8 @@ namespace Mediana.Codecs.Flac
             using WritableMediaBuffer output = allocator.Allocate(format.GetBufferSize(current.BlockSize));
             WriteOutput(current, decoded, MemoryMarshal.Cast<byte, int>(output.Memory.Span), cancellationToken);
             using MediaBuffer buffer = output.Publish();
-            AudioFrame result = new(format, current.BlockSize, buffer, new MediaTimestamp(samples, new TimeBase(1, configuration.SampleRate)));
+            AudioFrame result = new(format, current.BlockSize, buffer,
+                framedTimestamp ?? new MediaTimestamp(samples, new TimeBase(1, configuration.SampleRate)));
             samples += current.BlockSize;
             frames++;
             lastBlockOnly = current.BlockSize < configuration.MinimumBlockSize
@@ -345,6 +363,8 @@ namespace Mediana.Codecs.Flac
             bitPosition = 0;
             channel = 0;
             packetOffset = 0;
+            framedPacketBytes = 0;
+            framedTimestamp = null;
             subframe.Reset();
         }
 

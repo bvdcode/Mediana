@@ -33,7 +33,7 @@ namespace Mediana.Containers.Ac3
             string codec = first.IsEnhanced ? Ac3FrameHeader.EnhancedCodecId : Ac3FrameHeader.CodecId;
             Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, codec,
                 first.IsEnhanced ? StreamFormats.Eac3 : StreamFormats.Ac3, clock, codedDuration: duration) });
-            Info = new(codec, streamInfo: [new(0, packetIndex: new(locations.Count, payloadBytes, duration))]);
+            Info = new(codec, null, [], [new(0, packetIndex: new(locations.Count, payloadBytes, duration))], null, null, duration);
         }
 
         public Ac3FrameHeader FirstFrame { get; }

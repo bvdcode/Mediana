@@ -53,5 +53,9 @@ namespace Mediana.Core.Metadata
         public VideoColorInfo Color { get; }
         /// <summary>Profile of this opening configuration, or null when not established.</summary>
         public CodecProfileInfo? CodecProfile { get; init; }
+        /// <summary>Canonical decoded sample representation when established by the opening configuration.</summary>
+        public VideoPixelFormat? PixelFormat { get; init; }
+        /// <summary>Cadence declared by the codec configuration, if present.</summary>
+        public FrameRate? NominalFrameRate { get; init; }
     }
 }

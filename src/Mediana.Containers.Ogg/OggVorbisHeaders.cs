@@ -27,6 +27,7 @@ namespace Mediana.Containers.Ogg
         public override EncodedStreamFormat Format => StreamFormats.Vorbis;
         public override int SampleRate => identification.SampleRate;
         public override int ChannelCount => identification.ChannelCount;
+        public override string[] GetChannelOrder() => VorbisChannelOrder.Create(ChannelCount);
         public override int HeaderCount => 3;
         public override int PreSkip => 0;
         public override int SeekPreroll => 0;

@@ -11,7 +11,7 @@ namespace Mediana.Containers.Avi
 {
     /// <summary>Indexed RIFF/AVI and OpenDML reader. Borrows the source and allocator.
     /// Packet access validates the addressed chunk before publishing its payload.</summary>
-    public partial class AviReader : IIndexedPacketTimingReader, IIndexedPresentationTimingReader
+    public partial class AviReader : IIndexedPacketTimingReader, IIndexedPresentationTimingReader, IIndexedPacketPrefixReader
     {
         private const uint Riff = 0x46464952;
         private const uint List = 0x5453494c;
@@ -178,27 +178,40 @@ namespace Mediana.Containers.Avi
         private async ValueTask<MediaPacket> ReadPacketCoreAsync(AviTrack track, long packetIndex, CancellationToken cancellationToken)
         {
             AviPacketEntry entry = track.Packets[packetIndex];
+            if (entry.SourceChunkIndex < 0)
+            {
+                await ValidatePacketExtentAsync(entry, cancellationToken).ConfigureAwait(false);
+            }
+            using WritableMediaBuffer storage = allocator.Allocate(entry.Length);
+            await ReadPacketBytesAsync(track, entry, storage.Memory, cancellationToken).ConfigureAwait(false);
+            using MediaBuffer buffer = storage.Publish();
+            ContainerPacketTiming timing = GetPacketTiming(track.Stream.StreamIndex, packetIndex, cancellationToken);
+            return new(track.Stream.StreamIndex, buffer, timing.PresentationTime, timing.DecodeTime, timing.Duration, entry.KeyFrame);
+        }
+
+        private async ValueTask ReadPacketBytesAsync(AviTrack track, AviPacketEntry entry, Memory<byte> target,
+            CancellationToken cancellationToken)
+        {
             if (entry.SourceChunkIndex >= 0)
             {
-                using WritableMediaBuffer audio = allocator.Allocate(entry.Length);
                 await ReadAudioBytesAsync(track.AudioChunks ?? throw new InvalidOperationException("The AVI audio chunk index is missing."),
-                    entry.SourceChunkIndex, checked((int)(entry.Offset - entry.ChunkDataOffset)), audio.Memory, cancellationToken).ConfigureAwait(false);
-                using MediaBuffer payload = audio.Publish();
-                ContainerPacketTiming audioTiming = GetPacketTiming(track.Stream.StreamIndex, packetIndex, cancellationToken);
-                return new(track.Stream.StreamIndex, payload, audioTiming.PresentationTime, audioTiming.DecodeTime, audioTiming.Duration, entry.KeyFrame);
+                    entry.SourceChunkIndex, checked((int)(entry.Offset - entry.ChunkDataOffset)), target, cancellationToken).ConfigureAwait(false);
+                return;
             }
+            await source.ReadExactlyAtAsync(entry.Offset, target, cancellationToken).ConfigureAwait(false);
+        }
+
+        private async ValueTask ValidatePacketExtentAsync(AviPacketEntry entry, CancellationToken cancellationToken)
+        {
             AviChunk chunk = await ReadChunkAsync(entry.ChunkDataOffset - 8, sourceLength, cancellationToken).ConfigureAwait(false);
             if (chunk.Id != entry.ChunkId || chunk.Length != entry.ChunkLength)
             {
                 throw new InvalidDataException("The AVI packet index disagrees with its data chunk.");
             }
             if (entry.Offset < chunk.Data || entry.Offset > chunk.End || entry.Length <= 0 || entry.Length > chunk.End - entry.Offset)
-            { throw new InvalidDataException("The AVI access unit exceeds its indexed data chunk."); }
-            using WritableMediaBuffer storage = allocator.Allocate(entry.Length);
-            await source.ReadExactlyAtAsync(entry.Offset, storage.Memory, cancellationToken).ConfigureAwait(false);
-            using MediaBuffer buffer = storage.Publish();
-            ContainerPacketTiming timing = GetPacketTiming(track.Stream.StreamIndex, packetIndex, cancellationToken);
-            return new(track.Stream.StreamIndex, buffer, timing.PresentationTime, timing.DecodeTime, timing.Duration, entry.KeyFrame);
+            {
+                throw new InvalidDataException("The AVI access unit exceeds its indexed data chunk.");
+            }
         }
 
         private AviTrack Track(int index)

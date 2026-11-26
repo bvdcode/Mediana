@@ -35,7 +35,7 @@ namespace Mediana.Tests
 
             foreach (MatroskaTrack native in new[]
             {
-                AudioTrack(asc) with { CodecId = "A_VORBIS" },
+                AudioTrack(asc) with { CodecId = "A_MPEG/L2" },
                 AudioTrack(asc) with { CodecId = "mp3" },
                 AudioTrack(asc) with { CodecId = "A_AAC/MPEG4/LC" },
                 AudioTrack(asc) with { ContentEncodings = new(0x6D80, 0, 0) },
@@ -52,7 +52,7 @@ namespace Mediana.Tests
             Require(allocator.AllocatedBytes == 0);
             await using (EbmlElementTestSource emptySource = new(Data([])))
             {
-                MatroskaTrack empty = AudioTrack([]) with { CodecId = "A_VORBIS", CodecPrivate = null };
+                MatroskaTrack empty = AudioTrack([]) with { CodecId = "A_MPEG/L2", CodecPrivate = null };
                 using MatroskaPacketIndex emptyIndex = await BuildAsync(emptySource, allocator, [empty]);
                 IReadOnlyList<MatroskaCodecConfiguration> result = await ReadCodecsAsync(emptySource, allocator, [empty], emptyIndex);
                 Require(result[0].Stream.Configuration.IsEmpty && result[0].Stream.Format == MatroskaStreamFormats.StoredFrames);

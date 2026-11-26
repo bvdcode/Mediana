@@ -38,6 +38,18 @@ namespace Mediana.Codecs.Vp9
             return result;
         }
 
+        internal static Vp9PictureGeometry? ReadOpeningGeometry(ReadOnlySpan<byte> prefix)
+        {
+            Vp9BitReader bits = new(prefix);
+            if (bits.Read(2) != 2) { throw new InvalidDataException("Invalid VP9 frame marker."); }
+            int profile = bits.Read(1) | bits.Read(1) << 1;
+            if (profile == 3) { RequireZero(ref bits); }
+            if (bits.Flag() || bits.Flag()) { return null; }
+            bits.Read(2);
+            ReadSync(ref bits);
+            return ReadSize(ref bits, ReadColor(ref bits, profile));
+        }
+
         private void Read(ref Vp9BitReader bits, Vp9HeaderState state)
         {
             if (bits.Read(2) != 2) { throw new InvalidDataException("Invalid VP9 frame marker."); }

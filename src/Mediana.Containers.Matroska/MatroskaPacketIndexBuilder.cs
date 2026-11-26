@@ -11,7 +11,7 @@ namespace Mediana.Containers.Matroska
         public static async ValueTask<MatroskaPacketIndex> ReadAsync(IRandomAccessByteSource source,
             MediaBufferAllocator allocator, EbmlElement segment, IReadOnlyList<MatroskaTrack> tracks,
             MatroskaIndexOptions options, MatroskaMetadataLimits metadataLimits, int maximumSizeWidth = 8,
-            CancellationToken token = default)
+            CancellationToken token = default, bool documentEndVerified = false)
         {
             options.Validate();
             if (segment.Id != 0x18538067)
@@ -36,7 +36,10 @@ namespace Mediana.Containers.Matroska
                     }
                     offset = child.EndOffset!.Value;
                 }
-                await segments.VerifyDocumentEndAsync(segment, token).ConfigureAwait(false);
+                if (!documentEndVerified)
+                {
+                    await segments.VerifyDocumentEndAsync(segment, token).ConfigureAwait(false);
+                }
                 token.ThrowIfCancellationRequested();
                 index.Complete();
                 success = true;

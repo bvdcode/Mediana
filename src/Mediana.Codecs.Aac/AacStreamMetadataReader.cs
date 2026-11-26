@@ -28,7 +28,12 @@ namespace Mediana.Codecs.Aac
             {
                 throw new ArgumentException("The stream is not AAC audio.", nameof(stream));
             }
-            if (stream.Format != StreamFormats.AacAdts)
+            if (stream.Format == StreamFormats.AacLatmByteStream ||
+                (stream.Format == StreamFormats.AacAdtsByteStream && stream.Configuration.IsEmpty))
+            {
+                return null;
+            }
+            if (stream.Format != StreamFormats.AacAdts && stream.Format != StreamFormats.AacAdtsByteStream)
             {
                 StreamFormats.Aac.Require(stream.Format);
             }
@@ -51,7 +56,9 @@ namespace Mediana.Codecs.Aac
                 true => 2,
                 false or null => configuration.ChannelCount
             };
-            return new AudioStreamMetadata(configuration.OutputSampleRate, channels)
+            int layout = configuration.ParametricStereo == true ? 2 : configuration.ChannelConfiguration;
+            IReadOnlyList<string>? order = layout is >= 1 and <= 7 ? new AacChannelLayout(layout).Channels : null;
+            return new AudioStreamMetadata(configuration.OutputSampleRate, channels, channelOrder: order)
             {
                 CodecProfile = profile
             };

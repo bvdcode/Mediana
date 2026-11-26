@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Core.Audio;
-
-using Mediana.Formats.Audio;
-
-namespace Mediana.Codecs.Flac
+namespace Mediana.Formats.Audio
 {
-    internal readonly record struct FlacFrameHeader(int BlockSize, int ChannelAssignment, bool VariableBlockSize,
+    /// <summary>FLAC frame syntax through the CRC-8 byte, independent of subframe decoding.</summary>
+    public readonly record struct FlacFrameHeader(int BlockSize, int ChannelAssignment, bool VariableBlockSize,
         long Number, int ByteLength)
     {
+        public const int MaximumHeaderBytes = 16;
+
         public static bool TryRead(ReadOnlySpan<byte> data, FlacConfiguration configuration, out FlacFrameHeader header)
         {
             header = default;
@@ -47,8 +46,8 @@ namespace Mediana.Codecs.Flac
             {
                 throw new NotSupportedException("Changing FLAC channel count or precision within a stream is not supported.");
             }
-            FlacBitReader reader = new(data, 32);
-            if (!TryReadNumber(ref reader, variable, out long number))
+            int offset = 4;
+            if (!TryReadNumber(data, ref offset, variable, out long number))
             {
                 return false;
             }
@@ -65,11 +64,11 @@ namespace Mediana.Codecs.Flac
                     break;
                 case 6:
                 case 7:
-                    if (!reader.TryRead(blockCode switch { 6 => 8, 7 => 16, _ => throw new InvalidOperationException() }, out ulong uncommonBlock))
+                    if (!TryReadField(data, ref offset, blockCode == 6 ? 1 : 2, out int uncommonBlock))
                     {
                         return false;
                     }
-                    blockSize = (int)uncommonBlock + 1;
+                    blockSize = uncommonBlock + 1;
                     break;
                 case >= 8 and <= 15:
                     blockSize = 1 << blockCode;
@@ -83,11 +82,11 @@ namespace Mediana.Codecs.Flac
                 case 12:
                 case 13:
                 case 14:
-                    if (!reader.TryRead(rateCode switch { 12 => 8, 13 or 14 => 16, _ => throw new InvalidOperationException() }, out ulong uncommonRate))
+                    if (!TryReadField(data, ref offset, rateCode == 12 ? 1 : 2, out int uncommonRate))
                     {
                         return false;
                     }
-                    sampleRate = (int)uncommonRate * (rateCode switch { 12 => 1000, 13 => 1, 14 => 10, _ => throw new InvalidOperationException() });
+                    sampleRate = uncommonRate * (rateCode switch { 12 => 1000, 13 => 1, 14 => 10, _ => throw new InvalidOperationException() });
                     break;
                 default:
                     sampleRate = rateCode switch
@@ -117,29 +116,28 @@ namespace Mediana.Codecs.Flac
             {
                 throw new NotSupportedException("Changing FLAC sample rate within a stream is not supported.");
             }
-            int crcOffset = reader.Position / 8;
-            if (!reader.TryRead(8, out ulong crc))
+            if (offset == data.Length)
             {
                 return false;
             }
-            if (crc != FlacCrc.Header(data[..crcOffset]))
+            if (data[offset] != CalculateCrc(data[..offset]))
             {
                 throw new InvalidDataException("The FLAC frame header CRC does not match.");
             }
-            header = new FlacFrameHeader(blockSize, assignment, variable, number, crcOffset + 1);
+            header = new FlacFrameHeader(blockSize, assignment, variable, number, offset + 1);
             return true;
         }
 
-        private static bool TryReadNumber(ref FlacBitReader reader, bool variable, out long number)
+        private static bool TryReadNumber(ReadOnlySpan<byte> data, ref int offset, bool variable, out long number)
         {
             number = 0;
-            if (!reader.TryRead(8, out ulong first))
+            if (!TryReadField(data, ref offset, 1, out int first))
             {
                 return false;
             }
             if (first < 0x80)
             {
-                number = (long)first;
+                number = first;
                 return true;
             }
             int length = first switch
@@ -152,10 +150,10 @@ namespace Mediana.Codecs.Flac
                 0xfe when variable => 7,
                 _ => throw new InvalidDataException("The FLAC frame/sample number prefix is invalid.")
             };
-            number = (long)(first & (ulong)((1 << (7 - length)) - 1));
+            number = first & ((1 << (7 - length)) - 1);
             for (int i = 1; i < length; i++)
             {
-                if (!reader.TryRead(8, out ulong next))
+                if (!TryReadField(data, ref offset, 1, out int next))
                 {
                     return false;
                 }
@@ -180,6 +178,34 @@ namespace Mediana.Codecs.Flac
                 throw new InvalidDataException("The FLAC frame/sample number is overlong.");
             }
             return true;
+        }
+
+        private static bool TryReadField(ReadOnlySpan<byte> data, ref int offset, int bytes, out int value)
+        {
+            value = 0;
+            if (data.Length - offset < bytes)
+            {
+                return false;
+            }
+            for (int end = offset + bytes; offset < end; offset++)
+            {
+                value = (value << 8) | data[offset];
+            }
+            return true;
+        }
+
+        private static byte CalculateCrc(ReadOnlySpan<byte> data)
+        {
+            int crc = 0;
+            foreach (byte value in data)
+            {
+                crc ^= value;
+                for (int bit = 0; bit < 8; bit++)
+                {
+                    crc = ((crc << 1) ^ ((crc & 0x80) != 0 ? 0x07 : 0)) & 0xff;
+                }
+            }
+            return (byte)crc;
         }
     }
 }

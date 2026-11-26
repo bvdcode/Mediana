@@ -12,6 +12,10 @@ namespace Mediana.Codecs.ProRes
 {
     internal static class ProResPictureDecoder
     {
+        internal static VideoPixelFormat GetPixelFormat(ProResFrameHeader header) =>
+            new PlanarVideoPixelFormat($"yuv{(header.ChromaFormat == 2 ? "422" : "444")}p{header.BitDepth}",
+                PlanarColorModel.Yuv, header.BitDepth, header.ChromaFormat == 2 ? 2 : 1, 1, header.AlphaType == 0 ? 0 : 16);
+
         public static VideoFrame Decode(MediaPacket packet, EncodedStreamInfo stream, MediaBufferAllocator allocator, ProResDecoderOptions options, Action<string>? warningHandler, CancellationToken token)
         {
             ProResFrameHeader header = ProResFrameHeader.Read(packet.Data);
@@ -20,10 +24,8 @@ namespace Mediana.Codecs.ProRes
                 throw new InvalidDataException("The ProRes frame size disagrees with its access unit.");
             }
             int depth = header.BitDepth;
-            VideoPixelFormat pixels = new PlanarVideoPixelFormat($"yuv{(header.ChromaFormat == 2 ? "422" : "444")}p{depth}",
-                PlanarColorModel.Yuv, depth, header.ChromaFormat == 2 ? 2 : 1, 1, header.AlphaType == 0 ? 0 : 16);
             SampleAspectRatio? aspect = header.SampleAspectRatio;
-            VideoFormat format = new(header.Width, header.Height, pixels, header.Color,
+            VideoFormat format = new(header.Width, header.Height, GetPixelFormat(header), header.Color,
                 stream.AspectRatioDescription?.Resolve(aspect) ?? aspect, stream.ColorDescription, header.ScanMode);
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[^1].EndOffset));

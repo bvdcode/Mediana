@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **471 variants · 1070 operations · 19 groups.**
 
-**Existing implementations: 147 variants · 180 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 148 variants · 181 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -31,7 +31,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
 | [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 21 | 64 | 22 | 128 |
-| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 22 | 63 | 28 | 128 |
+| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 23 | 63 | 29 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
 | [Fonts and text presentation resources](#fonts-and-text-presentation-resources) | 6 | 14 | 7 | 27 |
@@ -334,7 +334,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `g711-alaw` | G.711 — A-law | — | D ◐ · E □ | B | [itu-audio](sources.md#itu-audio) | — |
 | `g711-mulaw` | G.711 — Mu-law | — | D ◐ · E □ | B | [itu-audio](sources.md#itu-audio) | — |
 | `adpcm-ima-wave` | IMA ADPCM — WAVE block layout | — | D ◐ · E □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
-| `adpcm-ima-qt` | IMA ADPCM — QuickTime block layout | — | D □ · E □ | B | [quicktime](sources.md#quicktime), [discovery](sources.md#discovery) | — |
+| `adpcm-ima-qt` | IMA ADPCM — QuickTime block layout | — | D ◐ · E □ | B | [quicktime](sources.md#quicktime), [discovery](sources.md#discovery) | — |
 | `adpcm-ms` | Microsoft ADPCM — WAVE block layout | — | D ◐ · E □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `adpcm-g726` | G.726 — ADPCM bit-rate modes | — | D □ · E □ | C | [itu-audio](sources.md#itu-audio) | — |
 | `g722` | G.722 — Wideband sub-band coding | — | D □ · E □ | C | [itu-audio](sources.md#itu-audio) | — |

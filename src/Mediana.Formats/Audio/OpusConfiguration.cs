@@ -79,6 +79,13 @@ namespace Mediana.Formats.Audio
         public int CoupledStreamCount { get; }
         public ReadOnlyMemory<byte> ChannelMapping { get; }
 
+        internal string[]? GetChannelOrder() => MappingFamily switch
+        {
+            0 or 1 => VorbisChannelOrder.Create(ChannelCount),
+            255 => VorbisChannelOrder.CreateDiscrete(ChannelCount),
+            _ => null
+        };
+
         public static OpusConfiguration Read(ReadOnlySpan<byte> data)
         {
             if (data.Length < MinimumHeaderBytes || !data[..8].SequenceEqual("OpusHead"u8))

@@ -61,6 +61,22 @@ namespace Mediana.Tests
                 {
                     Check(info, "mdta", "custom.example", "Value 🧪", 0);
                 }
+                if (file == "covers.m4a")
+                {
+                    foreach ((string name, string native) in new[] { ("track", "trkn"), ("disc", "disk") })
+                    {
+                        if (!tags.TryGetProperty(name, out JsonElement reference)) { continue; }
+                        string[] terms = reference.GetString()!.Split('/');
+                        ulong number = ulong.Parse(terms[0], System.Globalization.CultureInfo.InvariantCulture);
+                        ulong total = terms.Length == 2 ? ulong.Parse(terms[1], System.Globalization.CultureInfo.InvariantCulture) : 0;
+                        MediaProperty property = info.Metadata.Properties.Single(item => item.Namespace == "mdir" && item.Name == native);
+                        if (property.Values.Count != 2 || property.Values[0].AsUnsignedInteger() != number ||
+                            property.Values[1].AsUnsignedInteger() != total)
+                        {
+                            throw new InvalidDataException("An MP4 track or disc number differs from its reference.");
+                        }
+                    }
+                }
                 if (info.Container!.Tags!.Any(tag => tag.Name is "covr" or "trkn" or "disk"))
                 {
                     throw new InvalidDataException("Binary metadata was misrepresented as text.");

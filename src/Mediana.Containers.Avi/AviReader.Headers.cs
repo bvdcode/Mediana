@@ -238,6 +238,18 @@ namespace Mediana.Containers.Avi
                         return new(streamIndex, MediaKind.Video, DvFrameHeader.CodecId, StreamFormats.Dv, clock,
                             displayMatrix: VideoDisplayMatrix.Identity, codedDuration: duration, aspectRatioDescription: aspectRatio);
                     }
+                    if (compression is 0x31564646 or 0x31766666)
+                    {
+                        int width = BinaryPrimitives.ReadInt32LittleEndian(format[4..]);
+                        int height = BinaryPrimitives.ReadInt32LittleEndian(format[8..]);
+                        if (width <= 0 || height <= 0)
+                        {
+                            throw new InvalidDataException("An AVI FFV1 stream requires positive dimensions.");
+                        }
+                        return new(streamIndex, MediaKind.Video, Ffv1StreamConfiguration.CodecId, StreamFormats.Ffv1, clock,
+                            Ffv1StreamConfiguration.Write(width, height, format[BitmapInfoHeaderSize..]), VideoDisplayMatrix.Identity, duration,
+                            aspectRatioDescription: aspectRatio);
+                    }
                     if (compression is 0x34504d46 or 0x58564944 or 0x30355844 or 0x44495658 or 0x64697678 or 0x5634504d or 0x7634706d or 0x32564933)
                     {
                         return new(streamIndex, MediaKind.Video, Mpeg4VisualConfiguration.CodecId, StreamFormats.Mpeg4Visual, clock,

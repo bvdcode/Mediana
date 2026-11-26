@@ -16,6 +16,13 @@ namespace Mediana.Codecs.Mp3
         public string ImplementationId => "mediana.mp3.metadata";
         public string CodecId => Mp3FrameHeader.CodecId;
 
+        StreamMetadata? IStreamMetadataReader.Read(EncodedStreamInfo stream)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+            return stream.Kind == MediaKind.Audio && stream.CodecId == CodecId &&
+                stream.Format == StreamFormats.WaveFormatMediaObjects ? null : Read(stream);
+        }
+
         public StreamMetadata Read(EncodedStreamInfo stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
@@ -25,7 +32,8 @@ namespace Mediana.Codecs.Mp3
             }
             StreamFormats.Mp3.Require(stream.Format);
             Mp3FrameHeader header = Mp3FrameHeader.Read(stream.Configuration.Span);
-            return new AudioStreamMetadata(header.SampleRate, header.ChannelCount);
+            IReadOnlyList<string> order = header.ChannelCount == 1 ? ["front-center"] : ["front-left", "front-right"];
+            return new AudioStreamMetadata(header.SampleRate, header.ChannelCount, channelOrder: order);
         }
     }
 }

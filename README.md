@@ -69,11 +69,11 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
-| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/AV1/VP8/VP9/AAC/MP3/AC-3 packet mapping](docs/matroska-ebml.md) |
+| `Mediana.Containers.Matroska` | [Indexed MKV/MKA/WebM reading and packet mapping for AVC, HEVC, AV1, VP8/VP9, AAC, MP3, AC-3, Opus, Vorbis and FLAC](docs/matroska-ebml.md) |
 | `Mediana.Containers.Mp4` | Ordinary and fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AV1/MPEG-4 Visual/AAC/MP3/AC-3/E-AC-3 packet reading |
-| `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML DV25/MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
+| `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML DV25/FFV1/MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM, G.711 A-law and μ-law, IMA ADPCM and Microsoft ADPCM reading |
-| `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
+| `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and AIFF-C PCM and Apple IMA4 reading |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing |
 | `Mediana.Containers.Adts` | Streaming/indexed ADTS transport reading, CRC, multiple AAC blocks and exact core sample clocks |
@@ -82,7 +82,8 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Codecs.Opus` | Managed SILK/CELT/hybrid PCM, multistream, gain and seek priming ([API](docs/opus-decoding.md)) |
 | `Mediana.Codecs.Vorbis` | Managed Vorbis I PCM, all floors/residues, multichannel coupling and indexed seek ([API](docs/vorbis-decoding.md)) |
 | `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo |
-| `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC/MP3 transport-stream writer |
+| `Mediana.Containers.MpegTs` | MPEG-TS and MPEG-PS input, plus a single-program AVC/AAC/MP3 transport-stream writer |
+| `Mediana.Containers.Asf` | ASF/WMV audio and video media objects with native header metadata |
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder/encoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion and WAVE G.711 and ADPCM decoding |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
@@ -90,7 +91,8 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Codecs.Alac` | Managed Apple Lossless decoding, M4A metadata and indexed seeking; [details](docs/alac.md) |
 | `Mediana.Codecs.Dts` | Managed DTS Core decoding, MKV metadata and indexed seeking; [details](docs/dts.md) |
 | `Mediana.Codecs.ProRes` | Six ProRes profiles, MOV decoding and full alpha precision; [details](docs/prores.md) |
-| `Mediana.Codecs.Dv` | Managed PAL DV25 video decode and AVI seeking ([API](docs/dv.md)) |
+| `Mediana.Codecs.Dv` | Managed PAL and NTSC DV25 video decode and AVI seeking ([API](docs/dv.md)) |
+| `Mediana.Codecs.Ffv1` | Managed planar 8-bit FFV1 versions 0, 1 and 3 with indexed AVI seeking ([API](docs/avi.md)) |
 | `Mediana.Codecs.Ac3` | Managed AC-3/E-AC-3 transforms, coupling, spectral extension, transient processing and dependent channels ([API](src/Mediana.Codecs.Ac3/README.md)) |
 | `Mediana.Codecs.Av1` | Managed eight-bit Main intra/compound inter reconstruction, loop filters and indexed MP4/Matroska input ([coverage](src/Mediana.Codecs.Av1/README.md)) |
 | `Mediana.Codecs.Mpeg4Visual` | Managed MPEG-4 Part 2 I/P/B video, half/quarter-pixel motion and indexed AVI/MP4 seeking ([API](docs/mpeg4-visual.md)) |
@@ -495,7 +497,7 @@ for independent references and format definitions.
 
 `Mediana.Containers.Aiff` reads one `SSND` chunk from AIFF or AIFF-C, with exact
 sample counts and timestamps. Add `AiffReaderFactory` to the container registry
-and `AiffPcmDecoderFactory` from `Mediana.Codecs.Pcm` to the audio decoder registry.
+and `AiffPcmDecoderFactory` or `AiffIma4Codec` from `Mediana.Codecs.Pcm` to the audio decoder registry.
 The decoder shares PCM conversion with the WAVE path. Its `pcm.aiff` configuration
 contains the four-byte FORM type followed by the complete `COMM` payload.
 
@@ -504,11 +506,15 @@ AIFF-C `NONE`, 16-bit `sowt`/`twos`, and big-endian `fl32`/`fl64`. Decoded integ
 storage is native-endian and left-aligned; signed 8-bit input becomes unsigned
 8-bit PCM. A positive integral sample rate must fit `AudioFormat`.
 
+AIFF-C `ima4` uses one 34-byte packet per channel for 64 interleaved PCM16
+sample frames. The reader expands the COMM packet count into decoded samples.
+Register `AiffIma4Codec` as a stream metadata reader to inspect it without decoding.
+
 The reader borrows the source, streams bounded packets and honors `SSND` offsets
 and trailing block fill. `COMM` and the AIFF-C version chunk must precede `SSND`;
 other chunk orders requiring a backwards read are unsupported. Unknown metadata
-chunks are skipped within byte/count limits. Tags, artwork, multichannel layouts,
-fractional sample rates and compressed AIFF-C codecs are not supported.
+chunks are skipped within byte/count limits. Artwork and fractional sample rates
+require additional handling. Audio channel layouts are mono and stereo.
 Trailing chunks and padding are checked when the stream is drained.
 
 The CLI detects AIFF by content for WAVE conversion, raw PCM, resampling and
@@ -1381,6 +1387,19 @@ Optional `--width`/`--height` bounds apply YUV area filtering before encoding;
 requested segment duration. See [H.264 contracts, algorithms and verification](docs/h264-encoding.md)
 for the public API, complete independent I/P and adaptive-rate corpora, original
 all-IDR corpus and performance measurements. Full HRD conformance remains open.
+
+## Reading MPEG-TS, MPEG-PS and ASF
+
+Register `MpegTsReaderFactory` and `MpegPsReaderFactory` from
+`Mediana.Containers.MpegTs`, and `AsfReaderFactory` from
+`Mediana.Containers.Asf` with `MediaEngineBuilder.AddContainer`.
+The factories recognize content on known-length random-access sources.
+
+The MPEG readers expose elementary payload bytes in PES order with available
+PTS and DTS. PES boundaries can split encoded pictures or audio frames. The
+ASF reader rejoins split audio/video media objects and reports timestamps
+relative to the declared preroll. Reading packets uses their declared
+framing; codec decoding depends on the registered decoder's input contract.
 
 ## Writing an MPEG-TS program
 

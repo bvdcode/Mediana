@@ -33,7 +33,10 @@ namespace Mediana.Core.Video
         private static VideoPlaneFormat[] CreatePlanes(PlanarColorModel colorModel, int bitDepth, int horizontal, int vertical, int alphaDepth)
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(bitDepth, 8); ArgumentOutOfRangeException.ThrowIfGreaterThan(bitDepth, 16);
-            ArgumentOutOfRangeException.ThrowIfLessThan(horizontal, 1); ArgumentOutOfRangeException.ThrowIfGreaterThan(horizontal, 2);
+            if (horizontal is not (1 or 2 or 4))
+            {
+                throw new ArgumentOutOfRangeException(nameof(horizontal));
+            }
             ArgumentOutOfRangeException.ThrowIfLessThan(vertical, 1); ArgumentOutOfRangeException.ThrowIfGreaterThan(vertical, 2);
             switch (colorModel)
             {

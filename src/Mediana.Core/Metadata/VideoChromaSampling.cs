@@ -8,6 +8,8 @@ namespace Mediana.Core.Metadata
         Monochrome,
         Sampling420,
         Sampling422,
-        Sampling444
+        Sampling444,
+        Sampling411,
+        Sampling440
     }
 }

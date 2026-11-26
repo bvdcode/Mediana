@@ -5,5 +5,5 @@ using Mediana.Core.Metadata;
 
 namespace Mediana.Containers.Mp4
 {
-    internal record Mp4MetadataScope(Mp4MetadataValue[] Values, Mp4UserDataValue[] UserData, MediaTag[] Tags);
+    internal record Mp4MetadataScope(Mp4MetadataValue[] Values, Mp4UserDataValue[] UserData, MediaTag[] Tags, MediaProperty[] Properties);
 }

@@ -19,7 +19,7 @@ namespace Mediana.Codecs.Dv
         private static ReadOnlySpan<byte> HorizontalGroups => [18, 9, 27, 0, 36];
         private static ReadOnlySpan<byte> VerticalSequenceOffsets => [2, 6, 8, 0, 4];
 
-        internal static void Decode(ReadOnlySpan<byte> segment, Span<byte> picture, int sequence, int segmentIndex)
+        internal static void Decode(ReadOnlySpan<byte> segment, Span<byte> picture, int sequence, int segmentIndex, bool ntsc)
         {
             Span<int> coefficients = stackalloc int[TransformCount * CoefficientsPerBlock];
             Span<DvBlockState> blocks = stackalloc DvBlockState[TransformCount];
@@ -50,7 +50,14 @@ namespace Mediana.Codecs.Dv
             {
                 throw new InvalidDataException("A DV video segment ended before its transform blocks were complete.");
             }
-            WriteMacroblocks(picture, coefficients, blocks, sequence, segmentIndex);
+            if (ntsc)
+            {
+                WriteNtscMacroblocks(picture, coefficients, blocks, sequence, segmentIndex);
+            }
+            else
+            {
+                WriteMacroblocks(picture, coefficients, blocks, sequence, segmentIndex);
+            }
         }
 
         private static void ReadMacroblock(ReadOnlySpan<byte> dif, scoped Span<int> coefficients, scoped Span<DvBlockState> blocks,
@@ -111,6 +118,56 @@ namespace Mediana.Codecs.Dv
                 Write(first + 3, luma + 8 * PictureWidth + 8, PictureWidth, picture, coefficients, blocks);
                 Write(first + 4, LumaBytes + ChromaBytes + chroma, PictureWidth / 2, picture, coefficients, blocks);
                 Write(first + 5, LumaBytes + chroma, PictureWidth / 2, picture, coefficients, blocks);
+            }
+        }
+
+        private static ReadOnlySpan<byte> NtscHorizontalGroups => [9, 4, 13, 0, 18];
+
+        private static void WriteNtscMacroblocks(Span<byte> picture, Span<int> coefficients,
+            ReadOnlySpan<DvBlockState> blocks, int sequence, int segmentIndex)
+        {
+            const int chromaStride = PictureWidth / 4;
+            const int lumaBytes = PictureWidth * DvFrameHeader.NtscHeight;
+            const int chromaBytes = lumaBytes / 4;
+            for (int macroblock = 0; macroblock < Macroblocks; macroblock++)
+            {
+                int slot = segmentIndex + (macroblock is 1 or 2 ? 3 : 0);
+                int x = NtscHorizontalGroups[macroblock] + slot / 6;
+                int sequenceRow = ((sequence + VerticalSequenceOffsets[macroblock]) % DvFrameHeader.NtscSequenceCount) * 6;
+                int serpentine = slot % 12;
+                int line = serpentine < 6 ? serpentine : 11 - serpentine;
+                bool edge = x * 32 + 32 > PictureWidth;
+                int y = sequenceRow + (edge ? line * 2 : line);
+                int luma = y * 8 * PictureWidth + x * 32;
+                int chroma = (y * chromaStride + x) * 8;
+                int first = macroblock * TransformsPerMacroblock;
+                Write(first, luma, PictureWidth, picture, coefficients, blocks);
+                Write(first + 1, luma + 8, PictureWidth, picture, coefficients, blocks);
+                int nextLuma = edge ? luma + 8 * PictureWidth : luma + 16;
+                Write(first + 2, nextLuma, PictureWidth, picture, coefficients, blocks);
+                Write(first + 3, nextLuma + 8, PictureWidth, picture, coefficients, blocks);
+                if (edge)
+                {
+                    WriteSplitChroma(first + 4, picture[(lumaBytes + chromaBytes + chroma)..], coefficients, blocks, chromaStride);
+                    WriteSplitChroma(first + 5, picture[(lumaBytes + chroma)..], coefficients, blocks, chromaStride);
+                }
+                else
+                {
+                    Write(first + 4, lumaBytes + chromaBytes + chroma, chromaStride, picture, coefficients, blocks);
+                    Write(first + 5, lumaBytes + chroma, chromaStride, picture, coefficients, blocks);
+                }
+            }
+        }
+
+        private static void WriteSplitChroma(int index, Span<byte> target, Span<int> coefficients,
+            ReadOnlySpan<DvBlockState> blocks, int stride)
+        {
+            Span<byte> tile = stackalloc byte[64];
+            Write(index, 0, 8, tile, coefficients, blocks);
+            for (int row = 0; row < 8; row++)
+            {
+                tile.Slice(row * 8, 4).CopyTo(target[(row * stride)..]);
+                tile.Slice(row * 8 + 4, 4).CopyTo(target[((row + 8) * stride)..]);
             }
         }
 

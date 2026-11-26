@@ -68,6 +68,36 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public async Task TrailingZeroPaddingRequiresExplicitCompatibilityAndRejectsNonzeroData()
+        {
+            string path = Path.Combine(AppContext.BaseDirectory, "Data", "Matroska", "opus-mono.webm");
+            byte[] original = await File.ReadAllBytesAsync(path);
+            const int padding = 9000;
+            byte[] data = new byte[original.Length + padding];
+            original.CopyTo(data, 0);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using RandomAccessStreamByteSource strict = new(new MemoryStream(data));
+            await Assert.ThrowsAsync<InvalidDataException>(async () => await MatroskaReader.OpenAsync(strict, allocator));
+
+            List<string> warnings = [];
+            MatroskaReadOptions options = new() { AllowTrailingZeroPadding = true, WarningHandler = warnings.Add };
+            await using RandomAccessStreamByteSource allowed = new(new MemoryStream(data));
+            await using (MatroskaReader reader = await MatroskaReader.OpenAsync(allowed, allocator, options))
+            {
+                Assert.Equal("opus", Assert.Single(reader.Streams).CodecId);
+                using MediaPacket packet = Assert.IsType<MediaPacket>(await reader.ReadPacketAsync());
+                Assert.NotEmpty(packet.Data.ToArray());
+            }
+            Assert.Contains(padding.ToString(System.Globalization.CultureInfo.InvariantCulture), Assert.Single(warnings));
+
+            data[^1] = 1;
+            await using RandomAccessStreamByteSource corrupt = new(new MemoryStream(data));
+            await Assert.ThrowsAsync<InvalidDataException>(async () => await MatroskaReader.OpenAsync(corrupt, allocator, options));
+            Assert.Single(warnings);
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
         public async Task VariableOpusLaceSpreadsEndPaddingAcrossItsPackets()
         {
             byte[] track = Field(0xAE, [.. Unsigned(0xD7, 1), .. Unsigned(0x73C5, 2), .. Unsigned(0x83, 2),

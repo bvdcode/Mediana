@@ -38,7 +38,8 @@ namespace Mediana.Containers.Matroska
             try
             {
                 using MatroskaBlockReader blocks = new(source, allocator, options.MaximumBlockHeaderBytes, options.MaximumFrameBytes);
-                using WritableMediaBuffer prefix = allocator.Allocate(Math.Max(Eac3FrameMetadata.MaximumPrefixBytes, DtsFrameHeader.MaximumHeaderBytes));
+                using WritableMediaBuffer prefix = allocator.Allocate(Math.Max(FlacFrameHeader.MaximumHeaderBytes,
+                    Math.Max(Eac3FrameMetadata.MaximumPrefixBytes, DtsFrameHeader.MaximumHeaderBytes)));
                 for (int stream = 0; stream < tracks.Count; stream++)
                 {
                     MatroskaCodecConfiguration configuration = configurations[stream];
@@ -54,9 +55,9 @@ namespace Mediana.Containers.Matroska
                         await result.ReadDtsStreamAsync(stream, source, index, blocks, tracks[stream].Audio!.Value, prefix.Memory, token).ConfigureAwait(false);
                         continue;
                     }
-                    if (codec == OpusConfiguration.CodecId)
+                    if (MatroskaAudioPacketSamples.HasNativeSampleCounts(configuration.Stream.Format))
                     {
-                        await result.ReadOpusStreamAsync(stream, source, index, blocks, tracks[stream],
+                        await result.ReadPacketTimedStreamAsync(stream, source, index, blocks, tracks[stream],
                             configuration.Stream, prefix.Memory, token).ConfigureAwait(false);
                         continue;
                     }
@@ -138,7 +139,7 @@ namespace Mediana.Containers.Matroska
 
         private static bool RequiresTiming(MatroskaCodecConfiguration configuration) =>
             configuration.Stream.Format == StreamFormats.Ac3 || configuration.Stream.Format == StreamFormats.Eac3Syncframe ||
-            configuration.Stream.Format == StreamFormats.Dts || configuration.Stream.Format == StreamFormats.Opus ||
+            configuration.Stream.Format == StreamFormats.Dts || MatroskaAudioPacketSamples.HasNativeSampleCounts(configuration.Stream.Format) ||
             (configuration.Stream.Kind == MediaKind.Audio && configuration.FrameDuration is not null);
 
         private void IndexFixedStream(int stream, MatroskaPacketIndex index, MediaDuration period, CancellationToken token)
@@ -182,6 +183,13 @@ namespace Mediana.Containers.Matroska
                     if (data.Length != timing.FrameBytes || OpusPacketInfo.ReadTiming(data).SampleCount != timing.Samples)
                     {
                         throw new InvalidDataException("The Matroska Opus packet no longer matches its timing index.");
+                    }
+                    return;
+                case "A_VORBIS":
+                case "A_FLAC":
+                    if (data.Length != timing.FrameBytes)
+                    {
+                        throw new InvalidDataException("The Matroska audio packet no longer matches its timing index.");
                     }
                     return;
             }

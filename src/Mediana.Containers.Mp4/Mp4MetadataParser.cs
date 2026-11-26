@@ -13,11 +13,12 @@ namespace Mediana.Containers.Mp4
         private readonly List<Mp4MetadataValue> values = [];
         private readonly List<Mp4UserDataValue> userData = [];
         private readonly List<MediaTag> tags = [];
+        private readonly List<MediaProperty> properties = [];
 
         public Mp4MetadataScope Parse(Mp4BoxCollection scope, string sourcePath, Mp4BoxCollection? media = null)
         {
             ReadScope(scope, sourcePath, media);
-            return new(values.ToArray(), userData.ToArray(), tags.ToArray());
+            return new(values.ToArray(), userData.ToArray(), tags.ToArray(), properties.ToArray());
         }
 
         private void ReadScope(Mp4BoxCollection scope, string sourcePath, Mp4BoxCollection? media = null)
@@ -54,6 +55,8 @@ namespace Mediana.Containers.Mp4
                         break;
                     case "name":
                     case "tnam":
+                    case "loci":
+                    case "©xyz":
                         Mp4UserDataItem item = Mp4UserDataParser.Read(child, sourcePath, budget);
                         int offset = 0;
                         if (!child.Payload.IsEmpty && (!root.Span.Overlaps(child.Payload.Span, out offset) || offset < 0))
@@ -176,6 +179,12 @@ namespace Mediana.Containers.Mp4
                 2 => ReadText(data.Span, Utf16),
                 _ => null
             };
+            if (type == 0 && keyNamespace == "mdir" && name is "trkn" or "disk")
+            {
+                ushort number = Mp4Binary.UInt16(data.Span, 2);
+                ushort total = Mp4Binary.UInt16(data.Span, 4);
+                properties.Add(new(keyNamespace, name, (uint)number, (uint)total));
+            }
             int offset = 0;
             if (!data.IsEmpty && (!root.Span.Overlaps(data.Span, out offset) || offset < 0))
             {

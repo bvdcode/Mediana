@@ -4,6 +4,7 @@
 using Mediana.Core.Memory;
 using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
+using Mediana.Core.Video;
 using Mediana.IO;
 
 namespace Mediana.Containers.Matroska
@@ -28,7 +29,7 @@ namespace Mediana.Containers.Matroska
             try
             {
                 index = await MatroskaPacketIndexBuilder.ReadAsync(source, allocator, segment, tracks,
-                    options.IndexOptions, options.MetadataLimits, header.MaximumSizeWidth, cancellationToken).ConfigureAwait(false);
+                    options.IndexOptions, options.MetadataLimits, header.MaximumSizeWidth, cancellationToken, documentEndVerified: true).ConfigureAwait(false);
                 IReadOnlyList<MatroskaCodecConfiguration> configurations = await MatroskaCodecReader.ReadAsync(
                     source, allocator, tracks, index, options.IndexOptions, options.MaxCodecConfigurationBytes,
                     options.MaxTotalCodecConfigurationBytes, cancellationToken).ConfigureAwait(false);
@@ -67,11 +68,12 @@ namespace Mediana.Containers.Matroska
             MatroskaSegmentMetadata? info = null;
             IReadOnlyList<MatroskaTrack>? tracks = null;
             IReadOnlyList<MatroskaAttachmentInfo>? attachments = null;
+            List<MediaTag> segmentTags = [];
             MatroskaMetadataByteBudget byteBudget = new(options.MaxMetadataBytes);
             long offset = segment.DataOffset;
             while (await segments.ReadChildAsync(segment, offset, token).ConfigureAwait(false) is EbmlElement child)
             {
-                if (child.Id is 0x1549A966 or 0x1654AE6B)
+                if (child.Id is 0x1549A966 or 0x1654AE6B or 0x1254C367)
                 {
                     byteBudget.Reserve(child.DataSize!.Value);
                 }
@@ -117,11 +119,23 @@ namespace Mediana.Containers.Matroska
                         attachments = await MatroskaAttachmentsReader.ReadAsync(metadata, child, options.MaxAttachments,
                             byteBudget, options.VerifyMediaChecksums, token).ConfigureAwait(false);
                         break;
+                    case 0x1254C367:
+                        await MatroskaTagsReader.ReadSegmentTagsAsync(metadata, child, segmentTags, token).ConfigureAwait(false);
+                        break;
                 }
                 offset = child.EndOffset!.Value;
             }
-            await segments.VerifyDocumentEndAsync(segment, token).ConfigureAwait(false);
-            return (header, segment, info ?? throw new InvalidDataException("Matroska Info is missing."),
+            long padding = await segments.VerifyDocumentEndAsync(segment, token, options.AllowTrailingZeroPadding).ConfigureAwait(false);
+            if (padding != 0)
+            {
+                options.WarningHandler?.Invoke($"Ignored {padding} trailing zero bytes outside the Matroska Segment.");
+            }
+            MatroskaSegmentMetadata metadataInfo = info ?? throw new InvalidDataException("Matroska Info is missing.");
+            if (segmentTags.Count != 0)
+            {
+                metadataInfo = metadataInfo with { Tags = metadataInfo.Tags.Concat(segmentTags).ToArray() };
+            }
+            return (header, segment, metadataInfo,
                 tracks ?? throw new InvalidDataException("Matroska Tracks is missing."), attachments ?? Array.Empty<MatroskaAttachmentInfo>());
         }
 
@@ -171,11 +185,25 @@ namespace Mediana.Containers.Matroska
                     [new("matroska", "Name", name, sourcePath: "Segment/Tracks/TrackEntry")] : [];
                 long count = index.GetPacketCount(stream);
                 MediaDuration? duration = count == 0 ? new(0, MatroskaTrackClock.TimeBase) : null;
-                streams[stream] = new(stream, tags: tags,
-                    packetIndex: new(count, index.GetPayloadBytes(stream), duration),
-                    language: track.Labels.LanguageBcp47 ?? track.Labels.Language);
+                FrameRate? nominalRate = track.Stream.Kind == Core.MediaKind.Video &&
+                    track.Timing.DefaultDurationNanoseconds is ulong period && period != 0
+                    ? new(1_000_000_000, period) : null;
+                streams[stream] = new(stream, null, tags, new(count, index.GetPayloadBytes(stream), duration),
+                    track.Labels.LanguageBcp47 ?? track.Labels.Language, null, null, nominalRate, ReadPcmBitRate(track));
             }
             return new(documentType, declared, metadata.Tags, streams, dates);
+        }
+
+        private static long? ReadPcmBitRate(MatroskaTrackInfo track)
+        {
+            if (track.CodecId is not ("A_PCM/INT/LIT" or "A_PCM/INT/BIG" or "A_PCM/FLOAT/IEEE") ||
+                track.Audio is not MatroskaAudioSettings audio || audio.BitDepth is not (8 or 16 or 24 or 32 or 64) ||
+                audio.SamplingFrequency is < 1 or > int.MaxValue || audio.SamplingFrequency != Math.Truncate(audio.SamplingFrequency))
+            {
+                return null;
+            }
+            Int128 rate = (Int128)(int)audio.SamplingFrequency * audio.Channels * audio.BitDepth.Value;
+            return rate > 0 && rate <= long.MaxValue ? (long)rate : null;
         }
     }
 }

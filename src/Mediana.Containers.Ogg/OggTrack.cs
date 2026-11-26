@@ -31,6 +31,7 @@ namespace Mediana.Containers.Ogg
         public virtual int SeekPreroll => 0;
         public virtual int MinimumSeekPackets => 0;
         public abstract TimeBase Clock { get; }
+        public abstract StreamMetadata GetStreamMetadata();
         public abstract void Add(OggPacket packet, CancellationToken token);
         public abstract (EncodedStreamInfo Stream, ContainerStreamInfo Info, MediaMetadata Metadata) Complete();
         internal long RandomAccessPacket(long output)

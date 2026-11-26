@@ -13,10 +13,22 @@ namespace Mediana.IO
         private bool disposed;
 
         public RandomAccessCursorByteSource(IRandomAccessByteSource source, bool leaveOpen = false)
+            : this(source, 0, leaveOpen)
+        {
+        }
+
+        /// <summary>Starts the sequential cursor at the given source-relative offset. Range reads still use the source origin.</summary>
+        public RandomAccessCursorByteSource(IRandomAccessByteSource source, long offset, bool leaveOpen = false)
         {
             ArgumentNullException.ThrowIfNull(source);
+            ArgumentOutOfRangeException.ThrowIfNegative(offset);
+            if (source.Length is long length)
+            {
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, length);
+            }
             this.source = source;
             this.leaveOpen = leaveOpen;
+            position = offset;
         }
 
         public long? Length => source.Length;

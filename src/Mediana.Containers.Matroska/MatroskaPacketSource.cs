@@ -4,7 +4,6 @@
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
-using Mediana.Formats;
 using Mediana.IO;
 
 namespace Mediana.Containers.Matroska
@@ -122,7 +121,7 @@ namespace Mediana.Containers.Matroska
                 throw new NotSupportedException("Matroska invisible frames, codec state and block additions require additional packet semantics.");
             }
             if (extra?.DiscardPaddingNanoseconds is long padding && padding != 0 &&
-                (configuration.Stream.Format != StreamFormats.Opus || padding < 0))
+                (!MatroskaAudioPacketSamples.SupportsEndTrimming(configuration.Stream.Format) || padding < 0))
             {
                 throw new NotSupportedException("The Matroska packet uses an unsupported discard padding mode.");
             }
@@ -239,7 +238,7 @@ namespace Mediana.Containers.Matroska
                 }
                 duration = new(exact.PresentedSamples, new(1, exact.SampleRate));
                 if (extra?.DurationTicks is ulong declared && exact.IsFinalFrameSetInBlock &&
-                    configurations[block.StreamIndex].Stream.Format != StreamFormats.Opus)
+                    !MatroskaAudioPacketSamples.HasNativeSampleCounts(configurations[block.StreamIndex].Stream.Format))
                 {
                     MediaDuration whole = clock.GetTrackDuration(declared);
                     MediaTimestamp start = new(exact.PrecedingSamples, new(1, exact.SampleRate));

@@ -55,7 +55,7 @@ namespace Mediana.Tests
             Assert.Equal(7350, metadata.SampleRate);
             Assert.Equal(count, metadata.ChannelCount);
             Assert.Null(metadata.BitsPerSample);
-            Assert.Null(metadata.ChannelOrder);
+            Assert.Equal(count, metadata.ChannelOrder?.Count);
             Assert.NotNull(new AacDecoderFactory().GetUnsupportedReason(stream));
         }
 

@@ -1,5 +1,17 @@
 # AIFF PCM references
 
+`ima4-mono.aifc` and `ima4-stereo.aifc` contain Apple IMA ADPCM at 22,050 Hz.
+FFmpeg 6.1.1 decodes respectively 5,696 and 22,464 sample frames, including
+the final stored packet. Regression tests compare little-endian PCM16 hashes
+across individual 64-sample packets.
+
+```sh
+ffmpeg -v error -f lavfi -i 'sine=frequency=97:sample_rate=22050:duration=0.257' \
+  -c:a adpcm_ima_qt -f aiff ima4-mono.aifc
+ffmpeg -v error -f lavfi -i 'aevalsrc=0.31*sin(2*PI*97*t)|0.12*sin(2*PI*219*t):s=22050:d=1.017' \
+  -c:a adpcm_ima_qt -f aiff ima4-stereo.aifc
+```
+
 These AIFF/AIFF-C files contain generated tones and per-channel impulses from the
 matching [WAVE fixtures](../Wave/README.md). Encoding and independent decoding used
 FFmpeg 6.1.1. `references.json` records compression formats, stream parameters and

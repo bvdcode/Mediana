@@ -139,6 +139,28 @@ namespace Mediana.Codecs.Jpeg
             }
         }
 
+        internal byte? ReadFramePrefix()
+        {
+            if (encoded.Length < 2) { return null; }
+            if (reader.NextMarker() != 216) { throw new InvalidDataException("JPEG must begin with SOI."); }
+            while (reader.Position < encoded.Length)
+            {
+                ReadOnlySpan<byte> remaining = encoded.Span[reader.Position..];
+                if (remaining.IndexOfAnyExcept((byte)255) < 0) { return null; }
+                byte marker = reader.NextMarker();
+                if (marker is 217 or 218) { return null; }
+                remaining = encoded.Span[reader.Position..];
+                if (remaining.Length < 2 || BinaryPrimitives.ReadUInt16BigEndian(remaining) > remaining.Length) { return null; }
+                ReadOnlySpan<byte> segment = reader.ReadSegment();
+                if (marker is 192 or 193 or 194)
+                {
+                    ReadFrame(marker, segment, null);
+                    return marker;
+                }
+            }
+            return null;
+        }
+
         internal int[] GetQuantization(JpegComponent component)
         {
             int[]? values = quantization[component.Quantization];

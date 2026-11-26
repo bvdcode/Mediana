@@ -17,7 +17,8 @@ namespace Mediana.Codecs.Dts
 
         public StreamMetadata? Read(EncodedStreamInfo stream)
         {
-            RequireStream(stream);
+            ArgumentNullException.ThrowIfNull(stream);
+            if (stream.Format != StreamFormats.DtsByteStream) { RequireStream(stream); }
             return null;
         }
 

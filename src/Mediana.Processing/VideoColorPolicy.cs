@@ -66,6 +66,7 @@ namespace Mediana.Processing
             if (declared.Primaries == ColorPrimaries.Unspecified && resolved.Primaries != ColorPrimaries.Unspecified) { missing.Add("primaries"); }
             if (declared.Transfer == TransferFunction.Unspecified && resolved.Transfer != TransferFunction.Unspecified) { missing.Add("transfer"); }
             if (declared.Matrix == MatrixCoefficients.Unspecified && resolved.Matrix != MatrixCoefficients.Unspecified) { missing.Add("matrix"); }
+            if (declared.Range == ColorRange.Unspecified && resolved.Range != ColorRange.Unspecified) { missing.Add("range"); }
             if (declared.ChromaLocation == ChromaLocation.Unspecified && resolved.ChromaLocation != ChromaLocation.Unspecified) { missing.Add("chroma location"); }
             if (declared.FieldChromaLocations != resolved.FieldChromaLocations)
             {
@@ -76,19 +77,20 @@ namespace Mediana.Processing
                 (declared.Transfer == TransferFunction.Unspecified || declared.Transfer == resolved.Transfer) &&
                 (declared.Matrix == MatrixCoefficients.Unspecified || declared.Matrix == resolved.Matrix) &&
                 (declared.ChromaLocation == ChromaLocation.Unspecified || declared.ChromaLocation == resolved.ChromaLocation) &&
-                declared.Range == resolved.Range && PreservesFields(declared.FieldChromaLocations, resolved.FieldChromaLocations);
+                (declared.Range == ColorRange.Unspecified || declared.Range == resolved.Range) && PreservesFields(declared.FieldChromaLocations, resolved.FieldChromaLocations);
             if (missing.Count == 0 || !preservesDeclarations)
             {
                 warningHandler($"The configured color policy uses {resolved}. Source metadata was not modified.");
             }
             else
             {
+                string range = declared.Range != resolved.Range ? $", range {resolved.Range}" : string.Empty;
                 string fields = string.Empty;
                 if (declared.FieldChromaLocations != resolved.FieldChromaLocations)
                 {
                     fields = $", field chroma locations {resolved.FieldChromaLocations}";
                 }
-                warningHandler($"Missing source color metadata ({string.Join(", ", missing)}); processing uses primaries {resolved.Primaries}, transfer {resolved.Transfer}, matrix {resolved.Matrix}, chroma location {resolved.ChromaLocation}{fields}. Declared values were preserved.");
+                warningHandler($"Missing source color metadata ({string.Join(", ", missing)}); processing uses primaries {resolved.Primaries}, transfer {resolved.Transfer}, matrix {resolved.Matrix}{range}, chroma location {resolved.ChromaLocation}{fields}. Declared values were preserved.");
             }
             return resolved;
         }

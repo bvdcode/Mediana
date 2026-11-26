@@ -21,7 +21,7 @@ namespace Mediana.Codecs.Ac3
         public virtual StreamMetadata? Read(EncodedStreamInfo stream)
         {
             RequireStream(stream);
-            if (IsRawFormat(stream.Format)) { return null; }
+            if (IsRawFormat(stream.Format) || stream.Format == StreamFormats.Ac3ByteStream) { return null; }
             StreamFormats.Ac3Mp4.Require(stream.Format);
             Ac3SpecificConfiguration configuration = Ac3SpecificConfiguration.Read(stream.Configuration.Span);
             return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount,

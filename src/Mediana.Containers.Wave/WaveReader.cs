@@ -16,7 +16,7 @@ namespace Mediana.Containers.Wave
     /// <summary>Reads one RIFF/WAVE audio data chunk sequentially. Borrows its source.
     /// Trailing chunks and padding are validated when the packet stream is drained.
     /// Supports PCM, IEEE float, G.711, IMA ADPCM and Microsoft ADPCM.</summary>
-    public class WaveReader : IContainerReader
+    public partial class WaveReader : IContainerReader, IContainerProbeInfoProvider
     {
         private const uint FormatChunk = 0x20746d66;
         private const uint FactChunk = 0x74636166;
@@ -27,12 +27,14 @@ namespace Mediana.Containers.Wave
         private readonly MediaBufferAllocator allocator;
         private readonly WaveReadOptions options;
         private readonly WritableMediaBuffer scratch;
+        private readonly bool ownsScratch;
         private PcmConfiguration? pcmConfiguration;
         private WaveCompressedAudioConfiguration? compressedConfiguration;
         private int blockAlignment;
         private int samplesPerBlock = 1;
         private uint? factSampleCount;
         private long remaining;
+        private long riffEnd;
         private long metadataBytes;
         private long dataRemaining;
         private long samplePosition;
@@ -42,12 +44,14 @@ namespace Mediana.Containers.Wave
         private bool faulted;
         private int busy;
 
-        private WaveReader(IByteSource source, MediaBufferAllocator allocator, WaveReadOptions options)
+        private WaveReader(IByteSource source, MediaBufferAllocator allocator, WaveReadOptions options,
+            WritableMediaBuffer? borrowedScratch = null)
         {
             this.source = source;
             this.allocator = allocator;
             this.options = options;
-            scratch = allocator.Allocate(ReadBufferBytes);
+            scratch = borrowedScratch ?? allocator.Allocate(ReadBufferBytes);
+            ownsScratch = borrowedScratch is null;
         }
 
         public ContainerInfo Info { get; private set; } = null!;
@@ -71,7 +75,8 @@ namespace Mediana.Containers.Wave
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
-                reader.Info = new ContainerInfo("wave", reader.Duration);
+                reader.Info = new ContainerInfo("wave", reader.Duration, reader.tags,
+                    [new(0, reader.Duration, packetIndex: new(reader.packetCount, reader.dataRemaining, reader.Duration))]);
                 opened = true;
                 return reader;
             }
@@ -97,6 +102,7 @@ namespace Mediana.Containers.Wave
                 throw new InvalidDataException("The RIFF/WAVE extent exceeds the source.");
             }
             remaining = size - 4;
+            riffEnd = size + 8;
             CountMetadata(12);
             bool formatRead = false;
             while (remaining != 0)
@@ -140,6 +146,8 @@ namespace Mediana.Containers.Wave
                         dataRemaining = chunkSize;
                         dataPadding = (chunkSize & 1) != 0;
                         SamplesPerChannel = GetDataSampleCount(chunkSize);
+                        long packetBytes = (long)Math.Max(1, options.SamplesPerPacket / samplesPerBlock) * blockAlignment;
+                        packetCount = (chunkSize + packetBytes - 1) / packetBytes;
                         EncodedStreamInfo stream = Streams[0];
                         Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(stream.StreamIndex, stream.Kind, stream.CodecId, stream.Format,
                             stream.TimeBase, stream.Configuration.Span, codedDuration: Duration) });
@@ -232,7 +240,7 @@ namespace Mediana.Containers.Wave
                 if (!succeeded)
                 {
                     faulted = true;
-                    scratch.Dispose();
+                    if (ownsScratch) { scratch.Dispose(); }
                 }
                 Volatile.Write(ref busy, 0);
             }
@@ -272,6 +280,11 @@ namespace Mediana.Containers.Wave
                     throw new NotSupportedException("Nested WAVE audio and silence lists are not supported.");
                 }
                 bytes -= 4;
+                if (scratch.Memory.Span[..4].SequenceEqual("INFO"u8))
+                {
+                    await ReadInfoAsync(size - 4, cancellationToken).ConfigureAwait(false);
+                    bytes = size & 1;
+                }
             }
             await SkipMetadataAsync(bytes, cancellationToken).ConfigureAwait(false);
         }
@@ -340,7 +353,7 @@ namespace Mediana.Containers.Wave
                 if (!disposed)
                 {
                     disposed = true;
-                    scratch.Dispose();
+                    if (ownsScratch) { scratch.Dispose(); }
                 }
             }
             finally

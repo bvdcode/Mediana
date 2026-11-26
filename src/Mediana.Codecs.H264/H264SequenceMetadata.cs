@@ -14,6 +14,7 @@ namespace Mediana.Codecs.H264
                 sequence.FrameMbsOnly ? true : null, H264VideoFormat.ReadSampleAspectRatio(sequence.Vui),
                 H264VideoFormat.ReadColor(sequence.Vui, CommonChromaLocation(sequence)))
         {
+            PixelFormat = H264VideoFormat.ReadPixelFormat(sequence);
             SequenceId = sequence.Id;
             ProfileIdc = sequence.Profile;
             ConstraintFlags = sequence.Constraints;
@@ -37,6 +38,10 @@ namespace Mediana.Codecs.H264
             if (UnitsInTick is not null)
             {
                 FixedFrameRate = vui!.FixedFrameRate;
+                if (sequence.FrameMbsOnly && FixedFrameRate == true && UnitsInTick is > 0 && TimeScale is > 0)
+                {
+                    NominalFrameRate = new(TimeScale.Value, 2L * UnitsInTick.Value);
+                }
             }
         }
 

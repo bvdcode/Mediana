@@ -30,12 +30,38 @@ namespace Mediana.Containers.Aiff
             using WritableMediaBuffer common = allocator.Allocate(checked((int)size + 4));
             (compressed ? "AIFC"u8 : "AIFF"u8).CopyTo(common.Memory.Span);
             await ReadAsync(common.Memory[4..], cancellationToken).ConfigureAwait(false);
-            Configuration = PcmConfiguration.ReadAiffFormat(common.Memory.Span, out string? reason)
-                ?? throw new NotSupportedException(reason);
-            SamplesPerChannel = BinaryPrimitives.ReadUInt32BigEndian(common.Memory.Span[6..]);
-            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, PcmConfiguration.AiffCodecId, StreamFormats.AiffPcm,
-                new TimeBase(1, Configuration.Format.SampleRate), common.Memory.Span, codedDuration: Duration) });
+            ReadFormat(common.Memory.Span);
             await ReadPaddingAsync(size, cancellationToken).ConfigureAwait(false);
+        }
+
+        private void ReadFormat(ReadOnlySpan<byte> common)
+        {
+            AiffIma4Configuration? ima4 = AiffIma4Configuration.Read(common);
+            string codec;
+            EncodedStreamFormat format;
+            int rate;
+            if (ima4 is not null)
+            {
+                codec = AiffIma4Configuration.CodecId;
+                format = StreamFormats.AiffIma4;
+                rate = ima4.Format.SampleRate;
+                blockAlignment = ima4.BlockAlignment;
+                samplesPerBlock = AiffIma4Configuration.SamplesPerPacket;
+            }
+            else
+            {
+                pcmConfiguration = PcmConfiguration.ReadAiffFormat(common, out string? reason)
+                    ?? throw new NotSupportedException(reason);
+                codec = PcmConfiguration.AiffCodecId;
+                format = StreamFormats.AiffPcm;
+                rate = pcmConfiguration.Format.SampleRate;
+                blockAlignment = pcmConfiguration.BlockAlignment;
+                samplesPerBlock = 1;
+            }
+            SamplesPerChannel = (long)BinaryPrimitives.ReadUInt32BigEndian(common[6..]) * samplesPerBlock;
+            TimeBase timeBase = new(1, rate);
+            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, codec, format,
+                timeBase, common, codedDuration: new(SamplesPerChannel, timeBase)) });
         }
 
         private async ValueTask ReadVersionAsync(uint size, CancellationToken cancellationToken)
@@ -66,7 +92,7 @@ namespace Mediana.Containers.Aiff
             CountMetadata(8);
             await ReadAsync(scratch.Memory[..8], cancellationToken).ConfigureAwait(false);
             uint offset = BinaryPrimitives.ReadUInt32BigEndian(scratch.Memory.Span);
-            soundRemaining = SamplesPerChannel * Configuration.BlockAlignment;
+            soundRemaining = SamplesPerChannel / samplesPerBlock * blockAlignment;
             if (offset > size - 8 || soundRemaining > size - 8 - offset)
             {
                 throw new InvalidDataException("The AIFF sample count or sound offset exceeds the sound chunk.");

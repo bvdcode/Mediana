@@ -34,7 +34,7 @@ namespace Mediana.Codecs.Flac
             {
                 return "The stream is not FLAC audio.";
             }
-            string? formatReason = StreamFormats.Flac.GetUnsupportedReason(stream.Format);
+            string? formatReason = StreamFormats.FlacFrame == stream.Format ? null : StreamFormats.Flac.GetUnsupportedReason(stream.Format);
             if (formatReason is not null)
             {
                 return formatReason;
@@ -54,7 +54,7 @@ namespace Mediana.Codecs.Flac
                 throw new NotSupportedException(reason);
             }
             FlacConfiguration configuration = FlacConfiguration.ReadStreamInfo(stream.Configuration.Span);
-            return new FlacDecoder(stream.StreamIndex, configuration, allocator, maxFrameBytes);
+            return new FlacDecoder(stream.StreamIndex, configuration, allocator, maxFrameBytes, stream.Format == StreamFormats.FlacFrame);
         }
     }
 }

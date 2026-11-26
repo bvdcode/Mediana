@@ -109,7 +109,8 @@ namespace Mediana.Tests
         public async Task UnavailableTextMetadataAndNoTagsFoundRemainDistinct()
         {
             MediaInfo wave = await ProbeAsync(WaveTestInput.File(("fmt ", WaveTestInput.Format()), ("data", [])));
-            Assert.Null(wave.Container!.Tags);
+            Assert.Null(new ContainerInfo("opaque").Tags);
+            Assert.Empty(wave.Container!.Tags!);
             MediaInfo mp3 = await ProbeAsync(Mp3TestInput.Frame());
             Assert.NotNull(mp3.Container!.Tags);
             Assert.Empty(mp3.Container!.Tags);

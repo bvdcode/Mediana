@@ -42,6 +42,10 @@ namespace Mediana.Cli
             {
                 await output.WriteLineAsync($"Declared duration: {MediaDurationFormatter.Seconds(duration)} seconds.");
             }
+            else if (container.IndexedDuration is MediaDuration indexed)
+            {
+                await output.WriteLineAsync($"Indexed duration: {MediaDurationFormatter.Seconds(indexed)} seconds.");
+            }
             else
             {
                 await output.WriteLineAsync("Declared duration: unknown.");

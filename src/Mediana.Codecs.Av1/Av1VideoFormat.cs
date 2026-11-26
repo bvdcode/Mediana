@@ -15,7 +15,22 @@ namespace Mediana.Codecs.Av1
         internal static VideoFormat Create(Av1FrameHeader header, EncodedStreamInfo stream)
         {
             Av1SequenceHeader geometry = header.PixelGeometry;
-            VideoColorInfo color = new(CicpColorimetry.GetPrimaries(geometry.ColorPrimaries), CicpColorimetry.GetTransfer(geometry.TransferCharacteristics),
+            VideoColorInfo color = ReadColor(geometry);
+            SampleAspectRatio aspect = ReadAspectRatio(geometry, header.RenderWidth, header.RenderHeight);
+            return new(geometry.Width, geometry.Height, ReadPixelFormat(geometry), color,
+                stream.AspectRatioDescription?.Resolve(aspect) ?? aspect, stream.ColorDescription);
+        }
+
+        internal static SampleAspectRatio ReadAspectRatio(Av1SequenceHeader geometry, int renderWidth, int renderHeight)
+        {
+            long numerator = (long)renderWidth * geometry.Height;
+            long denominator = (long)renderHeight * geometry.Width;
+            long divisor = (long)BigInteger.GreatestCommonDivisor(numerator, denominator);
+            return new(checked((int)(numerator / divisor)), checked((int)(denominator / divisor)));
+        }
+
+        internal static VideoColorInfo ReadColor(Av1SequenceHeader geometry) =>
+            new(CicpColorimetry.GetPrimaries(geometry.ColorPrimaries), CicpColorimetry.GetTransfer(geometry.TransferCharacteristics),
                 CicpColorimetry.GetMatrix(geometry.MatrixCoefficients), geometry.FullRange ? ColorRange.Full : ColorRange.Limited,
                 geometry.ChromaPosition switch
                 {
@@ -24,11 +39,9 @@ namespace Mediana.Codecs.Av1
                     2 => ChromaLocation.TopLeft,
                     _ => throw new InvalidDataException("The AV1 chroma location is invalid.")
                 });
-            long numerator = (long)header.RenderWidth * geometry.Height;
-            long denominator = (long)header.RenderHeight * geometry.Width;
-            long divisor = (long)BigInteger.GreatestCommonDivisor(numerator, denominator);
-            SampleAspectRatio aspect = new(checked((int)(numerator / divisor)), checked((int)(denominator / divisor)));
-            VideoPixelFormat pixels = (geometry.Monochrome, geometry.BitDepth) switch
+
+        internal static VideoPixelFormat ReadPixelFormat(Av1SequenceHeader geometry) =>
+            (geometry.Monochrome, geometry.BitDepth) switch
             {
                 (true, 8) => Gray8,
                 (true, 10) => Gray10,
@@ -36,9 +49,6 @@ namespace Mediana.Codecs.Av1
                 (false, 10) => VideoPixelFormat.Yuv420P10,
                 _ => throw new NotSupportedException("AV1 reconstruction requires eight- or ten-bit Main-profile samples.")
             };
-            return new(geometry.Width, geometry.Height, pixels, color,
-                stream.AspectRatioDescription?.Resolve(aspect) ?? aspect, stream.ColorDescription);
-        }
 
         internal static PlaneLayout[] Layout(Av1SequenceHeader geometry)
         {
