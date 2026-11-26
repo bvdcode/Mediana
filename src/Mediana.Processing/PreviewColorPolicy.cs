@@ -7,16 +7,23 @@ namespace Mediana.Processing
 {
     /// <summary>Explicit preview interpretation for missing color labels. Uses the SDR policy for SDR input;
     /// PQ/HLG input retains its transfer, with BT.2020 defaults for omitted primaries and YUV matrix.
-    /// HDR conversion additionally requires explicit tone mapping options.</summary>
+    /// Unspecified SDR YUV range is interpreted as limited. HDR conversion requires tone mapping options.</summary>
     public static class PreviewColorPolicy
     {
         public static VideoColorInfo Resolve(VideoFormat format)
         {
             ArgumentNullException.ThrowIfNull(format);
             VideoColorInfo declared = format.GetColorInterpretation();
-            if (declared.Transfer is not (TransferFunction.Pq or TransferFunction.Hlg))
-            { return SdrPreviewColorPolicy.Resolve(format); }
-            VideoColorInfo resolved = VideoColorPolicy.ResolveChromaLocation(format);
+            bool hdr = declared.Transfer is TransferFunction.Pq or TransferFunction.Hlg;
+            VideoColorInfo resolved = hdr
+                ? VideoColorPolicy.ResolveChromaLocation(format)
+                : SdrPreviewColorPolicy.Resolve(format);
+            if (!hdr && resolved.Range == ColorRange.Unspecified &&
+                format.PixelFormat is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Yuv })
+            {
+                resolved = resolved with { Range = ColorRange.Limited };
+            }
+            if (!hdr) { return resolved; }
             if (resolved.Primaries == ColorPrimaries.Unspecified) { resolved = resolved with { Primaries = ColorPrimaries.Bt2020 }; }
             if (resolved.Matrix == MatrixCoefficients.Unspecified)
             {

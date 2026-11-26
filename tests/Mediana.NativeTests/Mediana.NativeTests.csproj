@@ -16,6 +16,7 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Alac/Mediana.Codecs.Alac.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.ProRes/Mediana.Codecs.ProRes.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Dv/Mediana.Codecs.Dv.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Ffv1/Mediana.Codecs.Ffv1.csproj" />
     <Compile Include="../Shared/DvAviTestInput.cs" Link="DvAviTestInput.cs" />
     <None Include="../Mediana.Containers.Avi.Tests/Data/Dv/*" Link="Data/Dv/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Alac.Tests/Data/*" Link="Data/Alac/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

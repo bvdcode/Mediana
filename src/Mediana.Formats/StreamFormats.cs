@@ -15,6 +15,7 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Vp8 { get; } = new("none", "vp8.complete-frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat ProRes { get; } = new("none", "prores.frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Dv { get; } = new("none", "dv.dif-frame", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat Ffv1 { get; } = new("ffv1.coded-size-and-extradata", "ffv1.frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Dts { get; } = new("none", "dts.core-frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mjpeg { get; } = new("none", "jpeg.complete-picture", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Aac { get; } = new("aac.audio-specific-config", "aac.raw-data-block", EncodedPacketBoundary.AccessUnit);

@@ -9,7 +9,7 @@ using Mediana.Formats.Video;
 
 namespace Mediana.Codecs.Dv
 {
-    /// <summary>Decodes independently accessible PAL DV25 video frames to native 8-bit YUV 4:2:0.</summary>
+    /// <summary>Decodes independently accessible PAL and NTSC DV25 video frames to native 8-bit planar YUV.</summary>
     public class DvDecoderFactory : IVideoDecoderFactory, IRandomAccessDecoderFactory
     {
         public string ImplementationId => "mediana.dv";

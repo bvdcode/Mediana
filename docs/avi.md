@@ -6,7 +6,7 @@ signature; filenames do not select the reader. Register the factory with
 `MediaEngineBuilder.AddContainer`.
 
 The reader implements `IIndexedPacketTimingReader` and
-`IIndexedPresentationTimingReader`. Opening reads stream headers and indexes,
+`IIndexedPresentationTimingReader` and `IIndexedPacketPrefixReader`. Opening reads stream headers and indexes,
 with allocator-backed packet tables. MJPEG, PCM, Microsoft MPEG-4 v3 and WMV2
 payload is read only when a packet is requested. MPEG-4 Visual reads bounded picture-header prefixes
 to build its presentation clock. Supported index representations are `idx1`
@@ -37,9 +37,16 @@ clocks. Display duration can differ from a chunk's transport duration.
 with coded dimensions from `strf`. Their presentation clocks follow the AVI
 index because these streams decode in display order.
 
-PAL DV25 Type-2 `dvsd` tracks use the [DV decoder](dv.md). Every DV video
+PAL and NTSC DV25 Type-2 `dvsd` tracks use the [DV decoder](dv.md). Every DV video
 packet is independently accessible. OpenDML `vprp` describes display geometry
 and supplies a sample aspect ratio when the relevant terms are present.
+
+AVI `FFV1` tracks use `Ffv1DecoderFactory` from `Mediana.Codecs.Ffv1`.
+The decoder supports 8-bit planar 4:2:0, 4:2:2, 4:4:4 and 4:1:1 with
+Golomb–Rice and range entropy coding. Versions 0 and 1 carry parameters in
+the opening picture. Version 3 uses its external configuration and verifies
+slice CRCs when present. Seeking restarts at an indexed FFV1 keyframe and
+rebuilds entropy contexts through the requested picture. See [RFC 9043](https://www.rfc-editor.org/rfc/rfc9043.html).
 
 DivX/Xvid packed bitstreams are normalized into one VOP per logical packet.
 Opening structurally scans packed reference chunks with bounded scratch storage
