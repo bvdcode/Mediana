@@ -12,6 +12,7 @@
     <Project Path="src/Mediana.Codecs.Dts/Mediana.Codecs.Dts.csproj" />
     <Project Path="src/Mediana.Codecs.Alac/Mediana.Codecs.Alac.csproj" />
     <Project Path="src/Mediana.Codecs.OpenExr/Mediana.Codecs.OpenExr.csproj" />
+    <Project Path="src/Mediana.Images.Apk/Mediana.Images.Apk.csproj" />
     <Project Path="src/Mediana.Images.Metadata/Mediana.Images.Metadata.csproj" />
     <Project Path="src/Mediana.Codecs.Tga/Mediana.Codecs.Tga.csproj" />
     <Project Path="src/Mediana.Codecs.Pnm/Mediana.Codecs.Pnm.csproj" />

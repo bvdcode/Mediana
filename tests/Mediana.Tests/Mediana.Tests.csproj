@@ -8,6 +8,7 @@
     <Compile Include="../Shared/DtsWaveExportTestInput.cs" Link="DtsWaveExportTestInput.cs" />
     <None Include="../Mediana.Codecs.Dts.Tests/Data/*" Link="Data/Dts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Codecs.Dts/Mediana.Codecs.Dts.csproj" />
+    <ProjectReference Include="../../src/Mediana.Images.Apk/Mediana.Images.Apk.csproj" />
     <ProjectReference Include="../../src/Mediana.Images.Metadata/Mediana.Images.Metadata.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Adts/Mediana.Containers.Adts.csproj" />
     <Compile Include="../Shared/AdtsMultiBlockTestInput.cs" Link="AdtsMultiBlockTestInput.cs" />

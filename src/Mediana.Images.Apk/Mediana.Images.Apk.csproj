@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
+    <ProjectReference Include="../Mediana.Imaging/Mediana.Imaging.csproj" />
+    <ProjectReference Include="../Mediana.IO/Mediana.IO.csproj" />
+  </ItemGroup>
+</Project>
