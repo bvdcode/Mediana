@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Runtime.InteropServices;
+using Mediana.Codecs.Transforms;
 using Mediana.Core.Memory;
 using Mediana.Formats.Video;
 
@@ -114,7 +115,7 @@ namespace Mediana.Codecs.Mpeg4Visual
                     {
                         nonzero = Dequantize(coefficients, quantizer, intra, DcScale(quantizer, block < 4), nonzero);
                         (int offset, int stride) = BlockAddress(mb, block);
-                        Mpeg4InverseDct.Write(coefficients, picture[offset..], stride, intra, nonzero);
+                        BlockInverseDct8x8.Write(coefficients, picture[offset..], stride, intra, nonzero);
                     }
                 }
             }

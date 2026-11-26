@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.Mpeg4Visual
+namespace Mediana.Codecs.Transforms
 {
-    internal static class Mpeg4InverseDct
+    internal static class BlockInverseDct8x8
     {
         internal static void Write(ReadOnlySpan<int> coefficients, Span<byte> target, int stride, bool intra)
         {
