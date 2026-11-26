@@ -18,6 +18,30 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void ResumesAcrossBufferedAndEscapedBytes()
+        {
+            byte[] payload = [0xa5, 0xc9, 0x34, 0x7b, 0, 0, 3, 1, 0xab, 0xcd, 0x80];
+            const int contentBits = 72;
+            for (int split = 0; split <= contentBits; split++)
+            {
+                H264BitReader original = new(payload);
+                for (int index = 0; index < split; index++)
+                {
+                    original.ReadBit();
+                }
+                H264BitReader resumed = new(payload, original.CreateCheckpoint());
+                Assert.Equal(original.ByteAligned, resumed.ByteAligned);
+                Assert.Equal(split, resumed.BitPosition);
+                for (int index = split; index < contentBits; index++)
+                {
+                    Assert.Equal(original.ReadBit(), resumed.ReadBit());
+                }
+                original.ReadTrailingBits();
+                resumed.ReadTrailingBits();
+            }
+        }
+
+        [Fact]
         public void PrefetchedBytesRemainVisibleToEndOfPayloadValidation()
         {
             Assert.Throws<InvalidDataException>(() => ReadTrailing([0x80, 0x11, 0x22, 0x33]));

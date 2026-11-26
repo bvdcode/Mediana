@@ -11,6 +11,8 @@ namespace Mediana.Codecs.H264
             List<H264SliceRegion> slices = [];
             H264SliceHeader? first = null;
             H264SliceHeader? previous = null;
+            ReadOnlyMemory<byte> previousPayload = default;
+            H264BitReaderCheckpoint previousCheckpoint = default;
             H264SliceKind? requiredKind = null;
             bool mixedKinds = false;
             foreach (ReadOnlyMemory<byte> nal in unit.Slices)
@@ -34,13 +36,15 @@ namespace Mediana.Codecs.H264
                 first ??= header;
                 if (previous is not null)
                 {
-                    slices.Add(new H264SliceRegion(previous, header.FirstMacroblock));
+                    slices.Add(new H264SliceRegion(previous, header.FirstMacroblock, previousPayload, previousCheckpoint));
                 }
                 previous = header;
+                previousPayload = nal[1..];
+                previousCheckpoint = bits.CreateCheckpoint();
             }
             if (previous is not null)
             {
-                slices.Add(new H264SliceRegion(previous, previous.Layout.MacroblockCount));
+                slices.Add(new H264SliceRegion(previous, previous.Layout.MacroblockCount, previousPayload, previousCheckpoint));
             }
             return slices;
         }

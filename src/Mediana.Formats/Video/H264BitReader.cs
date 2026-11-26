@@ -16,6 +16,18 @@ namespace Mediana.Formats.Video
         private int zeros;
         private int preventionBytes;
 
+        internal H264BitReader(ReadOnlySpan<byte> payload, scoped in H264BitReaderCheckpoint checkpoint)
+            : this(payload)
+        {
+            offset = checkpoint.Offset;
+            available = checkpoint.BufferedBits;
+            buffer = checkpoint.Buffer;
+            zeros = checkpoint.ZeroBytes;
+            preventionBytes = checkpoint.PreventionBytes;
+        }
+
+        internal H264BitReaderCheckpoint CreateCheckpoint() => new(offset, available, buffer, zeros, preventionBytes);
+
         public bool ByteAligned => (available & 7) == 0;
         public int BitPosition => checked((int)(((long)offset - preventionBytes) * 8 - available));
 

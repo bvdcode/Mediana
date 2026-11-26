@@ -173,7 +173,7 @@ namespace Mediana.Codecs.H264
                 warningHandler?.Invoke("Ignored an inconsistent H.264 picture-timing display hint; presentation follows the coded picture structure and field order.");
                 reportedPictureTiming = true;
             }
-            H264Picture picture = H264MultiSliceDecoder.Decode(unit, slices, references, nextOrder.Current, allocator, options, cancellationToken);
+            H264Picture picture = H264MultiSliceDecoder.Decode(slices, references, nextOrder.Current, allocator, cancellationToken);
             VideoFrame? frame = null;
             bool stored = false;
             bool queued = false;

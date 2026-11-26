@@ -59,7 +59,7 @@ namespace Mediana.Tests
                         bPictures++;
                     }
                     H264PictureOrderState next = order.Advance(header);
-                    H264Picture picture = H264MultiSliceDecoder.Decode(unit, slices, references, next.Current, allocator, options, default);
+                    H264Picture picture = H264MultiSliceDecoder.Decode(slices, references, next.Current, allocator, default);
                     bool stored = false;
                     try
                     {

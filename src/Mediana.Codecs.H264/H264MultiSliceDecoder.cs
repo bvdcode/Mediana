@@ -7,9 +7,9 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264MultiSliceDecoder
     {
-        public static H264Picture Decode(H264AccessUnit unit, IReadOnlyList<H264SliceRegion> slices,
+        public static H264Picture Decode(IReadOnlyList<H264SliceRegion> slices,
             H264ReferenceBuffer references, H264PictureOrder order, MediaBufferAllocator allocator,
-            H264DecoderOptions options, CancellationToken cancellationToken)
+            CancellationToken cancellationToken)
         {
             H264SliceKind storageKind = slices.Any(slice => slice.Header.Kind == H264SliceKind.B) ? H264SliceKind.B : H264SliceKind.P;
             H264Picture picture = H264Picture.CreateForCoding(slices[0].Header.Sequence, allocator, storageKind, slices[0].Header.Structure);
@@ -35,9 +35,7 @@ namespace Mediana.Codecs.H264
                     cancellationToken.ThrowIfCancellationRequested();
                     H264SliceRegion region = slices[index];
                     H264SliceHeader header = region.Header;
-                    ReadOnlySpan<byte> nal = unit.Slices[index].Span;
-                    H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
-                    H264SliceHeaderReader.Read(ref bits, unit.Configuration, nal[0], options);
+                    H264BitReader bits = region.CreatePayloadReader();
                     H264BidirectionalReferences lists = sliceReferences[index];
                     picture.FirstMacroblock = header.FirstMacroblock;
                     if (header.Picture.Cabac)
