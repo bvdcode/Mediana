@@ -17,7 +17,7 @@ namespace Mediana.Tests
         {
             byte[] data = [0, 64, 128, 192, 255];
             byte[] file = WaveTestInput.File(("JUNK", [9, 8, 7]), ("fmt ", WaveTestInput.Format(8, 1, 8000)),
-                ("data", data), ("LIST", [.. "INFO"u8, 1, 2, 3]));
+                ("data", data), ("JUNK", [1, 2, 3]));
             MediaBufferAllocator allocator = new(8192);
             await using ShortReadSource source = new(file);
             await using (WaveReader reader = await WaveReader.OpenAsync(source, allocator, new WaveReadOptions { SamplesPerPacket = 2 }))
@@ -38,6 +38,24 @@ namespace Mediana.Tests
             }
             Assert.False(source.IsDisposed);
             Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public async Task ProbeIncludesInfoAfterDataWithoutMovingThePacketCursor()
+        {
+            byte[] info = [.. "INFOINAM"u8, 6, 0, 0, 0, .. "Title\0"u8,
+                .. "IART"u8, 7, 0, 0, 0, .. "Artist\0"u8, 0];
+            byte[] samples = [1, 2, 3];
+            byte[] bytes = WaveTestInput.File(("fmt ", WaveTestInput.Format(8, 1)), ("data", samples), ("LIST", info));
+            MediaBufferAllocator allocator = new(8192);
+            await using RandomAccessStreamByteSource source = new(new MemoryStream(bytes));
+            await using WaveReader reader = await WaveReader.OpenAsync(source, allocator);
+            (Mediana.Containers.ContainerInfo probe, _) = await reader.ReadProbeInfoAsync();
+            Assert.Equal(["INAM", "IART"], probe.Tags!.Select(tag => tag.Name).ToArray());
+            Assert.Equal(["Title", "Artist"], probe.Tags!.SelectMany(tag => tag.Values).ToArray());
+            using MediaPacket packet = Assert.IsType<MediaPacket>(await reader.ReadPacketAsync());
+            Assert.Equal(samples, packet.Data.ToArray());
+            Assert.Null(await reader.ReadPacketAsync());
         }
 
         [Fact]

@@ -3,8 +3,10 @@
 
 using System.Buffers.Binary;
 using System.Text;
+using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Metadata;
+using Mediana.IO;
 
 namespace Mediana.Containers.Wave
 {
@@ -12,6 +14,39 @@ namespace Mediana.Containers.Wave
     {
         private readonly List<MediaTag> tags = [];
         private long packetCount;
+
+        public async ValueTask<(ContainerInfo Info, IReadOnlyList<EncodedStreamInfo> Streams)> ReadProbeInfoAsync(
+            CancellationToken cancellationToken = default)
+        {
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                if (faulted) { throw new InvalidOperationException("The WAVE reader has failed and must be disposed."); }
+                cancellationToken.ThrowIfCancellationRequested();
+                long tailLength = remaining - dataRemaining;
+                if (source is not IRandomAccessByteSource random || tailLength <= (dataPadding ? 1 : 0))
+                {
+                    if (remaining == 0 && tags.Count != Info.Tags!.Count)
+                    {
+                        return (new ContainerInfo(Info.FormatId, Info.DeclaredDuration, tags, Info.StreamInfo!.Values), Streams);
+                    }
+                    return (Info, Streams);
+                }
+
+                await using RandomAccessCursorByteSource cursor = new(random, riffEnd - tailLength, leaveOpen: true);
+                await using WaveReader tail = new(cursor, allocator, options, scratch)
+                {
+                    remaining = tailLength,
+                    dataPadding = dataPadding,
+                    metadataBytes = metadataBytes,
+                    chunks = chunks
+                };
+                await tail.DrainTailAsync(cancellationToken).ConfigureAwait(false);
+                return (new ContainerInfo(Info.FormatId, Info.DeclaredDuration, tags.Concat(tail.tags), Info.StreamInfo!.Values), Streams);
+            }
+            finally { Volatile.Write(ref busy, 0); }
+        }
 
         private async ValueTask ReadInfoAsync(long remainingSize, CancellationToken token)
         {

@@ -50,6 +50,22 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
+        [Fact]
+        public async Task ProbeIncludesNameAfterSoundWithoutMovingThePacketCursor()
+        {
+            byte[] samples = [1, 2, 3];
+            byte[] bytes = AiffTestInput.File(false, ("COMM", AiffTestInput.Common(8, 1, 3)),
+                ("SSND", AiffTestInput.Sound(samples, trailingBytes: 2)), ("NAME", "Title"u8.ToArray()));
+            MediaBufferAllocator allocator = new(8192);
+            await using RandomAccessStreamByteSource source = new(new MemoryStream(bytes));
+            await using AiffReader reader = await AiffReader.OpenAsync(source, allocator);
+            (Mediana.Containers.ContainerInfo probe, _) = await reader.ReadProbeInfoAsync();
+            Assert.Equal("Title", Assert.Single(Assert.Single(probe.Tags!).Values));
+            using MediaPacket packet = Assert.IsType<MediaPacket>(await reader.ReadPacketAsync());
+            Assert.Equal(samples, packet.Data.ToArray());
+            Assert.Null(await reader.ReadPacketAsync());
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]

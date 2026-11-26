@@ -14,7 +14,7 @@ namespace Mediana.Containers.Aiff
 {
     /// <summary>Sequential mono/stereo PCM and Apple IMA4 reader for AIFF and AIFF-C. Borrows its source.
     /// COMM and the AIFF-C FVER chunk must precede SSND. Trailing chunks are validated on drain.</summary>
-    public partial class AiffReader : IContainerReader
+    public partial class AiffReader : IContainerReader, IContainerProbeInfoProvider
     {
         private const uint CommonChunk = 0x434f4d4d;
         private const uint SoundChunk = 0x53534e44;
@@ -25,10 +25,12 @@ namespace Mediana.Containers.Aiff
         private readonly MediaBufferAllocator allocator;
         private readonly AiffReadOptions options;
         private readonly WritableMediaBuffer scratch;
+        private readonly bool ownsScratch;
         private PcmConfiguration? pcmConfiguration;
         private int blockAlignment;
         private int samplesPerBlock;
         private long remaining;
+        private long formEnd;
         private long metadataBytes;
         private long soundRemaining;
         private long soundTail;
@@ -41,12 +43,14 @@ namespace Mediana.Containers.Aiff
         private bool disposed;
         private bool faulted;
 
-        private AiffReader(IByteSource source, MediaBufferAllocator allocator, AiffReadOptions options)
+        private AiffReader(IByteSource source, MediaBufferAllocator allocator, AiffReadOptions options,
+            WritableMediaBuffer? borrowedScratch = null)
         {
             this.source = source;
             this.allocator = allocator;
             this.options = options;
-            scratch = allocator.Allocate(ScratchBytes);
+            scratch = borrowedScratch ?? allocator.Allocate(ScratchBytes);
+            ownsScratch = borrowedScratch is null;
         }
 
         public ContainerInfo Info { get; private set; } = null!;
@@ -98,6 +102,7 @@ namespace Mediana.Containers.Aiff
                 throw new InvalidDataException("The AIFF FORM extent exceeds the source.");
             }
             remaining = size - 4;
+            formEnd = size + 8;
             CountMetadata(12);
             while (remaining != 0)
             {
@@ -115,7 +120,7 @@ namespace Mediana.Containers.Aiff
                         long packetBytes = (long)Math.Max(1, options.SamplesPerPacket / samplesPerBlock) * blockAlignment;
                         packetCount = (soundRemaining + packetBytes - 1) / packetBytes;
                         return;
-                    case 0x4E414D45:
+                    case NameChunk:
                         await ReadNameAsync(chunkSize, cancellationToken).ConfigureAwait(false);
                         break;
                     default:
@@ -168,7 +173,7 @@ namespace Mediana.Containers.Aiff
                 if (!succeeded)
                 {
                     faulted = true;
-                    scratch.Dispose();
+                    if (ownsScratch) { scratch.Dispose(); }
                 }
                 Volatile.Write(ref busy, 0);
             }
@@ -187,8 +192,15 @@ namespace Mediana.Containers.Aiff
                 {
                     throw new InvalidDataException("An AIFF common, sound or version chunk is duplicated.");
                 }
-                await SkipMetadataAsync(size, cancellationToken).ConfigureAwait(false);
-                await ReadPaddingAsync(size, cancellationToken).ConfigureAwait(false);
+                if (id == NameChunk)
+                {
+                    await ReadNameAsync(size, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await SkipMetadataAsync(size, cancellationToken).ConfigureAwait(false);
+                    await ReadPaddingAsync(size, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
 
@@ -208,7 +220,7 @@ namespace Mediana.Containers.Aiff
                 if (!disposed)
                 {
                     disposed = true;
-                    scratch.Dispose();
+                    if (ownsScratch) { scratch.Dispose(); }
                 }
             }
             finally
