@@ -11,10 +11,13 @@ namespace Mediana.Tests
     public class ProcessingAllocatorTests
     {
         [Theory]
-        [InlineData("indexed", 1)]
-        [InlineData("processing", 16384)]
-        [InlineData("convenience", 16384)]
-        public async Task DecoderInputLimitIsEnforcedIndependentlyOfTheLargerOutputBudget(string operation, int limit)
+        [InlineData("indexed", 1, false)]
+        [InlineData("processing", 8192, false)]
+        [InlineData("convenience", 8192, false)]
+        [InlineData("processing", 16384, true)]
+        [InlineData("convenience", 16384, true)]
+        public async Task DecoderInputLimitIsEnforcedIndependentlyOfTheLargerOutputBudget(string operation, int limit,
+            bool expectedPartialOutput)
         {
             ObservedVideoDecoderFactory decoder = new(new H264DecoderFactory());
             ObservedContainerFactory container = new(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }));
@@ -56,7 +59,7 @@ namespace Mediana.Tests
             Assert.Equal(limit, decoder.Allocator.LimitBytes);
             Assert.True(decoder.Allocator.IsWithin(allocator));
             Assert.Equal(0, allocator.AllocatedBytes);
-            Assert.Equal(0, output.Length);
+            Assert.Equal(expectedPartialOutput, output.Length != 0);
             Assert.True(output.CanWrite);
             Assert.False(source.IsDisposed);
         }

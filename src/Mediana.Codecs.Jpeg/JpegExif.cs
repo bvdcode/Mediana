@@ -15,7 +15,7 @@ namespace Mediana.Codecs.Jpeg
         private uint colorDirectory;
         private ulong? xResolution;
         private ulong? yResolution;
-        internal OrthogonalTransform Orientation { get; private set; } = OrthogonalTransform.Identity;
+        internal OrthogonalTransform? Orientation { get; private set; }
         internal bool Centered { get; private set; } = true;
         internal ushort? ColorSpace { get; private set; }
         internal bool CustomColor { get; private set; }

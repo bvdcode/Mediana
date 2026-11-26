@@ -6,7 +6,7 @@ using Mediana.Core.Video;
 
 namespace Mediana.Codecs.Jpeg
 {
-    internal partial class JpegMetadata
+    internal partial class JpegMetadata(int containerExifOrientation = 1, JpegColorSpace? containerColorSpace = null)
     {
         private bool jfif;
         private int? adobeTransform;
@@ -21,7 +21,7 @@ namespace Mediana.Codecs.Jpeg
         internal bool HasIcc => iccCount != 0;
         internal int? AdobeColorTransform => adobeTransform;
         internal SampleAspectRatio? Aspect { get; private set; }
-        internal OrthogonalTransform Orientation { get; private set; } = OrthogonalTransform.Identity;
+        internal OrthogonalTransform Orientation { get; private set; } = Formats.Metadata.ExifOrientation.ToTransform(containerExifOrientation);
         internal bool Centered { get; private set; } = true;
         internal bool UsedJfifChromaPosition { get; private set; }
         internal bool HasUnalignedExifOffsets { get; private set; }
@@ -74,7 +74,7 @@ namespace Mediana.Codecs.Jpeg
                 JpegExif metadata = new(segment[6..], allowUnalignedExifOffsets, token);
                 metadata.Read();
                 exif = true;
-                Orientation = metadata.Orientation;
+                Orientation = metadata.Orientation ?? Orientation;
                 Centered = metadata.Centered;
                 exifColorSpace = metadata.ColorSpace;
                 exifCustomColor = metadata.CustomColor;
@@ -188,6 +188,7 @@ namespace Mediana.Codecs.Jpeg
             }
             if (!jfif && !exif && adobeTransform is null && sourceColorSpace is null)
             {
+                if (containerColorSpace is JpegColorSpace color) { ColorSpace = color; return; }
                 if (requireColor)
                 {
                     throw new NotSupportedException("JPEG three-component color requires an explicit JFIF or Adobe declaration or caller interpretation.");

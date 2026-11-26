@@ -61,6 +61,17 @@ namespace Mediana.Codecs.H264
                 ? new H264ReferenceField(frameIdentity, frameNumber, header.Structure, longTermIndex) : null;
         }
 
+        public void DiscardNonReferenceFrame(H264SliceHeader header)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            ValidateSequence(header);
+            if (header.Layout.IsField || header.ReferenceIndicator != 0)
+            {
+                throw new InvalidOperationException("Discarding H.264 preroll requires a complete non-reference frame.");
+            }
+            previousField = null;
+        }
+
         public void Dispose()
         {
             if (disposed)

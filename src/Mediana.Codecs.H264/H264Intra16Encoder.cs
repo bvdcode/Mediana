@@ -55,10 +55,7 @@ namespace Mediana.Codecs.H264
             ArgumentOutOfRangeException.ThrowIfNegative(mode);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(mode, 3);
             target.PredictMacroblock(0, x, y, mode, prediction[..256]);
-            for (int plane = 1; plane <= 2; plane++)
-            {
-                target.PredictMacroblock(plane, x / 2, y / 2, 0, prediction.Slice(256 + (plane - 1) * 64, 64));
-            }
+            target.PredictChromaMacroblock(x / 2, y / 2, 0, prediction.Slice(256, 128));
             return AnalyzePrediction(source, qp, prediction, coefficients);
         }
 

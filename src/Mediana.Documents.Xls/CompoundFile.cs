@@ -21,7 +21,7 @@ namespace Mediana.Documents.Xls
         {
             _data = data;
             ReadOnlySpan<byte> header = data.Span;
-            if (data.Length < 512 || !header.StartsWith(new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }))
+            if (data.Length < 512 || !XlsReader.HasCompoundFileSignature(header))
             { throw new InvalidDataException("Missing CFB compound-file signature."); }
             int version = U16(header, 26), shift = U16(header, 30);
             if (U16(header, 28) != 0xFFFE || U16(header, 32) != 6 || !((version == 3 && shift == 9) || (version == 4 && shift == 12))

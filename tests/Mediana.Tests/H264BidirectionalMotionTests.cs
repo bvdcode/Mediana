@@ -25,6 +25,30 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
+        [Theory]
+        [InlineData((int)H264SliceKind.P, 506)]
+        [InlineData((int)H264SliceKind.B, 586)]
+        public void CodingPicturesUseCompactMotionWithinAnExactBudget(int kind, int budget)
+        {
+            MediaBufferAllocator allocator = new(budget);
+            using (H264Picture picture = H264Picture.CreateForCoding(Sequence(), allocator, (H264SliceKind)kind))
+            {
+                Assert.Equal(budget, allocator.AllocatedBytes);
+                picture.SetMotion(H264ReferenceList.L0, 0, 0, 16, 16, 3, short.MinValue, short.MaxValue);
+                Assert.Throws<InvalidDataException>(() =>
+                    picture.SetMotion(H264ReferenceList.L0, 0, 0, 16, 16, 5, short.MaxValue + 1, 0));
+                Assert.Equal(new H264MotionSample(true, 3, short.MinValue, short.MaxValue),
+                    picture.MotionAt(H264ReferenceList.L0, 12, 12));
+                if (picture.HasBidirectionalMotion)
+                {
+                    picture.SetMotion(H264ReferenceList.L1, 0, 0, 16, 16, 7, short.MaxValue, short.MinValue);
+                    Assert.Equal(new H264MotionSample(true, 7, short.MaxValue, short.MinValue),
+                        picture.MotionAt(H264ReferenceList.L1, 12, 12));
+                }
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
         [Fact]
         public void BMotionFitsTheExactBudgetAndDoesNotOverlapOtherPictureState()
         {

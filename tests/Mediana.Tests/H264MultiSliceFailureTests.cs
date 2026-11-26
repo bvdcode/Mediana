@@ -70,7 +70,7 @@ namespace Mediana.Tests
             H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span, new());
             long pictureBytes;
             MediaBufferAllocator measure = new(1024 * 1024);
-            using (H264Picture picture = new(configuration.Sequences[0], measure, H264SliceKind.P))
+            using (H264Picture picture = H264Picture.CreateForCoding(configuration.Sequences[0], measure, H264SliceKind.P))
             {
                 pictureBytes = measure.AllocatedBytes;
             }

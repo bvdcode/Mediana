@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
+using Mediana.Images.Heif;
 using Mediana.Codecs.OpenExr;
 using Mediana.Codecs.Tga;
 using Mediana.Codecs.Pnm;
@@ -21,9 +22,9 @@ namespace Mediana.Imaging
     /// <summary>Common embedded-image decoding and sRGB preparation. Does not load external files or URLs.</summary>
     public static class ImageResources
     {
-        /// <summary>Managed raster defaults (PNG, JPEG, WebP, GIF, TIFF, BMP, ICO, QOI, PNM, TGA and OpenEXR). A supplied context replaces this registry, including for nested images.</summary>
+        /// <summary>Managed raster defaults (HEIC, PNG, JPEG, WebP, GIF, TIFF, BMP, ICO, QOI, PNM, TGA and OpenEXR). A supplied context replaces this registry, including for nested images.</summary>
         public static ImageDecodeContext DefaultDecoders { get; } = new([
-            new OpenExrImageDecoder(), new BmpImageDecoder(), new IcoImageDecoder(), new AniImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder(), new QoiImageDecoder(), new PnmImageDecoder(), new TgaImageDecoder(),
+            new HeicImageDecoder(SampleAspectRatio.Square), new OpenExrImageDecoder(), new BmpImageDecoder(), new IcoImageDecoder(), new AniImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder(), new QoiImageDecoder(), new PnmImageDecoder(), new TgaImageDecoder(),
             new PngImageDecoder(new() { MaximumPixels = Array.MaxLength / 4, MaximumEncodedBytes = Array.MaxLength }),
             new JpegImageDecoder(new() { MaximumPixels = Array.MaxLength / 4, MaximumEncodedBytes = Array.MaxLength })]);
 

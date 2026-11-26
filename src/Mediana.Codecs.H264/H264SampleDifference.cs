@@ -19,7 +19,9 @@ namespace Mediana.Codecs.H264
             {
                 partial += Accumulate16(Vector128.LoadUnsafe(ref left, i), Vector128.LoadUnsafe(ref right, i));
             }
-            return Total(partial);
+            return Sse2.IsSupported
+                ? Total(partial)
+                : (int)Vector128.Sum(Vector128.WidenLower(partial) + Vector128.WidenUpper(partial));
         }
 
         public static int Sum16x16(ReadOnlySpan<byte> source, ReadOnlySpan<byte> prediction, int stride, int stop)

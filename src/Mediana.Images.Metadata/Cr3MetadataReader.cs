@@ -22,7 +22,13 @@ namespace Mediana.Images.Metadata
             && prefix.Slice(4, 4).SequenceEqual("ftyp"u8) && (prefix.Slice(8, 4).SequenceEqual("crx "u8)
                 || (prefix.Length >= 24 && BinaryPrimitives.ReadUInt32BigEndian(prefix) == 1 && prefix.Slice(16, 4).SequenceEqual("crx "u8)));
 
-        public override ImageInspection Inspect(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
+        public override ImageInspection Inspect(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default) =>
+            Inspect(encoded, true, cancellationToken);
+
+        internal override ImageInspection InspectForPreview(ReadOnlyMemory<byte> encoded, CancellationToken token) =>
+            Inspect(encoded, false, token);
+
+        private ImageInspection Inspect(ReadOnlyMemory<byte> encoded, bool captureMetadata, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!CanRead(encoded.Span)) { throw new InvalidDataException("Canon RAW file brand is missing."); }
@@ -62,6 +68,7 @@ namespace Mediana.Images.Metadata
             }
             if (!fields.TryGetValue(IsoBmffBox.Code("CNCV"), out ReadOnlyMemory<byte> version) || !version.Span.StartsWith("CanonCR3"u8))
             { throw new NotSupportedException("The Canon RAW container is not a CR3 still-image presentation."); }
+            Codecs.Jpeg.JpegColorSpace? colorSpace = null;
             List<MediaMetadata> capture = [];
             ulong orientation = 1, sensorWidth = 0, sensorHeight = 0;
             List<MediaProperty> properties = [new("raw", "family", "cr3"), new("canon", "compressor_version", Encoding.ASCII.GetString(version.Span).TrimEnd('\0'))];
@@ -85,7 +92,16 @@ namespace Mediana.Images.Metadata
                     properties.Add(new("raw", "sensor_left_border", (uint)Value(5))); properties.Add(new("raw", "sensor_top_border", (uint)Value(6)));
                     properties.Add(new("raw", "sensor_right_border", (uint)Value(7))); properties.Add(new("raw", "sensor_bottom_border", (uint)Value(8)));
                 }
-                capture.Add(new(name, children: [ExifMetadataReader.Read(reader, cancellationToken, rootScope: scope)]));
+                if (name == "CMT2" && directory.Fields.TryGetValue(0x9101, out TiffField? configuration))
+                {
+                    colorSpace = configuration.Bytes.Span switch
+                    {
+                        [1, 2, 3, 0] => Codecs.Jpeg.JpegColorSpace.YCbCr,
+                        [4, 5, 6, 0] => Codecs.Jpeg.JpegColorSpace.Rgb,
+                        _ => null
+                    };
+                }
+                if (captureMetadata) { capture.Add(new(name, children: [ExifMetadataReader.Read(reader, cancellationToken, rootScope: scope)])); }
             }
             if (sensorWidth == 0 || sensorHeight == 0 || orientation is < 1 or > 8)
             { throw new InvalidDataException("Canon RAW sensor dimensions or orientation are missing or invalid."); }
@@ -93,7 +109,7 @@ namespace Mediana.Images.Metadata
             properties.Add(new("raw", "sensor_width", sensorWidth)); properties.Add(new("raw", "sensor_height", sensorHeight));
             properties.Add(new("raw", "orientation", orientation));
             return new(new("cr3", orientation >= 5 ? sensorHeight : sensorWidth, orientation >= 5 ? sensorWidth : sensorHeight,
-                ImageDimensionUnit.Pixels, metadata: ImageMetadataScopes.WithPreviews(properties, capture, previews.Images)), previews.Images);
+                ImageDimensionUnit.Pixels, metadata: ImageMetadataScopes.WithPreviews(properties, capture, previews.Images)), previews.Images) { ContainerExifOrientation = (int)orientation, PreviewColorSpace = colorSpace };
         }
 
         private static void ReadPreviewContainer(ReadOnlyMemory<byte> payload, RawJpegPreviews previews, CancellationToken token)

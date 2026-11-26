@@ -3,7 +3,7 @@
 
 using System;
 using System.IO;
-using System.IO.Compression;
+using Mediana.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,25 +24,9 @@ namespace Mediana.Images.Tgs
                 throw new InvalidDataException("TGS exceeds MaximumInputBytes.");
             }
 
-            if (data.Length >= 2 && data.Span[0] == 0x1f && data.Span[1] == 0x8b)
+            if (GZipInput.HasSignature(data.Span))
             {
-                using ReadOnlyMemoryStream source = new(data);
-                using GZipStream? gzip = new GZipStream(source, CompressionMode.Decompress);
-                using MemoryStream? json = new MemoryStream();
-                byte[] buffer = new byte[8192];
-                int n;
-                while ((n = gzip.Read(buffer)) != 0)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (json.Length + n > options.MaximumJsonBytes)
-                    {
-                        throw new InvalidDataException("TGS exceeds MaximumJsonBytes.");
-                    }
-
-                    json.Write(buffer, 0, n);
-                }
-
-                return Parse(json.GetBuffer().AsMemory(0, checked((int)json.Length)), options, cancellationToken);
+                data = GZipInput.Decode(data.Span, options.MaximumJsonBytes, cancellationToken);
             }
 
             if (data.Length > options.MaximumJsonBytes)

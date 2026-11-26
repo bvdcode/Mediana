@@ -59,6 +59,7 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction |
 | `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
 | `Mediana.Drawing.Emoji.Fluent` | Optional compressed Microsoft Fluent Flat emoji and reusable inline graphics ([API](docs/emoji.md)) |
+| `Mediana.Images.Apk` | Android application icons from compiled APK manifests and drawable resources |
 | `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha |
 | `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion |
 | `Mediana.Codecs.Jpeg` | Sequential/progressive Huffman JPEG, grayscale/RGB pixels, restart intervals and explicit source interpretation ([API](docs/jpeg.md)) |
@@ -149,6 +150,8 @@ the supported CAVLC/CABAC I/P/B subset and known color and sample aspect ratio;
 it does not cover general H.264 files.
 
 ## Images and 2D animation
+
+`Mediana.Images.Apk.ApkIconReader.ReadAsync(apkStream, size, cancellationToken)` returns an owned square RGBA32 frame, or `null` when the application omits `android:icon`. Dispose the returned frame after use. The reader supports PNG, WebP, JPEG and adaptive icons with color, bitmap or solid-painted vector layers. It renders the central adaptive viewport without a device-specific launcher mask. The requested side is 1–4096 pixels. Non-seekable input is buffered up to 256 MiB.
 
 The image modules use their own document/component APIs instead of inventing
 video tracks for HEIF items, JBIG2 pages or vector scenes. Raster results expose

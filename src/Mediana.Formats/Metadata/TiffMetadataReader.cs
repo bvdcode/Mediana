@@ -77,7 +77,7 @@ namespace Mediana.Formats.Metadata
             }
             ImageInfo info = new(format, orientation >= 5 ? sourceHeight : sourceWidth, orientation >= 5 ? sourceWidth : sourceHeight,
                 ImageDimensionUnit.Pixels, pages, metadata: new("image", properties, [exif]));
-            return new(reader, info);
+            return new(reader, info, (int)orientation);
         }
         private static string Identify(ReadOnlySpan<byte> encoded, TiffDirectory first, IReadOnlyCollection<TiffDirectory> directories)
         {

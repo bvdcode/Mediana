@@ -63,6 +63,29 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void AdaptiveSkipKeepsTheWidenedVerticalPredictorInCodingPictures()
+        {
+            H264SequenceParameterSet sequence = new()
+            {
+                WidthInMbs = 3,
+                HeightInMapUnits = 1,
+                FrameMbsOnly = false,
+                MbAdaptiveFrameField = true
+            };
+            using H264Picture picture = H264Picture.CreateForCoding(sequence, new MediaBufferAllocator(1 << 20), H264SliceKind.P);
+            picture.Grid.SetFieldPair(0, true);
+            picture.Grid.SetFieldPair(2, false);
+            picture.Grid.SetFieldPair(4, false);
+            picture.SetMotion(H264ReferenceList.L0, 0, 0, 16, 32, 1, 4, short.MaxValue);
+            picture.SetMotion(H264ReferenceList.L0, 16, 0, 16, 16, 1, 2, -1);
+
+            (int x, int y) = H264MotionPrediction.Skip(picture, 16, 16);
+            Assert.Equal((4, 2 * short.MaxValue), (x, y));
+            picture.SetMotion(H264ReferenceList.L0, 16, 16, 16, 16, 0, x, y);
+            Assert.Equal(new H264MotionSample(true, 0, x, y), picture.MotionAt(H264ReferenceList.L0, 16, 16));
+        }
+
+        [Fact]
         public void ConstrainedIntraPredictionExcludesReconstructedInterNeighbours()
         {
             using H264Picture picture = CreatePicture();

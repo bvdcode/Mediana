@@ -45,6 +45,20 @@ namespace Mediana.Codecs.Jpeg
         {
             using JpegDocument image = new(encoded, options, sourceColorSpace, sampleAspectRatio, cancellationToken);
             image.Read(null);
+            return Describe(image);
+        }
+
+        /// <summary>Inspects the JPEG at offset zero of a containing field and reports its length through EOI.</summary>
+        public ImageInfo ReadEmbeddedInfo(ReadOnlyMemory<byte> field, out int encodedLength, CancellationToken cancellationToken = default)
+        {
+            using JpegDocument image = new(field, options, sourceColorSpace, sampleAspectRatio, cancellationToken);
+            image.Read(null, embedded: true);
+            encodedLength = image.BytesConsumed;
+            return Describe(image);
+        }
+
+        private static ImageInfo Describe(JpegDocument image)
+        {
             bool swap = image.Metadata.Orientation.SwapsAxes;
             return new ImageInfo("jpeg", swap ? image.Height : image.Width, swap ? image.Width : image.Height,
                 ImageDimensionUnit.Pixels, metadata: image.Metadata.Inspect(image));
@@ -62,6 +76,8 @@ namespace Mediana.Codecs.Jpeg
             request.Validate(Features);
             JpegDecodeOptions limits = request.MaximumPixels is int maximum ? new()
             {
+                ContainerColorSpace = options.ContainerColorSpace,
+                ContainerExifOrientation = options.ContainerExifOrientation,
                 MaximumPixels = Math.Min(maximum, options.MaximumPixels),
                 MaximumEncodedBytes = options.MaximumEncodedBytes,
                 MaximumMarkers = options.MaximumMarkers,

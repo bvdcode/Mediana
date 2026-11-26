@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
+using Mediana.IO;
 using Mediana.Core.Metadata;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
@@ -18,6 +19,17 @@ namespace Mediana.Images.Svg
 
         /// <summary>Recognizes XML byte signatures. Complete parsing validates the SVG root and encoding.</summary>
         public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null)
+        {
+            if (GZipInput.HasSignature(prefix))
+            {
+                Span<byte> header = stackalloc byte[512];
+                int length = GZipInput.ReadPrefix(prefix, header);
+                return IsXml(header[..length]);
+            }
+            return IsXml(prefix);
+        }
+
+        private static bool IsXml(ReadOnlySpan<byte> prefix)
         {
             if (prefix.StartsWith<byte>([0xef, 0xbb, 0xbf]))
             {

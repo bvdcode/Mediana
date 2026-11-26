@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
+using Mediana.IO;
 using Mediana.Codecs;
 using Mediana.Core.Metadata;
 using Mediana.Core.Memory;
@@ -17,8 +18,18 @@ namespace Mediana.Images.Tgs
         public string ImplementationId => "tgs.managed.image";
         public int ProbeLength => 512;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.Animation;
-        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) => prefix.StartsWith<byte>([0x1f, 0x8b])
-            || prefix.TrimStart(" \r\n\t"u8).StartsWith("{"u8);
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null)
+        {
+            if (GZipInput.HasSignature(prefix))
+            {
+                Span<byte> header = stackalloc byte[512];
+                int count = GZipInput.ReadPrefix(prefix, header);
+                return IsJson(header[..count]);
+            }
+            return IsJson(prefix);
+        }
+
+        private static bool IsJson(ReadOnlySpan<byte> prefix) => prefix.TrimStart(" \r\n\t"u8).StartsWith("{"u8);
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {

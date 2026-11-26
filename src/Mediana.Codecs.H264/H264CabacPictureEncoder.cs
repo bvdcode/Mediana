@@ -197,12 +197,12 @@ namespace Mediana.Codecs.H264
             else if (lumaOffset == 0)
             {
                 (motionX, motionY, temporalDifference) = H264MotionSearch.SelectWithDifference<TAnalysis>(source, reference, target, x, y,
-                    searchRange, prediction, token, interpolation, quantizer, out estimatedVectorBits);
+                    searchRange, prediction, token, interpolation, quantizer, out estimatedVectorBits, lumaFirst: compareMotionRate);
             }
             else
             {
                 (motionX, motionY, temporalDifference) = SearchWeighted(source, target, reference, x, y, searchRange,
-                    prediction, token, interpolation, quantizer, lumaOffset, out estimatedVectorBits);
+                    prediction, token, interpolation, quantizer, lumaOffset, compareMotionRate, out estimatedVectorBits);
             }
             int pattern = 0;
             if (temporalDifference != 0)
@@ -243,14 +243,14 @@ namespace Mediana.Codecs.H264
 
         private static (int X, int Y, int Difference) SearchWeighted(H264SourceMacroblock source, H264Picture target,
             H264Picture reference, int x, int y, int searchRange, Span<byte> prediction, CancellationToken token,
-            H264MotionReference? interpolation, int quantizer, int lumaOffset, out int estimatedVectorBits)
+            H264MotionReference? interpolation, int quantizer, int lumaOffset, bool lumaFirst, out int estimatedVectorBits)
         {
             Span<byte> adjusted = stackalloc byte[H264SourceMacroblock.ByteCount];
             source.Samples.CopyTo(adjusted);
             H264LumaPredictionOffset.Apply(adjusted[..256], -lumaOffset);
             (int motionX, int motionY, _) = H264MotionSearch.SelectWithDifference<H264FastMacroblockAnalysis>(
                 new H264SourceMacroblock(adjusted), reference, target, x, y, searchRange, prediction, token, interpolation,
-                quantizer, out estimatedVectorBits);
+                quantizer, out estimatedVectorBits, lumaFirst);
             H264LumaPredictionOffset.Apply(prediction[..256], lumaOffset);
             return (motionX, motionY, H264SampleDifference.SumPackedMacroblock(source.Samples, prediction));
         }

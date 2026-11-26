@@ -168,7 +168,10 @@ namespace Mediana.Streaming.Hls
                 HlsVideoWindow window = Windows[number];
                 List<MediaTrackRequest> requests = [new VideoEncodingRequest(inputStream.StreamIndex, track.Stream.StreamIndex,
                     new H264EncoderFactory(options), preparationOptions, track.TimeBase, VideoIntervalAlignment.CompleteFrames)
-                    { BufferPreparedFrames = overlapVideoPreparation }];
+                    {
+                        BufferPreparedFrames = overlapVideoPreparation,
+                        DiscardUnusedPreroll = true
+                    }];
                 if (audio?.CreateRequest(window) is MediaTrackRequest audioRequest) { requests.Add(audioRequest); }
                 await using MediaProcessingSession processing = await engine.OpenProcessingAsync(reader, requests, allocator,
                     new() { Selection = new(window.Start, window.End) }, cancellationToken).ConfigureAwait(false);

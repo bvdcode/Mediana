@@ -33,7 +33,7 @@ namespace Mediana.Images.Svg
             return new SvgSceneBuilder(root, options, cancellationToken).Build();
         }
 
-        /// <summary>Parses borrowed XML bytes using their BOM and encoding declaration. The returned scene owns its data.</summary>
+        /// <summary>Parses SVG or gzip-compressed SVG bytes using their BOM and encoding declaration. The returned scene owns its data.</summary>
         public static SvgDocument Read(ReadOnlyMemory<byte> xml, SvgReaderOptions? options = null, CancellationToken cancellationToken = default)
         {
             options ??= new SvgReaderOptions();
@@ -49,12 +49,21 @@ namespace Mediana.Images.Svg
 
         private static XElement ReadRoot(ReadOnlyMemory<byte> xml, SvgReaderOptions options, CancellationToken token)
         {
-            Validate(options);
-            token.ThrowIfCancellationRequested();
-            if (xml.Length > options.MaximumInputBytes) { throw new InvalidDataException("SVG exceeds MaximumInputBytes."); }
-            using ReadOnlyMemoryStream source = new(xml);
+            using ReadOnlyMemoryStream source = OpenXml(xml, options, token);
             using XmlReader reader = XmlReader.Create(source, Settings(options));
             return XElement.Load(reader);
+        }
+
+        private static ReadOnlyMemoryStream OpenXml(ReadOnlyMemory<byte> data, SvgReaderOptions options, CancellationToken token)
+        {
+            Validate(options);
+            token.ThrowIfCancellationRequested();
+            if (data.Length > options.MaximumInputBytes) { throw new InvalidDataException("SVG exceeds MaximumInputBytes."); }
+            if (GZipInput.HasSignature(data.Span))
+            {
+                data = GZipInput.Decode(data.Span, options.MaximumInputBytes, token);
+            }
+            return new ReadOnlyMemoryStream(data);
         }
 
         /// <summary>Reads bounded SVG input and leaves the source stream open.</summary>

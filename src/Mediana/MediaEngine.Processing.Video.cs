@@ -29,6 +29,11 @@ namespace Mediana
             }
             MediaDecodePipeline<VideoFrame> pipeline = CreateProcessingDecoder(stream, decoders, input);
             if (input.Selection is MediaTimeRange requested) { await pipeline.SeekAsync(requested.Start, token).ConfigureAwait(false); }
+            if (request.DiscardUnusedPreroll && input.Reader is IIndexedPresentationTimingReader &&
+                selection is MediaTimeRange presentationRange)
+            {
+                pipeline.SetVideoPresentationStart(presentationRange.Start);
+            }
             MediaTimeRange? sourcePresentation = (input.Reader as IContainerPresentationReader)?.GetPresentationRange(stream.StreamIndex, token);
             VideoPresentationReader presentation = input.Resources.OwnAsync(new VideoPresentationReader(ReadDecodedAsync, selection,
                 request.IntervalAlignment, sourcePresentation));

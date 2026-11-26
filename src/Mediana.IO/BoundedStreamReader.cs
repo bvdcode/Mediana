@@ -11,8 +11,24 @@ namespace Mediana.IO
     {
         public static byte[] Read(Stream source, int maximumBytes, CancellationToken cancellationToken = default)
         {
+            return ReadWithPrefix(source, maximumBytes, [], cancellationToken);
+        }
+
+        /// <summary>Includes the bytes already consumed for format detection in the result and its byte limit.</summary>
+        public static byte[] ReadWithPrefix(Stream source, int maximumBytes, ReadOnlySpan<byte> prefix, CancellationToken cancellationToken = default)
+        {
             Validate(source, maximumBytes);
+            if (prefix.Length > maximumBytes) { throw new InvalidDataException("The stream exceeds the configured byte limit."); }
             BoundedByteBuffer buffer = new(maximumBytes);
+            while (!prefix.IsEmpty)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Memory<byte> segment = buffer.GetMemory();
+                int count = Math.Min(prefix.Length, segment.Length);
+                prefix[..count].CopyTo(segment.Span);
+                buffer.Advance(count);
+                prefix = prefix[count..];
+            }
             Span<byte> overflow = stackalloc byte[1];
             while (true)
             {

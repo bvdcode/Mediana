@@ -7,6 +7,10 @@ namespace Mediana.Codecs.H264
 {
     internal ref partial struct H264MotionSearch
     {
+        private const int LumaFirstMinimumQuantizer = 18;
+        private const int LumaFirstMaximumQuantizer = 33;
+        private const int LumaFirstMaximumChromaDifference = 96;
+
         private readonly H264Picture reference;
         private readonly (int X, int Y) position;
         private readonly (int X, int Y) predicted;
@@ -14,6 +18,8 @@ namespace Mediana.Codecs.H264
         private readonly Span<byte> prediction;
         private readonly H264MotionReference? interpolation;
         private readonly int motionBitWeight;
+        private readonly int initialLumaDifference;
+        private bool deferChroma;
         private int bestCost;
         private int bestVectorBits;
         private int best;
@@ -33,8 +39,8 @@ namespace Mediana.Codecs.H264
             motionX = 0;
             motionY = 0;
             ReadOnlySpan<byte> luma = reference.ReadPlane(0)[(position.Y * reference.Width + position.X)..];
-            best = H264SampleDifference.Sum16x16(source[..256], luma, reference.Width, int.MaxValue)
-                + H264ChromaDifference.Sum8x8(reference, position.X, position.Y, 0, 0, source[256..], int.MaxValue);
+            initialLumaDifference = H264SampleDifference.Sum16x16(source[..256], luma, reference.Width, int.MaxValue);
+            best = initialLumaDifference + H264ChromaDifference.Sum8x8(reference, position.X, position.Y, 0, 0, source[256..], int.MaxValue);
             bestVectorBits = VectorBits(-predicted.X, -predicted.Y);
             bestCost = best + motionBitWeight * bestVectorBits;
         }
@@ -61,7 +67,8 @@ namespace Mediana.Codecs.H264
 
         public static (int X, int Y, int Difference) SelectWithDifference<TAnalysis>(H264SourceMacroblock input,
             H264Picture reference, H264Picture target, int x, int y, int range, Span<byte> prediction,
-            CancellationToken token, H264MotionReference? interpolation, int quantizer, out int estimatedVectorBits)
+            CancellationToken token, H264MotionReference? interpolation, int quantizer, out int estimatedVectorBits,
+            bool lumaFirst = false)
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             token.ThrowIfCancellationRequested();
@@ -90,6 +97,16 @@ namespace Mediana.Codecs.H264
                 estimatedVectorBits = search.bestVectorBits;
                 return (0, 0, search.best);
             }
+            int initialChromaDifference = search.best - search.initialLumaDifference;
+            bool lumaFirstRefinement = lumaFirst && !TAnalysis.Enabled && range != 0 &&
+                quantizer is >= LumaFirstMinimumQuantizer and <= LumaFirstMaximumQuantizer &&
+                initialChromaDifference <= LumaFirstMaximumChromaDifference;
+            if (lumaFirstRefinement)
+            {
+                search.deferChroma = true;
+                search.best = search.initialLumaDifference;
+                search.bestCost = search.best + motionBitWeight * search.bestVectorBits;
+            }
             search.Evaluate(Math.Clamp(predictedX / 4, -range, range) * 4, Math.Clamp(predictedY / 4, -range, range) * 4);
             if (TAnalysis.Enabled || wideReference is not null)
             {
@@ -105,7 +122,13 @@ namespace Mediana.Codecs.H264
                 search.Evaluate(coarseX, coarseY);
             }
             search.Scan(range, token);
+            (int integerX, int integerY) = (search.motionX, search.motionY);
             search.Refine<TAnalysis>(range, token, interpolation);
+            if (lumaFirstRefinement)
+            {
+                search.Evaluate(integerX, integerY);
+                search.Evaluate(0, 0);
+            }
             if (search.best == 0)
             {
                 input.Samples.CopyTo(prediction);
@@ -152,11 +175,22 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        private void IncludeChroma()
+        {
+            if (deferChroma)
+            {
+                best += H264ChromaDifference.Sum8x8(reference, position.X, position.Y, motionX, motionY, source[256..], int.MaxValue);
+                bestCost = best + motionBitWeight * bestVectorBits;
+                deferChroma = false;
+            }
+        }
+
         private void Refine<TAnalysis>(int range, CancellationToken token, H264MotionReference? interpolation)
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             if (range == 0 || (best == 0 && motionX == predicted.X && motionY == predicted.Y))
             {
+                IncludeChroma();
                 return;
             }
             int originX = motionX;
@@ -171,6 +205,7 @@ namespace Mediana.Codecs.H264
                     position.X + (originX >> 2), position.Y + (originY >> 2));
                 RefineNeighborhood<TAnalysis>(neighborhood, range, originX, originY, token);
             }
+            IncludeChroma();
             int limit = range * 4;
             Evaluate(Math.Clamp(predicted.X, -limit, limit), Math.Clamp(predicted.Y, -limit, limit));
         }
@@ -194,6 +229,10 @@ namespace Mediana.Codecs.H264
             ReadOnlySpan<int> offsetsY = TAnalysis.SubpixelOffsetsY;
             for (int step = 2; step >= 1 && range > 0; step /= 2)
             {
+                if (step == 1)
+                {
+                    IncludeChroma();
+                }
                 token.ThrowIfCancellationRequested();
                 if (best == 0 && motionX == predicted.X && motionY == predicted.Y)
                 {
@@ -264,7 +303,10 @@ namespace Mediana.Codecs.H264
             {
                 return;
             }
-            difference += H264ChromaDifference.Sum8x8(reference, position.X, position.Y, nextX, nextY, source[256..], remaining);
+            if (!deferChroma)
+            {
+                difference += H264ChromaDifference.Sum8x8(reference, position.X, position.Y, nextX, nextY, source[256..], remaining);
+            }
             int cost = difference + vectorCost;
             if (cost < bestCost || (cost == bestCost && vectorBits < bestVectorBits))
             {

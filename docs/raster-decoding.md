@@ -6,6 +6,35 @@ The CLI and `ImageResources.DefaultDecoders` register the
 same decoder implementations; images embedded in SVG and documents use the
 supplied `ImageDecodeContext`.
 
+JPEG, PNG, GIF, BMP, WebP, TIFF and HEIC (square pixel aspect) are available
+through the default registry. Supply encoded bytes from any file name.
+
+```csharp
+using VideoFrame image = await ImageResources.DefaultDecoders.DecodeAsync(
+    encoded, new ImageDecodeRequest(), allocator, cancellationToken);
+```
+
+For a camera RAW stream, `Mediana.Images.Metadata` exposes the original embedded
+JPEG and can decode it directly in display orientation.
+
+```csharp
+RawImagePreview? preview = await RawPreviewReader.ExtractAsync(
+    source, requestedSize: 800, cancellationToken: cancellationToken);
+if (preview is not null)
+{
+    using VideoFrame image = preview.Decode(allocator, cancellationToken: cancellationToken);
+}
+```
+
+The requested size is the long edge in pixels. Selection minimizes area among
+sufficient images and otherwise chooses the largest area. Equal areas retain
+directory order. The reader consumes the stream from its current position, leaves
+it open, buffers the encoded RAW, and retains only the selected JPEG in the result.
+`maximumInputBytes` bounds the input. A recognized RAW with no declared preview
+returns null. Invalid preview extents and malformed directories raise read errors.
+Pixel decoding validates compressed samples. JPEG orientation takes precedence
+over the preview directory and camera orientation, including an explicit value of 1.
+
 | Module | Decoded representations |
 | --- | --- |
 | `Mediana.Codecs.Qoi` | [QOI RGB/RGBA](qoi.md), complete opcodes and transfer declarations |

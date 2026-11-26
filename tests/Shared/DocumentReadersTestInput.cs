@@ -4,6 +4,7 @@
 using Mediana.Codecs;
 using Mediana.Core.Memory;
 using Mediana.Documents;
+using Mediana.Documents.Excel;
 using Mediana.Documents.Pdf;
 using Mediana.Documents.OpenXml;
 using Mediana.Core.Video;
@@ -11,7 +12,6 @@ using Mediana.Documents.Presentation;
 using Mediana.Documents.Spreadsheets;
 using Mediana.Documents.Word;
 using Mediana.Documents.Xls;
-using Mediana.Documents.Xlsx;
 using Mediana.Drawing;
 namespace Mediana.Tests
 {
@@ -73,7 +73,8 @@ namespace Mediana.Tests
             await VerifyPresentationTextBoundsAsync(" wrap='none'><a:normAutofit fontScale='100%' lnSpcReduction='0%'/></a:bodyPr", false, horizontal: true);
             foreach (bool strict in new[] { false, true })
             {
-                using XlsxWorkbook xlsx = XlsxReader.Open(XlsxWorkbookTestData.Create(badSecond: true, strict: strict));
+                using MemoryStream xlsxInput = new(XlsxWorkbookTestData.Create(badSecond: true, strict: strict));
+                using SpreadsheetWorkbook xlsx = ExcelReader.Open(xlsxInput);
                 SpreadsheetRow[] rows = xlsx.ReadRows(0).ToArray();
                 Check(rows.Length == 2 && rows[0].RowIndex == 1 && rows[1].RowIndex == 4, "XLSX sparse rows");
                 Check(rows[0].Cells[0].Value.Text == "Привет\t世界_x0041_", "XLSX Unicode and escapes");
@@ -101,7 +102,8 @@ namespace Mediana.Tests
             }
             foreach ((bool mini, bool v4) in new[] { (true, false), (false, false), (false, true) })
             {
-                using XlsWorkbook xls = XlsReader.Open(XlsWorkbookTestData.Create(mini, v4));
+                using MemoryStream xlsInput = new(XlsWorkbookTestData.Create(mini, v4));
+                using SpreadsheetWorkbook xls = ExcelReader.Open(xlsInput);
                 SpreadsheetRow[] rows = xls.ReadRows(0).ToArray();
                 Check(rows.Length == 2 && rows[0].Cells.Count == 6, "XLS CFB/BIFF rows");
                 Check(rows[0].Cells[0].Value.Text == "Привет 世界 😀" && rows[0].Cells[1].Value.Boolean, "XLS Unicode and Boolean");

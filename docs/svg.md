@@ -23,6 +23,10 @@ await using FileStream output = new("preview.png", FileMode.CreateNew, FileAcces
 await PngEncoder.EncodeAsync(frame, output, allocator, cancellationToken);
 ```
 
+The byte, stream and file overloads of `SvgReader` accept SVG and SVGZ.
+The gzip header selects decompression. `MaximumInputBytes` bounds both the
+encoded file and the expanded XML. `ReadInfo` accepts the same representations.
+
 Output is straight sRGB RGBA8. Features include paths and shapes, gradients,
 transforms, local references, CSS declarations, fill/stroke rules, clipping,
 opacity, masks, common filter primitives and TrueType text. Bundled Latin and
