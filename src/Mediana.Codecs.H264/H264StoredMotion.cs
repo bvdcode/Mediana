@@ -19,7 +19,7 @@ namespace Mediana.Codecs.H264
             {
                 return ((int)pairs[index], (int)pairs[count + index]);
             }
-                        uint pair = pairs[index];
+            uint pair = pairs[index];
             return ((short)pair, (short)(pair >> 16));
         }
 
@@ -47,7 +47,7 @@ namespace Mediana.Codecs.H264
                 return Vector128.EqualsAll(Vector128.Create(pairs.Slice(start, 4)), Vector128.Create(pairs[first]))
                     && Vector128.EqualsAll(Vector128.Create(pairs.Slice(count + start, 4)), Vector128.Create(pairs[count + first]));
             }
-                        return Vector128.EqualsAll(Vector128.Create(pairs.Slice(start, 4)), Vector128.Create(pairs[first]));
+            return Vector128.EqualsAll(Vector128.Create(pairs.Slice(start, 4)), Vector128.Create(pairs[first]));
         }
     }
 }

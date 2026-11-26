@@ -109,7 +109,8 @@ namespace Mediana.Images.Metadata
             properties.Add(new("raw", "sensor_width", sensorWidth)); properties.Add(new("raw", "sensor_height", sensorHeight));
             properties.Add(new("raw", "orientation", orientation));
             return new(new("cr3", orientation >= 5 ? sensorHeight : sensorWidth, orientation >= 5 ? sensorWidth : sensorHeight,
-                ImageDimensionUnit.Pixels, metadata: ImageMetadataScopes.WithPreviews(properties, capture, previews.Images)), previews.Images) { ContainerExifOrientation = (int)orientation, PreviewColorSpace = colorSpace };
+                ImageDimensionUnit.Pixels, metadata: ImageMetadataScopes.WithPreviews(properties, capture, previews.Images)), previews.Images)
+            { ContainerExifOrientation = (int)orientation, PreviewColorSpace = colorSpace };
         }
 
         private static void ReadPreviewContainer(ReadOnlyMemory<byte> payload, RawJpegPreviews previews, CancellationToken token)

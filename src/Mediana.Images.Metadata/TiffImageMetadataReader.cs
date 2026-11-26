@@ -49,7 +49,8 @@ namespace Mediana.Images.Metadata
             ImageInfo source = document.Info;
             MediaMetadata metadata = ImageMetadataScopes.WithPreviews(source.Metadata.Properties, source.Metadata.Children, previews.Images);
             return new(new(source.FormatId, source.Width, source.Height, source.DimensionUnit, source.PageCount,
-                source.Duration, source.FrameRate, source.IsPreviewCanvas, metadata), previews.Images) { ContainerExifOrientation = document.Orientation };
+                source.Duration, source.FrameRate, source.IsPreviewCanvas, metadata), previews.Images)
+            { ContainerExifOrientation = document.Orientation };
         }
 
         private static bool IsIdentifier(ushort identifier) => identifier is 42 or 43 or 0x4f52 or 0x5352 or 0x55;

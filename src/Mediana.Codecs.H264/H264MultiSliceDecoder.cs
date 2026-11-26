@@ -62,10 +62,10 @@ namespace Mediana.Codecs.H264
 
         public static H264BidirectionalReferences GetReferences(H264ReferenceBuffer references,
             H264SliceHeader header, H264PictureOrder order) => header.Kind switch
-        {
-            H264SliceKind.B => references.GetBidirectionalLists(header, order),
-            H264SliceKind.I or H264SliceKind.P => new(references.GetList0(header), []),
-            _ => throw new NotSupportedException("H.264 reconstruction supports I, P and B slices.")
-        };
+            {
+                H264SliceKind.B => references.GetBidirectionalLists(header, order),
+                H264SliceKind.I or H264SliceKind.P => new(references.GetList0(header), []),
+                _ => throw new NotSupportedException("H.264 reconstruction supports I, P and B slices.")
+            };
     }
 }
