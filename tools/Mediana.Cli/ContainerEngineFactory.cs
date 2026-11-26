@@ -8,6 +8,7 @@ using Mediana.Codecs.Hevc;
 using Mediana.Codecs.Jpeg;
 using Mediana.Codecs.ProRes;
 using Mediana.Codecs.Dv;
+using Mediana.Codecs.Ffv1;
 using Mediana.Codecs.Vp8;
 using Mediana.Codecs.Vp9;
 using Mediana.Codecs.Theora;
@@ -15,11 +16,13 @@ using Mediana.Codecs.Mpeg4Visual;
 using Mediana.Containers.Aiff;
 using Mediana.Containers.Ac3;
 using Mediana.Containers.Adts;
+using Mediana.Containers.Asf;
 using Mediana.Containers.Avi;
 using Mediana.Containers.Flac;
 using Mediana.Containers.Mp3;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.Matroska;
+using Mediana.Containers.MpegTs;
 using Mediana.Containers.Ogg;
 using Mediana.Containers.Wave;
 using Mediana.Formats.Video;
@@ -37,6 +40,7 @@ namespace Mediana.Cli
                 .AddVideoDecoder(new HevcDecoderFactory())
                 .AddVideoDecoder(new ProResDecoderFactory(new() { RecoverLegacyAlpha = true }, warningHandler))
                 .AddVideoDecoder(new DvDecoderFactory())
+                .AddVideoDecoder(new Ffv1DecoderFactory())
                 .AddVideoDecoder(new MjpegDecoderFactory(warningHandler: warningHandler))
                 .AddVideoDecoder(new Vp8DecoderFactory())
                 .AddVideoDecoder(new Vp9DecoderFactory())
@@ -54,9 +58,24 @@ namespace Mediana.Cli
             .AddContainer(new FlacReaderFactory())
             .AddContainer(new WaveReaderFactory())
             .AddContainer(new AiffReaderFactory())
-            .AddContainer(new MatroskaReaderFactory())
+            .AddContainer(new MatroskaReaderFactory(new()
+            {
+                AllowTrailingZeroPadding = true,
+                WarningHandler = LogContainerWarning
+            }))
             .AddContainer(new AviReaderFactory())
+            .AddContainer(new MpegTsReaderFactory())
+            .AddContainer(new MpegPsReaderFactory())
+            .AddContainer(new AsfReaderFactory())
             .AddContainer(new OggReaderFactory())
             .AddContainer(new Mp4ReaderFactory(new Mp4ReadOptions { TimestampMode = timestampMode }));
+
+        private static void LogContainerWarning(string message)
+        {
+            if (ConsoleAppFramework.ConsoleApp.ServiceProvider?.GetService(typeof(ILogger)) is ILogger logger)
+            {
+                logger.LogWarning("{Warning}", message);
+            }
+        }
     }
 }

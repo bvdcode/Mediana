@@ -13,10 +13,18 @@ namespace Mediana.Formats.Video
         public int TemporalId { get; private set; }
         public int SpatialId { get; private set; }
 
-        public bool TryRead(out int type, out ReadOnlySpan<byte> payload)
+        public bool TryRead(out int type, out ReadOnlySpan<byte> payload) =>
+            TryReadCore(false, out type, out payload, out _);
+
+        /// <summary>Reads an OBU from a packet prefix and reports whether its explicit size exceeded the available bytes.</summary>
+        public bool TryReadPrefix(out int type, out ReadOnlySpan<byte> payload, out bool complete) =>
+            TryReadCore(true, out type, out payload, out complete);
+
+        private bool TryReadCore(bool allowTruncatedPayload, out int type, out ReadOnlySpan<byte> payload, out bool complete)
         {
             type = 0;
             payload = default;
+            complete = true;
             if (offset == data.Length) { return false; }
             int header = data[offset++];
             if ((header & 0x81) != 0)
@@ -51,7 +59,17 @@ namespace Mediana.Formats.Video
             }
             else
             {
-                length = ReadSize();
+                uint size = ReadSize();
+                complete = size <= (uint)(data.Length - offset);
+                if (!complete && !allowTruncatedPayload)
+                {
+                    throw new InvalidDataException("The AV1 OBU extent is invalid.");
+                }
+                length = (int)Math.Min(size, (uint)(data.Length - offset));
+                if (type == 2 && size != 0)
+                {
+                    throw new InvalidDataException("An AV1 temporal delimiter must be empty.");
+                }
             }
             payload = data.Slice(offset, length);
             offset += length;
@@ -62,7 +80,7 @@ namespace Mediana.Formats.Video
             return true;
         }
 
-        private int ReadSize()
+        private uint ReadSize()
         {
             ulong size = 0;
             for (int index = 0; index < 8; index++)
@@ -75,11 +93,11 @@ namespace Mediana.Formats.Video
                 size |= (ulong)(next & 127) << (index * 7);
                 if ((next & 128) == 0)
                 {
-                    if (size > uint.MaxValue || size > (ulong)(data.Length - offset))
+                    if (size > uint.MaxValue)
                     {
                         throw new InvalidDataException("The AV1 OBU extent is invalid.");
                     }
-                    return (int)size;
+                    return (uint)size;
                 }
             }
             throw new InvalidDataException("The AV1 OBU size exceeds eight bytes.");

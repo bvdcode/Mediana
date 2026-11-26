@@ -32,7 +32,10 @@ namespace Mediana.Codecs.ProRes
                 _ => throw new InvalidDataException("The ProRes chroma format is reserved.")
             };
             return new VideoStreamMetadata([new(header.Width, header.Height, sampling, header.BitDepth,
-                header.BitDepth, header.InterlaceMode == 0, header.SampleAspectRatio, header.Color)]);
+                header.BitDepth, header.InterlaceMode == 0, header.SampleAspectRatio, header.Color)
+            {
+                PixelFormat = ProResPictureDecoder.GetPixelFormat(header)
+            }]);
         }
 
         private static void RequireStream(EncodedStreamInfo stream)

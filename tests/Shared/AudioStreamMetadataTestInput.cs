@@ -61,7 +61,7 @@ namespace Mediana.Tests
                 foreach (JsonElement entry in references.RootElement.GetProperty("fixtures").EnumerateArray())
                 {
                     await VerifyFileAsync(engine, Path.Combine(root, "Mp3", entry.GetProperty("name").GetString() + ".mp3"),
-                        entry.GetProperty("sample_rate").GetInt32(), entry.GetProperty("channels").GetInt32(), null);
+                        entry.GetProperty("sample_rate").GetInt32(), entry.GetProperty("channels").GetInt32(), null, expectChannelOrder: true);
                 }
             }
             using (JsonDocument references = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "Aac", "references.json"))))
@@ -70,7 +70,7 @@ namespace Mediana.Tests
                 {
                     JsonElement stream = entry.GetProperty("reference").GetProperty("streams")[0];
                     await VerifyFileAsync(engine, Path.Combine(root, "Aac", entry.GetProperty("name").GetString() + ".m4a"),
-                        Rate(stream), stream.GetProperty("channels").GetInt32(), null);
+                        Rate(stream), stream.GetProperty("channels").GetInt32(), null, expectChannelOrder: true);
                 }
             }
             foreach (string file in new[] { "avc-aac.mp4", "avc-mp3-22.mp4", "avc-mp3-44.mp4" })
@@ -79,7 +79,7 @@ namespace Mediana.Tests
                 JsonElement stream = reference.RootElement.GetProperty("streams").EnumerateArray()
                     .Single(item => item.GetProperty("codec_name").GetString() is "aac" or "mp3");
                 await VerifyFileAsync(engine, Path.Combine(root, "Mp4", file), Rate(stream), stream.GetProperty("channels").GetInt32(), null,
-                    expectedIndex: stream.GetProperty("index").GetInt32());
+                    expectChannelOrder: true, expectedIndex: stream.GetProperty("index").GetInt32());
             }
             using (JsonDocument reference = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "Metadata", "audio-headers.json"))))
             {
@@ -91,7 +91,7 @@ namespace Mediana.Tests
                     throw new InvalidDataException("The independent AAC surround input changed.");
                 }
                 JsonElement stream = reference.RootElement.GetProperty("reference").GetProperty("streams")[0];
-                await VerifyFileAsync(engine, path, Rate(stream), stream.GetProperty("channels").GetInt32(), null);
+                await VerifyFileAsync(engine, path, Rate(stream), stream.GetProperty("channels").GetInt32(), null, expectChannelOrder: true);
             }
         }
 
@@ -126,7 +126,7 @@ namespace Mediana.Tests
             }
             if (expectChannelOrder && metadata.ChannelOrder?.Count != channels)
             {
-                throw new InvalidDataException("PCM metadata lost its explicit channel order.");
+                throw new InvalidDataException("Audio metadata lost its established channel order.");
             }
             if (!expectChannelOrder && metadata.ChannelOrder is not null)
             {

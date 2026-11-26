@@ -58,6 +58,8 @@ namespace Mediana.Containers
         public FrameRate? NominalFrameRate { get; }
         /// <summary>Bit rate supplied by the native format header, in bits per second.</summary>
         public long? DeclaredBitRate { get; }
+        /// <summary>Codec profile identified by a native container declaration.</summary>
+        public CodecProfileInfo? DeclaredCodecProfile { get; init; }
         /// <summary>Declared language identifier (ISO 639 or BCP 47), or null when unavailable.
         /// Original declarations and format-specific selection rules belong to the reader module.</summary>
         public string? Language { get; }

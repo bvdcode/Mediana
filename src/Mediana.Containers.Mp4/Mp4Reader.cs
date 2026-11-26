@@ -3,6 +3,7 @@
 
 using Mediana.Core;
 using Mediana.Core.Memory;
+using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.IO;
@@ -53,8 +54,20 @@ namespace Mediana.Containers.Mp4
                 movie.Tracks.Select(track => new ContainerStreamInfo(track.Stream.StreamIndex,
                     track.PresentationDuration, track.MetadataScope.Tags, track.PacketIndex,
                     track.Language.Language, dates: track.HeaderDates.GetTags("tkhd", "trak/tkhd")
-                        .Concat(track.MediaDates.GetTags("mdhd", "trak/mdia/mdhd")), averageFrameRate: track.AverageFrameRate)),
-                dates: HeaderDates.GetTags("mvhd", "moov/mvhd")));
+                        .Concat(track.MediaDates.GetTags("mdhd", "trak/mdia/mdhd")), averageFrameRate: track.AverageFrameRate)
+                {
+                    DeclaredCodecProfile = track.SampleEntry switch
+                    {
+                        "apco" => new("Proxy"),
+                        "apcs" => new("LT"),
+                        "apcn" => new("Standard"),
+                        "apch" => new("HQ"),
+                        "ap4h" => new("4444"),
+                        "ap4x" => new("4444 XQ"),
+                        _ => null
+                    }
+                }),
+                dates: HeaderDates.GetTags("mvhd", "moov/mvhd"), metadata: GetTypedMetadata(movie.Tracks)));
             CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(metadataScope.Values));
             InitializePictureInfo();
             TimestampMode = timestampMode;
@@ -79,6 +92,14 @@ namespace Mediana.Containers.Mp4
             }
             Streams = Array.AsReadOnly(streams);
             this.metadata = metadata.Retain();
+        }
+
+        private MediaMetadata GetTypedMetadata(IEnumerable<Mp4TrackInfo> tracks)
+        {
+            IEnumerable<MediaMetadata> children = tracks.Where(track => track.MetadataScope.Properties.Length != 0)
+                .Select(track => new MediaMetadata("stream",
+                    [new("mp4", "StreamIndex", track.Stream.StreamIndex), .. track.MetadataScope.Properties]));
+            return new("media", metadataScope.Properties, children);
         }
 
         public ContainerInfo Info => info.Value;

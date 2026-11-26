@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Text;
-using System.Globalization;
 using Mediana.Core.Metadata;
 
 namespace Mediana.Containers.Mp4
@@ -14,11 +13,12 @@ namespace Mediana.Containers.Mp4
         private readonly List<Mp4MetadataValue> values = [];
         private readonly List<Mp4UserDataValue> userData = [];
         private readonly List<MediaTag> tags = [];
+        private readonly List<MediaProperty> properties = [];
 
         public Mp4MetadataScope Parse(Mp4BoxCollection scope, string sourcePath, Mp4BoxCollection? media = null)
         {
             ReadScope(scope, sourcePath, media);
-            return new(values.ToArray(), userData.ToArray(), tags.ToArray());
+            return new(values.ToArray(), userData.ToArray(), tags.ToArray(), properties.ToArray());
         }
 
         private void ReadScope(Mp4BoxCollection scope, string sourcePath, Mp4BoxCollection? media = null)
@@ -183,8 +183,7 @@ namespace Mediana.Containers.Mp4
             {
                 ushort number = Mp4Binary.UInt16(data.Span, 2);
                 ushort total = Mp4Binary.UInt16(data.Span, 4);
-                text = total == 0 ? number.ToString(CultureInfo.InvariantCulture)
-                    : string.Create(CultureInfo.InvariantCulture, $"{number}/{total}");
+                properties.Add(new(keyNamespace, name, (uint)number, (uint)total));
             }
             int offset = 0;
             if (!data.IsEmpty && (!root.Span.Overlaps(data.Span, out offset) || offset < 0))

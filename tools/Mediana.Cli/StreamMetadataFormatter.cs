@@ -47,11 +47,21 @@ namespace Mediana.Cli
                     VideoChromaSampling.Monochrome => "monochrome",
                     VideoChromaSampling.Sampling420 => "4:2:0",
                     VideoChromaSampling.Sampling422 => "4:2:2",
+                    VideoChromaSampling.Sampling440 => "4:4:0",
+                    VideoChromaSampling.Sampling411 => "4:1:1",
                     VideoChromaSampling.Sampling444 => "4:4:4",
                     _ => throw new ArgumentOutOfRangeException(nameof(video), "The video chroma sampling is invalid.")
                 };
                 await output.WriteLineAsync($"  Configuration {index + 1}: {configuration.Width}x{configuration.Height} visible samples; chroma: {sampling}.");
                 await WriteProfileAsync(configuration.CodecProfile, output, "    ");
+                if (configuration.PixelFormat is VideoPixelFormat pixelFormat)
+                {
+                    await output.WriteLineAsync($"    Pixel format: {pixelFormat.Name}.");
+                }
+                if (configuration.NominalFrameRate is FrameRate rate)
+                {
+                    await output.WriteLineAsync(FormattableString.Invariant($"    Codec frame rate: {rate.Numerator}/{rate.Denominator} ({rate.ToDouble():0.###} fps)."));
+                }
                 if (configuration.ChromaBitDepth is int chromaDepth)
                 {
                     await output.WriteLineAsync($"    Video precision: luma {configuration.LumaBitDepth} bits; chroma {chromaDepth} bits.");
@@ -76,7 +86,7 @@ namespace Mediana.Cli
             }
         }
 
-        private static async Task WriteProfileAsync(CodecProfileInfo? profile, TextWriter output, string indent)
+        internal static async Task WriteProfileAsync(CodecProfileInfo? profile, TextWriter output, string indent)
         {
             if (profile is null)
             {

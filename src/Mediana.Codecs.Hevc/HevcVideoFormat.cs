@@ -19,7 +19,16 @@ namespace Mediana.Codecs.Hevc
             };
             VideoInformation video = sequence.Video;
             if (video.ChromaLocation != video.BottomChromaLocation)
-            { throw new NotSupportedException("Different top and bottom chroma locations are not represented in progressive HEVC output."); }
+            {
+                throw new NotSupportedException("Different top and bottom chroma locations are not represented in progressive HEVC output.");
+            }
+            VideoColorInfo labels = ReadColor(video);
+            SampleAspectRatio? resolvedAspect = aspect is null ? video.AspectRatio : aspect.Resolve(video.AspectRatio);
+            return new(sequence.VisibleWidth, sequence.VisibleHeight, pixels, labels, resolvedAspect, color);
+        }
+
+        internal static VideoColorInfo ReadColor(VideoInformation video)
+        {
             ChromaLocation location = video.ChromaLocation switch
             {
                 0 => ChromaLocation.Left,
@@ -30,11 +39,9 @@ namespace Mediana.Codecs.Hevc
                 5 => ChromaLocation.Bottom,
                 _ => throw new InvalidDataException("Invalid HEVC chroma location.")
             };
-            VideoColorInfo labels = new(CicpColorimetry.GetPrimaries(video.ColourPrimaries),
+            return new(CicpColorimetry.GetPrimaries(video.ColourPrimaries),
                 CicpColorimetry.GetTransfer(video.TransferCharacteristics), CicpColorimetry.GetMatrix(video.MatrixCoefficients),
                 video.FullRange ? ColorRange.Full : ColorRange.Limited, location);
-            SampleAspectRatio? resolvedAspect = aspect is null ? video.AspectRatio : aspect.Resolve(video.AspectRatio);
-            return new(sequence.VisibleWidth, sequence.VisibleHeight, pixels, labels, resolvedAspect, color);
         }
     }
 }

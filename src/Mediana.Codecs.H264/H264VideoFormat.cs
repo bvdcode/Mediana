@@ -23,18 +23,8 @@ namespace Mediana.Codecs.H264
             }
             SampleAspectRatio? codecAspect = ReadSampleAspectRatio(vui);
             SampleAspectRatio? aspect = aspectRatioDescription?.Resolve(codecAspect) ?? codecAspect;
-            VideoPixelFormat pixels = (sequence.ChromaFormat, sequence.LumaBitDepth) switch
-            {
-                (1, 8) => VideoPixelFormat.Yuv420P8,
-                (2, 8) => VideoPixelFormat.Yuv422P8,
-                (1, 10) => VideoPixelFormat.Yuv420P10,
-                (2, 10) => VideoPixelFormat.Yuv422P10,
-                (3, 8) when vui.MatrixCoefficients == 0 => VideoPixelFormat.GbrP8,
-                (3, 10) when vui.MatrixCoefficients == 0 => VideoPixelFormat.GbrP10,
-                (3, 8) => VideoPixelFormat.Yuv444P8,
-                (3, 10) => VideoPixelFormat.Yuv444P10,
-                _ => throw new NotSupportedException("The H.264 decoded chroma layout is unsupported.")
-            };
+            VideoPixelFormat pixels = ReadPixelFormat(sequence)
+                ?? throw new NotSupportedException("The H.264 decoded chroma layout is unsupported.");
             int height = scanMode switch
             {
                 VideoScanMode.Progressive or VideoScanMode.TopFieldFirst or VideoScanMode.BottomFieldFirst => sequence.Height,
@@ -49,6 +39,20 @@ namespace Mediana.Codecs.H264
             }
             return new VideoFormat(sequence.Width, height, pixels, color, aspect, colorDescription, scanMode, sequence.Height);
         }
+
+        internal static VideoPixelFormat? ReadPixelFormat(H264SequenceParameterSet sequence) =>
+            (sequence.ChromaFormat, sequence.LumaBitDepth) switch
+            {
+                (1, 8) => VideoPixelFormat.Yuv420P8,
+                (2, 8) => VideoPixelFormat.Yuv422P8,
+                (1, 10) => VideoPixelFormat.Yuv420P10,
+                (2, 10) => VideoPixelFormat.Yuv422P10,
+                (3, 8) when sequence.Vui?.MatrixCoefficients == 0 => VideoPixelFormat.GbrP8,
+                (3, 10) when sequence.Vui?.MatrixCoefficients == 0 => VideoPixelFormat.GbrP10,
+                (3, 8) => VideoPixelFormat.Yuv444P8,
+                (3, 10) => VideoPixelFormat.Yuv444P10,
+                _ => null
+            };
 
         internal static SampleAspectRatio? ReadSampleAspectRatio(H264VuiParameters? vui) =>
             vui is { AspectRatioWidth: > 0, AspectRatioHeight: > 0 }
