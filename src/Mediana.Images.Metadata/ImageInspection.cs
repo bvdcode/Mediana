@@ -16,6 +16,8 @@ namespace Mediana.Images.Metadata
             if (copy.Any(item => item is null)) { throw new ArgumentException("Image previews cannot contain null.", nameof(previews)); }
             Previews = Array.AsReadOnly(copy);
         }
+        internal int ContainerExifOrientation { get; init; } = 1;
+        internal Codecs.Jpeg.JpegColorSpace? PreviewColorSpace { get; init; }
         public ImageInfo Info { get; }
         public IReadOnlyList<EncodedImagePreview> Previews { get; }
     }

@@ -40,7 +40,7 @@ namespace Mediana.Images.Metadata
                 {
                     foreach (ushort tag in new ushort[] { 46, 295 })
                     {
-                        if (directory.Fields.TryGetValue(tag, out TiffField? field)) { previews.Add(field.Bytes); }
+                        if (directory.Fields.TryGetValue(tag, out TiffField? field)) { previews.Add(field.Bytes, directoryOrientation: RawJpegPreviews.DirectoryOrientation(directory), embeddedField: true); }
                     }
                 }
                 if (directory.Fields.TryGetValue(37500, out TiffField? note))
@@ -49,7 +49,7 @@ namespace Mediana.Images.Metadata
             ImageInfo source = document.Info;
             MediaMetadata metadata = ImageMetadataScopes.WithPreviews(source.Metadata.Properties, source.Metadata.Children, previews.Images);
             return new(new(source.FormatId, source.Width, source.Height, source.DimensionUnit, source.PageCount,
-                source.Duration, source.FrameRate, source.IsPreviewCanvas, metadata), previews.Images);
+                source.Duration, source.FrameRate, source.IsPreviewCanvas, metadata), previews.Images) { ContainerExifOrientation = document.Orientation };
         }
 
         private static bool IsIdentifier(ushort identifier) => identifier is 42 or 43 or 0x4f52 or 0x5352 or 0x55;

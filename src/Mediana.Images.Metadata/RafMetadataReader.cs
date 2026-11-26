@@ -78,7 +78,7 @@ namespace Mediana.Images.Metadata
             if (orientation is < 1 or > 8) { throw new InvalidDataException("Invalid RAF Exif orientation."); }
             properties.Add(new("raw", "orientation", orientation));
             return new(new("raf", orientation >= 5 ? height : width, orientation >= 5 ? width : height, ImageDimensionUnit.Pixels,
-                metadata: ImageMetadataScopes.WithPreviews(properties, capture, previews.Images)), previews.Images);
+                metadata: ImageMetadataScopes.WithPreviews(properties, capture, previews.Images)), previews.Images) { ContainerExifOrientation = (int)orientation };
         }
 
         private static ReadOnlyMemory<byte> Slice(ReadOnlyMemory<byte> encoded, uint offset, uint length)

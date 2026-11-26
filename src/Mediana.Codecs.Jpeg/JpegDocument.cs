@@ -17,9 +17,10 @@ namespace Mediana.Codecs.Jpeg
         private readonly JpegHuffmanTable?[] huffman = new JpegHuffmanTable[8];
         private JpegComponent[] components = [];
         private WritableMediaBuffer? sampleStorage;
-        private readonly JpegMetadata metadata = new();
+        private readonly JpegMetadata metadata = new(options.ContainerExifOrientation, options.ContainerColorSpace);
         private int restartInterval;
         private byte frameMarker;
+        internal int BytesConsumed => reader.Position;
         internal int Width { get; private set; }
         internal int Height { get; private set; }
         internal int MaximumHorizontal { get; private set; }
@@ -42,7 +43,7 @@ namespace Mediana.Codecs.Jpeg
             }
         }
 
-        internal void Read(MediaBufferAllocator? allocator, bool componentSamples = false)
+        internal void Read(MediaBufferAllocator? allocator, bool componentSamples = false, bool embedded = false)
         {
             token.ThrowIfCancellationRequested();
             if (encoded.Length > options.MaximumEncodedBytes)
@@ -62,7 +63,7 @@ namespace Mediana.Codecs.Jpeg
                     {
                         throw new InvalidDataException("JPEG ends before every component has been scanned.");
                     }
-                    if (reader.Position != encoded.Length)
+                    if (!embedded && reader.Position != encoded.Length)
                     {
                         throw new InvalidDataException("JPEG contains bytes after EOI.");
                     }
