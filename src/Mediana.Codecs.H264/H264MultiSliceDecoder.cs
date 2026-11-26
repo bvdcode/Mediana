@@ -21,12 +21,7 @@ namespace Mediana.Codecs.H264
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     H264SliceHeader header = slices[index].Header;
-                    H264BidirectionalReferences lists = header.Kind switch
-                    {
-                        H264SliceKind.B => references.GetBidirectionalLists(header, order),
-                        H264SliceKind.I or H264SliceKind.P => new(references.GetList0(header), []),
-                        _ => throw new NotSupportedException("H.264 reconstruction supports I, P and B slices.")
-                    };
+                    H264BidirectionalReferences lists = GetReferences(references, header, order);
                     sliceReferences[index] = lists;
                     picture.CaptureReferences(header.FirstMacroblock, lists.L0, lists.L1);
                 }
@@ -64,5 +59,13 @@ namespace Mediana.Codecs.H264
                 }
             }
         }
+
+        public static H264BidirectionalReferences GetReferences(H264ReferenceBuffer references,
+            H264SliceHeader header, H264PictureOrder order) => header.Kind switch
+        {
+            H264SliceKind.B => references.GetBidirectionalLists(header, order),
+            H264SliceKind.I or H264SliceKind.P => new(references.GetList0(header), []),
+            _ => throw new NotSupportedException("H.264 reconstruction supports I, P and B slices.")
+        };
     }
 }

@@ -4,6 +4,7 @@
 using Mediana.Codecs;
 using Mediana.Containers;
 using Mediana.Core;
+using Mediana.Core.Timing;
 
 namespace Mediana.Execution
 {
@@ -54,6 +55,23 @@ namespace Mediana.Execution
             this.maxPacketReads = maxPacketReads;
             this.sharedReadBudget = sharedReadBudget;
             this.randomAccessInspector = randomAccessInspector;
+        }
+
+        internal void SetVideoPresentationStart(MediaTimestamp start)
+        {
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                if (decoder is IVideoPresentationPrerollDecoder preroll)
+                {
+                    preroll.SetPresentationStart(start);
+                }
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
         }
 
         /// <summary>Returns an owned frame or null at EOF. An optional limit counts all container reads, including EOF.</summary>

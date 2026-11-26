@@ -3,25 +3,43 @@
 
 using Mediana.Core;
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
 using Mediana.Core.Video;
 
 namespace Mediana.Codecs.H264
 {
     internal class H264Decoder(int streamIndex, H264Configuration initialConfiguration,
         MediaBufferAllocator allocator, H264DecoderOptions options, VideoColorDescription? colorDescription = null,
-        VideoAspectRatioDescription? aspectRatioDescription = null, Action<string>? warningHandler = null) : IMediaCodec<MediaPacket, VideoFrame>
+        VideoAspectRatioDescription? aspectRatioDescription = null, Action<string>? warningHandler = null)
+        : IMediaCodec<MediaPacket, VideoFrame>, IVideoPresentationPrerollDecoder
     {
         private readonly H264Configuration startupConfiguration = initialConfiguration;
         private H264Configuration configuration = initialConfiguration;
         private H264ReferenceBuffer references = new();
         private H264FrameQueue frames = new(allocator);
         private H264PictureOrderState order = new();
+        private MediaTimestamp? presentationStart;
         private bool reportedPictureTiming;
         private bool inputCompleted;
         private bool endStream;
         private bool faulted;
         private bool disposed;
         private int busy;
+
+        public void SetPresentationStart(MediaTimestamp start)
+        {
+            start.TimeBase.Validate();
+            Enter();
+            try
+            {
+                EnsureAvailable();
+                presentationStart = start;
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
+        }
 
         public CodecInputStatus TrySend(MediaPacket input, CancellationToken cancellationToken = default)
         {
@@ -123,6 +141,7 @@ namespace Mediana.Codecs.H264
                 references = new H264ReferenceBuffer();
                 order = new H264PictureOrderState();
                 configuration = startupConfiguration;
+                presentationStart = null;
                 inputCompleted = false;
                 endStream = false;
                 faulted = false;
@@ -173,6 +192,18 @@ namespace Mediana.Codecs.H264
                 warningHandler?.Invoke("Ignored an inconsistent H.264 picture-timing display hint; presentation follows the coded picture structure and field order.");
                 reportedPictureTiming = true;
             }
+            if (IsDiscardablePreroll(header, packet, presentation))
+            {
+                foreach (H264SliceRegion slice in slices)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    _ = H264MultiSliceDecoder.GetReferences(references, slice.Header, nextOrder.Current);
+                }
+                references.DiscardNonReferenceFrame(header);
+                frames.AddDiscarded(nextOrder.Current, header, cancellationToken);
+                order = nextOrder;
+                return;
+            }
             H264Picture picture = H264MultiSliceDecoder.Decode(slices, references, nextOrder.Current, allocator, cancellationToken);
             VideoFrame? frame = null;
             bool stored = false;
@@ -199,6 +230,22 @@ namespace Mediana.Codecs.H264
                     frame?.Dispose();
                 }
             }
+        }
+
+        private bool IsDiscardablePreroll(H264SliceHeader header, MediaPacket packet, VideoFramePresentation presentation)
+        {
+            if (presentationStart is not MediaTimestamp boundary || header.ReferenceIndicator != 0 || header.Kind != H264SliceKind.B ||
+                !header.Sequence.FrameMbsOnly || header.Structure != H264PictureStructure.Frame ||
+                presentation.Unit != VideoPresentationUnit.Frame || packet.PresentationTime is not MediaTimestamp start ||
+                packet.Duration is not MediaDuration duration || duration.Value <= 0 || start.CompareTo(boundary) >= 0)
+            {
+                return false;
+            }
+            MediaTimestamp length = new(duration.Value, duration.TimeBase);
+            TimeBase clock = TimeBase.Common(start.ReduceClock().TimeBase, length.ReduceClock().TimeBase);
+            MediaTimestamp end = new(checked(start.Rescale(clock, TimestampRounding.TowardZero).Value +
+                length.Rescale(clock, TimestampRounding.TowardZero).Value), clock);
+            return end.CompareTo(boundary) <= 0;
         }
 
         private void EnsureAvailable()

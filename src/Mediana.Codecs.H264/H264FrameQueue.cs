@@ -54,6 +54,18 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        public void AddDiscarded(H264PictureOrder order, H264SliceHeader header, CancellationToken token)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            token.ThrowIfCancellationRequested();
+            if (HasReady || header.Layout.IsField || header.IsIdr || H264FieldPairing.ResetsReferences(header))
+            {
+                throw new InvalidOperationException("The H.264 picture cannot be discarded at this point.");
+            }
+            FlushField(false);
+            frames.AddDiscarded(order.Value, H264PictureBufferLimits.Read(header.Sequence).ReorderFrames);
+        }
+
         private void Enqueue(VideoFrame frame, H264PictureOrder order, H264SliceHeader header)
         {
             H264PictureBufferLimits limits = H264PictureBufferLimits.Read(header.Sequence);
