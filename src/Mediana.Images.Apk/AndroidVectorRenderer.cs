@@ -85,11 +85,17 @@ namespace Mediana.Images.Apk
                     Width = width,
                     Cap = Number(element, "strokeLineCap") switch
                     {
-                        0 => StrokeCap.Butt, 1 => StrokeCap.Round, 2 => StrokeCap.Square, _ => throw ResourceChunk.Invalid()
+                        0 => StrokeCap.Butt,
+                        1 => StrokeCap.Round,
+                        2 => StrokeCap.Square,
+                        _ => throw ResourceChunk.Invalid()
                     },
                     Join = Number(element, "strokeLineJoin") switch
                     {
-                        0 => StrokeJoin.Miter, 1 => StrokeJoin.Round, 2 => StrokeJoin.Bevel, _ => throw ResourceChunk.Invalid()
+                        0 => StrokeJoin.Miter,
+                        1 => StrokeJoin.Round,
+                        2 => StrokeJoin.Bevel,
+                        _ => throw ResourceChunk.Invalid()
                     },
                     MiterLimit = Number(element, "strokeMiterLimit", 4)
                 };
