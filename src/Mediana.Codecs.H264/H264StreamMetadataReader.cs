@@ -29,6 +29,19 @@ namespace Mediana.Codecs.H264
             {
                 throw new ArgumentException("The stream is not H.264 video.", nameof(stream));
             }
+            if (stream.Format == StreamFormats.AvcAnnexB)
+            {
+                if (stream.Configuration.IsEmpty) { return null; }
+                if (stream.Configuration.Length > options.MaxParameterSetBytes)
+                {
+                    throw new NotSupportedException("The AVC sequence parameter set exceeds its configured byte limit.");
+                }
+                ReadOnlySpan<byte> nal = stream.Configuration.Span;
+                H264BitReader prefix = H264Nal.Payload(nal, 7);
+                return H264SequenceParser.IsSupportedProfile((int)prefix.ReadBits(8))
+                    ? new VideoStreamMetadata([new H264SequenceMetadata(H264SequenceParser.Parse(nal, maxPicturePixels: null))])
+                    : null;
+            }
             StreamFormats.Avc.Require(stream.Format);
             H264ConfigurationRecord record = new(stream.Configuration.Span, options.MaxConfigurationBytes, options.MaxParameterSetBytes);
             Dictionary<int, H264SequenceParameterSet> sequences = [];

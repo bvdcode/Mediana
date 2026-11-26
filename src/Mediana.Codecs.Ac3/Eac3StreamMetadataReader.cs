@@ -27,7 +27,7 @@ namespace Mediana.Codecs.Ac3
         public override StreamMetadata? Read(EncodedStreamInfo stream)
         {
             RequireStream(stream);
-            if (IsRawFormat(stream.Format)) { return null; }
+            if (IsRawFormat(stream.Format) || stream.Format == StreamFormats.Eac3ByteStream) { return null; }
             StreamFormats.Eac3Mp4.Require(stream.Format);
             Eac3SubstreamConfiguration configuration = Eac3SpecificConfiguration.Read(stream.Configuration.Span).Substreams[0];
             return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount,

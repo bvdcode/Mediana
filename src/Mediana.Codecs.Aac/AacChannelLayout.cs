@@ -33,6 +33,7 @@ namespace Mediana.Codecs.Aac
         }
 
         public ReadOnlySpan<byte> Elements => elements;
+        public IReadOnlyList<string> Channels => channels;
         public int ChannelCount => channels.Length;
         public int OutputChannel(int codedChannel) => channelMap[codedChannel];
 
