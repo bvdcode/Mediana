@@ -25,6 +25,7 @@
     <Project Path="src/Mediana.Codecs.Vp9/Mediana.Codecs.Vp9.csproj" />
     <Project Path="src/Mediana.Codecs.Vp8/Mediana.Codecs.Vp8.csproj" />
     <Project Path="src/Mediana.Documents/Mediana.Documents.csproj" />
+    <Project Path="src/Mediana.Documents.Excel/Mediana.Documents.Excel.csproj" />
     <Project Path="src/Mediana.Documents.Spreadsheets/Mediana.Documents.Spreadsheets.csproj" />
     <Project Path="src/Mediana.Documents.Xlsx/Mediana.Documents.Xlsx.csproj" />
     <Project Path="src/Mediana.Documents.Xls/Mediana.Documents.Xls.csproj" />

@@ -64,6 +64,7 @@
     <Compile Include="../Shared/VpxHlsTestInput.cs" Link="VpxHlsTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Vp8/Mediana.Codecs.Vp8.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Presentation/Mediana.Documents.Presentation.csproj" />
+    <ProjectReference Include="../../src/Mediana.Documents.Excel/Mediana.Documents.Excel.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Xls/Mediana.Documents.Xls.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Xlsx/Mediana.Documents.Xlsx.csproj" />
     <None Include="../Mediana.Codecs.Raster.Tests/Data/*" Link="Data/Raster/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

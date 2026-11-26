@@ -36,25 +36,29 @@ Supported drawing elements include groups, offsets, rotation, reflection, inheri
 
 ## Sequential spreadsheets
 
+Reference `Mediana.Documents.Excel` to open either XLS or XLSX from the same stream API.
+
 ```csharp
-using Mediana.Documents.Xlsx;
+using Mediana.Documents.Excel;
 using Mediana.Documents.Spreadsheets;
 
-using XlsxWorkbook workbook = XlsxReader.Open(encoded, cancellationToken: token);
-foreach (SpreadsheetSheet sheet in workbook.Sheets)
+using Stream input = File.OpenRead(path);
+using SpreadsheetWorkbook workbook = ExcelReader.Open(input, cancellationToken: token);
+SpreadsheetSheet sheet = workbook.Sheets.First(s => s.Kind == SpreadsheetSheetKind.Worksheet);
+foreach (SpreadsheetRow row in workbook.ReadRows(sheet.Index, token))
 {
-    if (sheet.Kind != SpreadsheetSheetKind.Worksheet) { continue; }
-    foreach (SpreadsheetRow row in workbook.ReadRows(sheet.Index, token))
+    foreach (SpreadsheetCell cell in row.Cells)
     {
-        foreach (SpreadsheetCell cell in row.Cells)
-        {
-            SpreadsheetValue value = cell.Value;
-        }
+        Console.WriteLine(cell.Value);
     }
 }
 ```
 
-For binary Excel files use `XlsReader.Open`, which reads CFB sector chains and BIFF8 records. It does not route through XLSX or Open XML. Other BIFF versions and encrypted workbooks report unsupported input.
+The reader identifies the container from its prefix. The XLS reader validates the CFB/BIFF8 workbook stream and the XLSX reader validates the OPC workbook main part. Rows are read on demand. `xlsOptions` and `xlsxOptions` configure the corresponding reader.
+
+The binary reader supports BIFF8. Other BIFF versions and encrypted workbooks report unsupported input.
+
+A seekable stream contains the whole file and is opened from byte zero. XLSX reads selected ZIP parts directly from it. Binary XLS and forward-only streams use bounded in-memory input. A forward-only stream starts at its current position. The caller owns the stream and should keep it open until the workbook is disposed.
 
 Rows and cells retain their zero-based source coordinates. Missing rows/cells are not synthesized. Values distinguish blank, text, number, Boolean, error and date/time. Number formats determine numeric date values; the original serial and the workbook's 1900/1904 date system remain available. The fictitious 1900-02-29 has no `DateTime` value.
 
