@@ -53,6 +53,8 @@ namespace Mediana.Core
         public string CodecId { get; }
         public EncodedStreamFormat Format { get; }
         public TimeBase TimeBase { get; }
+        /// <summary>Native timestamp corresponding to elapsed zero when a container keeps an offset presentation clock.</summary>
+        public MediaTimestamp? PresentationOrigin { get; init; }
         public ReadOnlyMemory<byte> Configuration { get; }
         /// <summary>Optional container display transform. Null means unspecified; decoding does not apply it.</summary>
         public VideoDisplayMatrix? DisplayMatrix { get; }
