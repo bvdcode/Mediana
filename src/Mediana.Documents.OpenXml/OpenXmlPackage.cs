@@ -23,6 +23,9 @@ namespace Mediana.Documents.OpenXml
         private int _xmlElements;
         private long _readBytes;
 
+        /// <summary>Recognizes a ZIP local file header. The main part identifies the document format.</summary>
+        public static bool HasZipSignature(ReadOnlySpan<byte> prefix) => prefix.StartsWith("PK\x03\x04"u8);
+
         private OpenXmlPackage(Stream source, OpenXmlPackageOptions options, bool ownsSource)
         {
             _source = source;
