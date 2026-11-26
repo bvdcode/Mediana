@@ -13,6 +13,7 @@ namespace Mediana.Containers.Ogg
         public abstract EncodedStreamFormat Format { get; }
         public abstract int SampleRate { get; }
         public abstract int ChannelCount { get; }
+        public abstract string[]? GetChannelOrder();
         public abstract int HeaderCount { get; }
         public abstract int PreSkip { get; }
         public abstract int SeekPreroll { get; }

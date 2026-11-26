@@ -2,6 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Text;
+using System.Globalization;
+using System.Buffers.Binary;
 
 namespace Mediana.Containers.Mp4
 {
@@ -22,6 +24,14 @@ namespace Mediana.Containers.Mp4
             {
                 case "name":
                     text = payload;
+                    break;
+                case "loci":
+                    return ReadLocation(box, sourcePath, budget);
+                case "©xyz":
+                    int length = Mp4Binary.UInt16(payload, 0);
+                    code = Mp4Binary.UInt16(payload, 2);
+                    language = Mp4LanguageParser.ReadPackedCode(code.Value);
+                    text = Mp4Binary.Range(payload, 4, length).TrimEnd((byte)0);
                     break;
                 case "tnam":
                     if (Mp4Binary.UInt32(payload, 0) != 0)
@@ -62,6 +72,35 @@ namespace Mediana.Containers.Mp4
             }
             budget.TakeMetadataText(text.Length);
             return new(box.Type, payload.Length, encoding.GetString(text), code, language, sourcePath);
+        }
+
+        private static Mp4UserDataItem ReadLocation(Mp4Box box, string sourcePath, Mp4ParseBudget budget)
+        {
+            ReadOnlySpan<byte> payload = box.Payload.Span;
+            Mp4Binary.FullBox(payload);
+            ushort languageCode = Mp4Binary.UInt16(payload, 4);
+            int nameEnd = payload[6..].IndexOf((byte)0);
+            if (nameEnd < 0)
+            {
+                throw new InvalidDataException("An MP4 location name must be null-terminated.");
+            }
+            ReadOnlySpan<byte> coordinates = Mp4Binary.Range(payload, 8 + nameEnd, 12);
+            decimal longitude = BinaryPrimitives.ReadInt32BigEndian(coordinates) / 65536m;
+            decimal latitude = BinaryPrimitives.ReadInt32BigEndian(coordinates[4..]) / 65536m;
+            decimal altitude = BinaryPrimitives.ReadInt32BigEndian(coordinates[8..]) / 65536m;
+            if (latitude is < -90 or > 90 || longitude is < -180 or > 180)
+            {
+                throw new InvalidDataException("An MP4 location is outside the geographic coordinate range.");
+            }
+            budget.TakeMetadataText(nameEnd);
+            string coordinatesText = string.Create(CultureInfo.InvariantCulture,
+                $"{latitude:+00.0000;-00.0000;+00.0000}{longitude:+000.0000;-000.0000;+000.0000}");
+            if (altitude != 0)
+            {
+                coordinatesText += altitude.ToString("+0.####;-0.####", CultureInfo.InvariantCulture);
+            }
+            return new(box.Type, payload.Length, coordinatesText + "/", languageCode,
+                Mp4LanguageParser.ReadPackedCode(languageCode), sourcePath);
         }
     }
 }

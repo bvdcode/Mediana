@@ -15,6 +15,8 @@ namespace Mediana.Containers.Matroska
         private const uint EbmlId = 0x1A45DFA3;
         private const uint VoidId = 0xEC;
         private readonly EbmlElementReader reader;
+        private readonly IRandomAccessByteSource source;
+        private readonly MediaBufferAllocator allocator;
         private readonly long inputEnd;
         private readonly MatroskaElementBudget? elementBudget;
 
@@ -22,6 +24,8 @@ namespace Mediana.Containers.Matroska
             MatroskaElementBudget? elementBudget = null)
         {
             ArgumentNullException.ThrowIfNull(source);
+            this.source = source;
+            this.allocator = allocator;
             this.elementBudget = elementBudget;
             inputEnd = source.Length ?? throw new NotSupportedException("Matroska indexing requires a known source length.");
             reader = new(source, allocator, maximumSizeWidth: maximumSizeWidth);
@@ -75,15 +79,20 @@ namespace Mediana.Containers.Matroska
             return child with { EndOffset = end };
         }
 
-        public async ValueTask VerifyDocumentEndAsync(EbmlElement segment, CancellationToken cancellationToken = default)
+        public async ValueTask<long> VerifyDocumentEndAsync(EbmlElement segment,
+            CancellationToken cancellationToken = default, bool allowZeroPadding = false)
         {
             long offset = segment.EndOffset ?? inputEnd;
-            while (true)
+            while (offset < inputEnd)
             {
+                if (allowZeroPadding && await HasZeroPaddingAsync(offset, cancellationToken).ConfigureAwait(false))
+                {
+                    return inputEnd - offset;
+                }
                 EbmlElement? next = await ReadElementAsync(offset, inputEnd, cancellationToken).ConfigureAwait(false);
                 if (next is not EbmlElement root)
                 {
-                    return;
+                    break;
                 }
                 if (root.Id == EbmlId)
                 {
@@ -95,6 +104,34 @@ namespace Mediana.Containers.Matroska
                 }
                 offset = end;
             }
+            return 0;
+        }
+
+        private async ValueTask<bool> HasZeroPaddingAsync(long offset, CancellationToken cancellationToken)
+        {
+            const int bufferSize = 4096;
+            using WritableMediaBuffer buffer = allocator.Allocate(bufferSize);
+            int first = (int)Math.Min(bufferSize, inputEnd - offset);
+            await source.ReadExactlyAtAsync(offset, buffer.Memory[..first], cancellationToken).ConfigureAwait(false);
+            if (buffer.Span[0] != 0)
+            {
+                return false;
+            }
+            if (buffer.Span[..first].ContainsAnyExcept((byte)0))
+            {
+                throw new InvalidDataException("Nonzero data follows the Matroska Segment padding.");
+            }
+            for (offset += first; offset < inputEnd;)
+            {
+                int count = (int)Math.Min(bufferSize, inputEnd - offset);
+                await source.ReadExactlyAtAsync(offset, buffer.Memory[..count], cancellationToken).ConfigureAwait(false);
+                if (buffer.Span[..count].ContainsAnyExcept((byte)0))
+                {
+                    throw new InvalidDataException("Nonzero data follows the Matroska Segment padding.");
+                }
+                offset += count;
+            }
+            return true;
         }
 
         private async ValueTask<long> FindClusterEndAsync(long offset, long parentEnd, CancellationToken cancellationToken)

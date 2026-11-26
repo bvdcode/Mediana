@@ -25,6 +25,10 @@ namespace Mediana.Containers.Matroska
         /// <summary>Also verify Segment, Cluster and attachment CRCs, which reads their complete payloads.
         /// EBML header and parsed Info/Tracks metadata CRCs are always checked.</summary>
         public bool VerifyMediaChecksums { get; init; }
+        /// <summary>Accepts an all-zero suffix outside the declared Segment boundary.</summary>
+        public bool AllowTrailingZeroPadding { get; init; }
+        /// <summary>Receives diagnostics when an enabled compatibility rule is applied.</summary>
+        public Action<string>? WarningHandler { get; init; }
 
         internal MatroskaIndexOptions IndexOptions => new(MaxIndexBytes, MaxBlocks, MaxPacketsPerTrack,
             MaxBlockHeaderBytes, MaxFrameBytes, VerifyMediaChecksums);

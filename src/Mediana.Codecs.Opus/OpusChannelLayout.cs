@@ -10,12 +10,8 @@ namespace Mediana.Codecs.Opus
     {
         public static AudioFormat Create(OpusConfiguration configuration)
         {
-            string[] channels = configuration.MappingFamily switch
-            {
-                0 or 1 => VorbisChannelOrder.Create(configuration.ChannelCount),
-                255 => VorbisChannelOrder.CreateDiscrete(configuration.ChannelCount),
-                _ => throw new NotSupportedException("The Opus channel mapping family is not supported.")
-            };
+            string[] channels = configuration.GetChannelOrder()
+                ?? throw new NotSupportedException("The Opus channel mapping family is not supported.");
             return new(OpusConfiguration.ClockRate, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, channels);
         }
     }

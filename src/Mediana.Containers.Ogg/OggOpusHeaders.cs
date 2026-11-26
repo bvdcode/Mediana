@@ -23,6 +23,7 @@ namespace Mediana.Containers.Ogg
         public override EncodedStreamFormat Format => StreamFormats.Opus;
         public override int SampleRate => OpusConfiguration.ClockRate;
         public override int ChannelCount => configuration.ChannelCount;
+        public override string[]? GetChannelOrder() => configuration.GetChannelOrder();
         public override int HeaderCount => 2;
         public override int PreSkip => configuration.PreSkipSamples;
         public override int SeekPreroll => OpusConfiguration.SeekPrerollSamples;

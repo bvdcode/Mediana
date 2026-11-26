@@ -12,7 +12,7 @@ namespace Mediana.Containers.Ogg
     /// <summary>Indexes Theora/Opus/Vorbis packets in a complete Ogg source, including separate logical streams and links.
     /// Opening scans and verifies pages, retaining only headers and packet locations, not compressed media.
     /// Borrows an immutable random-access source. Operations must not overlap; failed reads can be retried.</summary>
-    public class OggReader : IIndexedPrerollReader, IIndexedPresentationTimingReader, IIndexedPacketTimingReader
+    public class OggReader : IIndexedPrerollReader, IIndexedPresentationTimingReader, IIndexedPacketTimingReader, IContainerStreamMetadataProvider
     {
         private readonly IRandomAccessByteSource source;
         private readonly MediaBufferAllocator allocator;
@@ -94,6 +94,13 @@ namespace Mediana.Containers.Ogg
         {
             Enter();
             try { return Track(streamIndex).Index.Count; }
+            finally { Exit(); }
+        }
+
+        public StreamMetadata GetStreamMetadata(int streamIndex)
+        {
+            Enter();
+            try { return Track(streamIndex).GetStreamMetadata(); }
             finally { Exit(); }
         }
 

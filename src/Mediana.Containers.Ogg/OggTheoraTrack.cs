@@ -24,6 +24,30 @@ namespace Mediana.Containers.Ogg
         private bool anchored, ended;
         public override TimeBase Clock { get; }
 
+        public override StreamMetadata GetStreamMetadata()
+        {
+            VideoChromaSampling sampling = identification.PixelFormat switch
+            {
+                0 => VideoChromaSampling.Sampling420,
+                2 => VideoChromaSampling.Sampling422,
+                3 => VideoChromaSampling.Sampling444,
+                _ => throw new InvalidDataException("Invalid Theora pixel format.")
+            };
+            SampleAspectRatio? aspect = identification.AspectRatioNumerator != 0 && identification.AspectRatioDenominator != 0
+                ? new(identification.AspectRatioNumerator, identification.AspectRatioDenominator) : null;
+            return new VideoStreamMetadata([new(identification.Width, identification.Height, sampling, 8, 8, true, aspect)
+            {
+                NominalFrameRate = new(identification.FrameRateNumerator, identification.FrameRateDenominator),
+                PixelFormat = sampling switch
+                {
+                    VideoChromaSampling.Sampling420 => VideoPixelFormat.Yuv420P8,
+                    VideoChromaSampling.Sampling422 => VideoPixelFormat.Yuv422P8,
+                    VideoChromaSampling.Sampling444 => VideoPixelFormat.Yuv444P8,
+                    _ => throw new InvalidOperationException("Unexpected Theora chroma sampling.")
+                }
+            }]);
+        }
+
         internal OggTheoraTrack(int streamIndex, OggPacket packet, MediaBufferAllocator allocator) : base(streamIndex, packet, allocator)
         {
             identification = TheoraIdentification.Read(packet.Data.Span); first = packet.Data.ToArray();

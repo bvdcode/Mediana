@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Text;
+using System.Globalization;
 using Mediana.Core.Metadata;
 
 namespace Mediana.Containers.Mp4
@@ -54,6 +55,8 @@ namespace Mediana.Containers.Mp4
                         break;
                     case "name":
                     case "tnam":
+                    case "loci":
+                    case "©xyz":
                         Mp4UserDataItem item = Mp4UserDataParser.Read(child, sourcePath, budget);
                         int offset = 0;
                         if (!child.Payload.IsEmpty && (!root.Span.Overlaps(child.Payload.Span, out offset) || offset < 0))
@@ -176,6 +179,13 @@ namespace Mediana.Containers.Mp4
                 2 => ReadText(data.Span, Utf16),
                 _ => null
             };
+            if (type == 0 && keyNamespace == "mdir" && name is "trkn" or "disk")
+            {
+                ushort number = Mp4Binary.UInt16(data.Span, 2);
+                ushort total = Mp4Binary.UInt16(data.Span, 4);
+                text = total == 0 ? number.ToString(CultureInfo.InvariantCulture)
+                    : string.Create(CultureInfo.InvariantCulture, $"{number}/{total}");
+            }
             int offset = 0;
             if (!data.IsEmpty && (!root.Span.Overlaps(data.Span, out offset) || offset < 0))
             {

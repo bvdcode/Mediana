@@ -70,7 +70,8 @@ namespace Mediana.Containers.Aiff
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
-                reader.Info = new ContainerInfo("aiff", reader.Duration);
+                reader.Info = new ContainerInfo("aiff", reader.Duration, reader.tags,
+                    [new(0, reader.Duration, packetIndex: new(reader.packetCount, reader.soundRemaining, reader.Duration))]);
                 opened = true;
                 return reader;
             }
@@ -111,7 +112,12 @@ namespace Mediana.Containers.Aiff
                         break;
                     case SoundChunk:
                         await ReadSoundHeaderAsync(chunkSize, cancellationToken).ConfigureAwait(false);
+                        long packetBytes = (long)Math.Max(1, options.SamplesPerPacket / samplesPerBlock) * blockAlignment;
+                        packetCount = (soundRemaining + packetBytes - 1) / packetBytes;
                         return;
+                    case 0x4E414D45:
+                        await ReadNameAsync(chunkSize, cancellationToken).ConfigureAwait(false);
+                        break;
                     default:
                         await SkipMetadataAsync(chunkSize, cancellationToken).ConfigureAwait(false);
                         await ReadPaddingAsync(chunkSize, cancellationToken).ConfigureAwait(false);

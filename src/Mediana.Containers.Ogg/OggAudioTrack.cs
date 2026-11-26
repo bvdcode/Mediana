@@ -25,6 +25,8 @@ namespace Mediana.Containers.Ogg
         public override int SeekPreroll => headers.SeekPreroll;
         public override int MinimumSeekPackets => headers.MinimumSeekPackets;
         public override TimeBase Clock => new(1, headers.SampleRate);
+        public override StreamMetadata GetStreamMetadata() =>
+            new AudioStreamMetadata(headers.SampleRate, headers.ChannelCount, channelOrder: headers.GetChannelOrder());
 
         public override void Add(OggPacket packet, CancellationToken token)
         {

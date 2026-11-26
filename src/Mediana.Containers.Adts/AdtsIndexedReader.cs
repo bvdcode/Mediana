@@ -32,14 +32,25 @@ namespace Mediana.Containers.Adts
             this.framing = framing;
             FirstFrame = first;
             TimeBase clock = new(1, first.SampleRate);
+            MediaDuration duration = new(locations[^1].SampleOffset
+                + locations[^1].RawDataBlockCount * AdtsFrameValidation.SamplesPerFrame, clock);
             Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, AacConfiguration.CodecId,
                 AdtsPacketFactory.GetFormat(framing), clock, first.ToAudioSpecificConfig(),
-                codedDuration: new MediaDuration(locations[^1].SampleOffset
-                    + locations[^1].RawDataBlockCount * AdtsFrameValidation.SamplesPerFrame, clock)) });
+                codedDuration: duration) });
+            long payload = 0;
+            foreach (AdtsFrameLocation location in locations)
+            {
+                payload += location.ByteLength;
+                if (framing == AdtsPacketFraming.TransportFrame)
+                {
+                    payload += AdtsFrameHeader.ByteLength + (location.HasCrc ? 2 * location.RawDataBlockCount : 0);
+                }
+            }
+            Info = new("adts", null, [], [new(0, packetIndex: new(locations.Count, payload, duration))], null, null, duration);
         }
 
         public AdtsFrameHeader FirstFrame { get; }
-        public ContainerInfo Info { get; } = new("adts");
+        public ContainerInfo Info { get; }
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
 
         public static ValueTask<AdtsIndexedReader> OpenAsync(IRandomAccessByteSource source,
