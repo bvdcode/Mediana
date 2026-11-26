@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace Mediana.Codecs.H264
 {
@@ -87,26 +86,19 @@ namespace Mediana.Codecs.H264
         private readonly bool IsUniformPrediction()
         {
             int first = address / columns * 4 * stride + address % columns * 4;
-            return IsUniform(indicesL0, motionXL0, motionYL0, first)
-                && (!picture.HasBidirectionalMotion || IsUniform(indicesL1, motionXL1, motionYL1, first));
+            return IsUniform(indicesL0, motionL0, first)
+                && (!picture.HasBidirectionalMotion || IsUniform(indicesL1, motionL1, first));
         }
 
-        private readonly bool IsUniform(ReadOnlySpan<byte> indices, ReadOnlySpan<int> motionX, ReadOnlySpan<int> motionY, int first)
+        private readonly bool IsUniform(ReadOnlySpan<byte> indices, H264StoredMotion motion, int first)
         {
             byte reference = indices[first];
             uint repeated = reference * 0x01010101u;
-            Vector128<int> x = Vector128.Create(motionX[first]);
-            Vector128<int> y = Vector128.Create(motionY[first]);
             for (int row = 0; row < 4; row++)
             {
                 int start = first + row * stride;
-                if (MemoryMarshal.Read<uint>(indices.Slice(start, 4)) != repeated)
-                {
-                    return false;
-                }
-                if (reference != byte.MaxValue
-                    && (!Vector128.EqualsAll(Vector128.Create(motionX.Slice(start, 4)), x)
-                        || !Vector128.EqualsAll(Vector128.Create(motionY.Slice(start, 4)), y)))
+                if (MemoryMarshal.Read<uint>(indices.Slice(start, 4)) != repeated
+                    || (reference != byte.MaxValue && !motion.IsUniformRow(first, start)))
                 {
                     return false;
                 }

@@ -14,10 +14,8 @@ namespace Mediana.Codecs.H264
         private readonly ReadOnlySpan<H264MacroblockFlags> flags;
         private readonly ReadOnlySpan<byte> indicesL0;
         private readonly ReadOnlySpan<byte> indicesL1;
-        private readonly ReadOnlySpan<int> motionXL0;
-        private readonly ReadOnlySpan<int> motionYL0;
-        private readonly ReadOnlySpan<int> motionXL1;
-        private readonly ReadOnlySpan<int> motionYL1;
+        private readonly H264StoredMotion motionL0;
+        private readonly H264StoredMotion motionL1;
         private readonly int stride;
         private readonly int columns;
         private bool? uniformPrediction;
@@ -38,13 +36,11 @@ namespace Mediana.Codecs.H264
             counts = picture.Counts(0);
             flags = picture.MacroblockFlags;
             indicesL0 = picture.ReferenceIndices(H264ReferenceList.L0);
-            motionXL0 = picture.MotionX(H264ReferenceList.L0);
-            motionYL0 = picture.MotionY(H264ReferenceList.L0);
+            motionL0 = picture.MotionVectors(H264ReferenceList.L0);
             if (picture.HasBidirectionalMotion)
             {
                 indicesL1 = picture.ReferenceIndices(H264ReferenceList.L1);
-                motionXL1 = picture.MotionX(H264ReferenceList.L1);
-                motionYL1 = picture.MotionY(H264ReferenceList.L1);
+                motionL1 = picture.MotionVectors(H264ReferenceList.L1);
             }
             stride = picture.Width / 4;
             columns = picture.Sequence.WidthInMbs;
@@ -97,20 +93,15 @@ namespace Mediana.Codecs.H264
                 throw new InvalidDataException("The H.264 inter edge has no prediction reference.");
             }
             if (ReferenceEquals(p0, q0) && ReferenceEquals(p1, q1)
-                && (p0 is null || Near(motionXL0, motionYL0, motionXL0, motionYL0, previous, current, verticalLimit))
-                && (p1 is null || Near(motionXL1, motionYL1, motionXL1, motionYL1, previous, current, verticalLimit)))
+                && (p0 is null || motionL0.Near(motionL0, previous, current, verticalLimit))
+                && (p1 is null || motionL1.Near(motionL1, previous, current, verticalLimit)))
             {
                 return 0;
             }
             return ReferenceEquals(p0, q1) && ReferenceEquals(p1, q0)
-                && (p0 is null || Near(motionXL0, motionYL0, motionXL1, motionYL1, previous, current, verticalLimit))
-                && (p1 is null || Near(motionXL1, motionYL1, motionXL0, motionYL0, previous, current, verticalLimit)) ? 0 : 1;
+                && (p0 is null || motionL0.Near(motionL1, previous, current, verticalLimit))
+                && (p1 is null || motionL1.Near(motionL0, previous, current, verticalLimit)) ? 0 : 1;
         }
-
-        private static bool Near(ReadOnlySpan<int> previousX, ReadOnlySpan<int> previousY,
-            ReadOnlySpan<int> currentX, ReadOnlySpan<int> currentY, int previous, int current, int verticalLimit) =>
-            Math.Abs((long)previousX[previous] - currentX[current]) < 4
-            && Math.Abs((long)previousY[previous] - currentY[current]) < verticalLimit;
 
         private readonly bool HasResidual(int x, int y, int position, int macroblock)
         {

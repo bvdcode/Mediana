@@ -11,7 +11,8 @@ namespace Mediana.Codecs.H264
     internal partial class H264Picture : IDisposable
     {
         public const byte InterMode = 9;
-        private const int MotionBytesPerBlock = sizeof(byte) + 2 * sizeof(int);
+        private readonly int motionComponentBytes;
+        private int MotionBytesPerBlock => sizeof(byte) + 2 * motionComponentBytes;
         private readonly WritableMediaBuffer storage;
         private readonly int modesOffset;
         private readonly int quantizersOffset;
@@ -24,6 +25,16 @@ namespace Mediana.Codecs.H264
 
         public H264Picture(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, H264SliceKind kind,
             H264PictureStructure structure = H264PictureStructure.Frame)
+            : this(sequence, allocator, kind, structure, compactMotion: false)
+        {
+        }
+
+        public static H264Picture CreateForCoding(H264SequenceParameterSet sequence, MediaBufferAllocator allocator,
+            H264SliceKind kind, H264PictureStructure structure = H264PictureStructure.Frame) =>
+            new(sequence, allocator, kind, structure, compactMotion: true);
+
+        private H264Picture(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, H264SliceKind kind,
+            H264PictureStructure structure, bool compactMotion)
         {
             referenceLists = kind switch
             {
@@ -35,6 +46,7 @@ namespace Mediana.Codecs.H264
             Sequence = sequence;
             Structure = structure;
             Layout = new H264PictureLayout(sequence, structure);
+            motionComponentBytes = compactMotion && !Layout.MacroblockAdaptiveFrameField ? sizeof(short) : sizeof(int);
             LumaQuantizer = new H264Quantizer(sequence.LumaBitDepth);
             ChromaQuantizer = new H264Quantizer(sequence.ChromaBitDepth);
             SampleBytes = sequence.LumaBitDepth <= 8 ? 1 : 2;
