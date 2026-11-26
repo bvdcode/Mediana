@@ -50,11 +50,16 @@ namespace Mediana.Codecs.H264
 
         private readonly bool HasOnlyPredictedSamples(int first)
         {
+            if (currentResiduals != 0)
+            {
+                return false;
+            }
             const uint interModes = H264Picture.InterMode * 0x01010101u;
             for (int row = 0; row < 4; row++)
             {
                 int start = first + row * stride;
-                if (MemoryMarshal.Read<uint>(modes[start..]) != interModes || MemoryMarshal.Read<uint>(counts[start..]) != 0)
+                if (MemoryMarshal.Read<uint>(modes[start..]) != interModes ||
+                    (!counts.IsEmpty && MemoryMarshal.Read<uint>(counts[start..]) != 0))
                 {
                     return false;
                 }

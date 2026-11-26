@@ -46,20 +46,28 @@ namespace Mediana.Codecs.H264
             int stride, scoped Span<int> levels, scoped ReadOnlySpan<int> dc)
             where TReader : IH264ResidualReader
         {
-            Span<byte> counts = target.Counts(plane);
-            int countStride = target.Stride(plane) / 4;
-            int start = target.BlockIndex(plane, x, y);
+            Span<byte> counts = target.HasPackedResiduals ? [] : target.Counts(plane);
+            int countStride = counts.IsEmpty ? 0 : target.Stride(plane) / 4;
+            int start = counts.IsEmpty ? 0 : target.BlockIndex(plane, x, y);
             int sampleBytes = target.SampleBytes;
             Span<int> residual = stackalloc int[16];
             for (int index = 0; index < 16; index++)
             {
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
-                levels.Clear();
                 bool coded = (pattern & (1 << (index / 4))) != 0;
-                int count = coded
-                    ? reader.Read(ref bits, H264ResidualCategory.Intra16LumaAc, plane, x + blockX, y + blockY, levels)
-                    : 0;
-                counts[start + blockY / 4 * countStride + blockX / 4] = (byte)count;
+                int count = 0;
+                if (coded)
+                {
+                    count = reader.Read(ref bits, H264ResidualCategory.Intra16LumaAc, plane, x + blockX, y + blockY, levels);
+                }
+                else
+                {
+                    levels.Clear();
+                }
+                if (!counts.IsEmpty)
+                {
+                    counts[start + blockY / 4 * countStride + blockX / 4] = (byte)count;
+                }
                 int scaledDc = dc[blockY + blockX / 4];
                 if (count == 0 && scaledDc == 0)
                 {

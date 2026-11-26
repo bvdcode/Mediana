@@ -3,13 +3,33 @@
 
 namespace Mediana.Codecs.H264
 {
-    internal readonly struct H264CabacResidualReader(H264CabacReader reader, H264Picture target,
-        H264CabacMacroblockState state, int address) : IH264ResidualReader
+    internal readonly struct H264CabacResidualReader : IH264ResidualReader
     {
-        private readonly int left = state.Left(address);
-        private readonly int top = state.Top(address);
-        private readonly bool intra = state.IsIntra(address);
-        private readonly bool field = target.Grid.IsField(address);
+        private readonly H264CabacReader reader;
+        private readonly H264Picture target;
+        private readonly H264CabacMacroblockState state;
+        private readonly H264CabacBlockFlagWindow? window;
+        private readonly int address;
+        private readonly int left;
+        private readonly int top;
+        private readonly bool intra;
+        private readonly bool field;
+
+        public H264CabacResidualReader(H264CabacReader reader, H264Picture target, H264CabacMacroblockState state, int address)
+        {
+            this.reader = reader;
+            this.target = target;
+            this.state = state;
+            this.address = address;
+            left = state.Left(address);
+            top = state.Top(address);
+            intra = state.IsIntra(address);
+            window = state.BlockFlags;
+            field = window is null && target.Grid.IsField(address);
+            window?.Begin(address, left, top, intra);
+        }
+
+        public void CompleteMacroblock() => window?.Complete();
 
         private int Coded8x8Context(int plane, int x, int y)
         {
@@ -37,6 +57,10 @@ namespace Mediana.Codecs.H264
 
         public int Read(ref H264BitReader bits, H264ResidualCategory category, int plane, int x, int y, scoped Span<int> coefficients)
         {
+            if (window is not null)
+            {
+                return ReadPacked(ref bits, window, category, plane, x, y, coefficients);
+            }
             int horizontalScale = target.HorizontalScale(plane);
             int verticalScale = target.VerticalScale(plane);
             if (category == H264ResidualCategory.Luma8x8)
@@ -57,7 +81,7 @@ namespace Mediana.Codecs.H264
             bool dc = category is H264ResidualCategory.Intra16LumaDc or H264ResidualCategory.ChromaDc;
             if (dc)
             {
-                context = state.DcCondition(left, plane, intra) + 2 * state.DcCondition(top, plane, intra);
+                context = DcContext(plane);
             }
             else if (target.Layout.MacroblockAdaptiveFrameField)
             {
@@ -81,5 +105,37 @@ namespace Mediana.Codecs.H264
             }
             return total;
         }
+
+        private int ReadPacked(ref H264BitReader bits, H264CabacBlockFlagWindow flags, H264ResidualCategory category,
+            int plane, int x, int y, scoped Span<int> coefficients)
+        {
+            if (category == H264ResidualCategory.Luma8x8)
+            {
+                int count = H264CabacResidual.Read(ref bits, reader, category, 0, coefficients);
+                if (count != 0)
+                {
+                    flags.Mark8x8(H264CodedBlockFlags.LumaIndex(x, y));
+                }
+                return count;
+            }
+            bool dc = category is H264ResidualCategory.Intra16LumaDc or H264ResidualCategory.ChromaDc;
+            int block = dc ? 0 : H264CodedBlockFlags.BlockIndex(plane, x, y);
+            int context = dc ? DcContext(plane) : flags.Context(block);
+            int total = H264CabacResidual.ReadProgressiveBlock(ref bits, reader, category, context, coefficients);
+            if (total != 0)
+            {
+                if (dc)
+                {
+                    state.DcFlags[address] |= (byte)(1 << plane);
+                }
+                else
+                {
+                    flags.Mark4x4(block);
+                }
+            }
+            return total;
+        }
+
+        private int DcContext(int plane) => state.DcCondition(left, plane, intra) + 2 * state.DcCondition(top, plane, intra);
     }
 }

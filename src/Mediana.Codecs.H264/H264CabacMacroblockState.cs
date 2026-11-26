@@ -16,6 +16,7 @@ namespace Mediana.Codecs.H264
         private readonly int columns;
         private readonly int firstMacroblock;
         private readonly H264Picture picture;
+        internal H264CabacBlockFlagWindow? BlockFlags { get; }
 
         public H264CabacMacroblockState(H264Picture picture, MediaBufferAllocator allocator, int firstMacroblock = 0)
         {
@@ -23,6 +24,10 @@ namespace Mediana.Codecs.H264
             this.firstMacroblock = firstMacroblock;
             columns = picture.Sequence.WidthInMbs;
             count = picture.Layout.MacroblockCount;
+            if (picture.HasPackedResiduals)
+            {
+                BlockFlags = new(picture.PackedResidualStorage);
+            }
             storage = allocator.Allocate(checked(count * 4));
             syntax = storage.Memory;
         }

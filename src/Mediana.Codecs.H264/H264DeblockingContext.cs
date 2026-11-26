@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
+
 namespace Mediana.Codecs.H264
 {
     internal ref partial struct H264DeblockingContext
@@ -11,6 +13,7 @@ namespace Mediana.Codecs.H264
         private readonly H264PictureIdentity? singleReference;
         private readonly ReadOnlySpan<byte> modes;
         private readonly ReadOnlySpan<byte> counts;
+        private readonly ReadOnlySpan<uint> packedResiduals;
         private readonly ReadOnlySpan<H264MacroblockFlags> flags;
         private readonly ReadOnlySpan<byte> indicesL0;
         private readonly ReadOnlySpan<byte> indicesL1;
@@ -21,6 +24,9 @@ namespace Mediana.Codecs.H264
         private bool? uniformPrediction;
         private bool uniformValidated;
         private int address;
+        private uint currentResiduals;
+        private uint verticalResidualEdges;
+        private uint horizontalResidualEdges;
         private H264PictureReferences? currentReferences;
         private H264PictureReferences? leftReferences;
         private H264PictureReferences? topReferences;
@@ -33,7 +39,8 @@ namespace Mediana.Codecs.H264
             this.referencesL1 = referencesL1;
             this.singleReference = singleReference;
             modes = picture.Modes;
-            counts = picture.Counts(0);
+            packedResiduals = MemoryMarshal.Cast<byte, uint>(picture.PackedResidualStorage.Span);
+            counts = packedResiduals.IsEmpty ? picture.Counts(0) : [];
             flags = picture.MacroblockFlags;
             indicesL0 = picture.ReferenceIndices(H264ReferenceList.L0);
             motionL0 = picture.MotionVectors(H264ReferenceList.L0);
@@ -49,6 +56,16 @@ namespace Mediana.Codecs.H264
         public void BeginMacroblock(int macroblock)
         {
             address = macroblock;
+            if (!packedResiduals.IsEmpty)
+            {
+                currentResiduals = packedResiduals[macroblock] & H264CodedBlockFlags.Luma;
+                uint left = macroblock % columns == 0 ? 0 : packedResiduals[macroblock - 1] & H264CodedBlockFlags.Luma;
+                uint top = macroblock < columns ? 0 : packedResiduals[macroblock - columns] & H264CodedBlockFlags.Luma;
+                verticalResidualEdges = currentResiduals | H264CodedBlockFlags.InteriorLeft(currentResiduals) |
+                    H264CodedBlockFlags.LeftBorder(left);
+                horizontalResidualEdges = currentResiduals | H264CodedBlockFlags.InteriorTop(currentResiduals) |
+                    H264CodedBlockFlags.TopBorder(top);
+            }
             currentReferences = null;
             leftReferences = null;
             topReferences = null;
@@ -67,8 +84,11 @@ namespace Mediana.Codecs.H264
             }
             bool previousMacroblock = ((vertical ? x : y) & 15) == 0;
             int previousAddress = previousMacroblock ? address - (vertical ? 1 : columns) : address;
-            if (HasResidual(x - (vertical ? 1 : 0), y - (vertical ? 0 : 1), previous, previousAddress)
-                || HasResidual(x, y, current, address))
+            bool residual = packedResiduals.IsEmpty
+                ? HasResidual(x - (vertical ? 1 : 0), y - (vertical ? 0 : 1), previous, previousAddress)
+                    || HasResidual(x, y, current, address)
+                : (((vertical ? verticalResidualEdges : horizontalResidualEdges) >> H264CodedBlockFlags.LumaIndex(x, y)) & 1u) != 0;
+            if (residual)
             {
                 return 2;
             }

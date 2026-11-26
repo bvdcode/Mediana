@@ -12,7 +12,10 @@ namespace Mediana.Codecs.H264
             CancellationToken cancellationToken)
         {
             H264SliceKind storageKind = slices.Any(slice => slice.Header.Kind == H264SliceKind.B) ? H264SliceKind.B : H264SliceKind.P;
-            H264Picture picture = H264Picture.CreateForCoding(slices[0].Header.Sequence, allocator, storageKind, slices[0].Header.Structure);
+            H264SliceHeader first = slices[0].Header;
+            bool packedResiduals = first.Picture.Cabac && H264CodedBlockFlags.Supports(first.Sequence) &&
+                (slices.Count == 1 || slices.All(slice => slice.Header.Picture.Cabac));
+            H264Picture picture = H264Picture.CreateForCoding(first.Sequence, allocator, storageKind, first.Structure, packedResiduals);
             bool complete = false;
             try
             {

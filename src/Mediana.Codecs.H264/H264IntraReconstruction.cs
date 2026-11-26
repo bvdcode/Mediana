@@ -45,7 +45,7 @@ namespace Mediana.Codecs.H264
             bool field = target.IsFieldMacroblock(x, y);
             Span<int> coefficients = stackalloc int[16];
             Span<byte> prediction = stackalloc byte[16 * target.SampleBytes];
-            Span<byte> counts = target.Counts(plane);
+            Span<byte> counts = target.HasPackedResiduals ? [] : target.Counts(plane);
             Span<byte> modes = target.Modes;
             for (int index = 0; index < 16; index++)
             {
@@ -56,10 +56,12 @@ namespace Mediana.Codecs.H264
                 int count = 0;
                 if ((pattern & (1 << (index / 4))) != 0)
                 {
-                    coefficients.Clear();
                     count = reader.Read(ref bits, H264ResidualCategory.Luma4x4, plane, column, row, coefficients);
                 }
-                counts[position] = (byte)count;
+                if (!counts.IsEmpty)
+                {
+                    counts[position] = (byte)count;
+                }
                 target.PredictLuma4x4(column, row, modes[position] & 127, prediction, constrained, plane);
                 if (count == 0)
                 {

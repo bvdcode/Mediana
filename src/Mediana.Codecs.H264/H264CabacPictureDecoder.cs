@@ -20,7 +20,8 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException(reason ?? "CABAC reconstruction requires a CABAC slice.");
             }
-            H264Picture result = H264Picture.CreateForCoding(header.Sequence, allocator, header.Kind, header.Structure);
+            H264Picture result = H264Picture.CreateForCoding(header.Sequence, allocator, header.Kind, header.Structure,
+                H264CodedBlockFlags.Supports(header.Sequence));
             bool complete = false;
             try
             {
@@ -172,6 +173,7 @@ namespace Mediana.Codecs.H264
                     {
                         H264CabacResidualReader residuals = new(reader, result, state, address);
                         H264Residuals.ReadInter(ref bits, residuals, result, header.Picture, x, y, pattern, qp, prediction);
+                        residuals.CompleteMacroblock();
                     }
                 }
                 else
@@ -195,6 +197,7 @@ namespace Mediana.Codecs.H264
                         result.Quantizers[address] = (byte)qp;
                         H264CabacResidualReader residuals = new(reader, result, state, address);
                         H264IntraReconstruction.Read(ref bits, residuals, result, header, x, y, intraType, state.ChromaModes[address], pattern, qp);
+                        residuals.CompleteMacroblock();
                     }
                 }
                 if (!header.Layout.MacroblockAdaptiveFrameField || (address & 1) != 0)

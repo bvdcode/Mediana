@@ -20,6 +20,7 @@ namespace Mediana.Codecs.H264
         private readonly int chromaBlocks;
         private readonly int macroblocks;
         private readonly int referenceLists;
+        private readonly bool packedResiduals;
         private Memory<byte> metadata;
         private Memory<byte> lumaModes;
 
@@ -30,12 +31,13 @@ namespace Mediana.Codecs.H264
         }
 
         public static H264Picture CreateForCoding(H264SequenceParameterSet sequence, MediaBufferAllocator allocator,
-            H264SliceKind kind, H264PictureStructure structure = H264PictureStructure.Frame) =>
-            new(sequence, allocator, kind, structure, compactMotion: true);
+            H264SliceKind kind, H264PictureStructure structure = H264PictureStructure.Frame, bool packedResiduals = false) =>
+            new(sequence, allocator, kind, structure, compactMotion: true, packedResiduals);
 
         private H264Picture(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, H264SliceKind kind,
-            H264PictureStructure structure, bool compactMotion)
+            H264PictureStructure structure, bool compactMotion, bool packedResiduals = false)
         {
+            this.packedResiduals = packedResiduals;
             referenceLists = kind switch
             {
                 H264SliceKind.I or H264SliceKind.P => 1,
@@ -72,14 +74,14 @@ namespace Mediana.Codecs.H264
             lumaBlocks = lumaSamples / 16;
             chromaBlocks = chromaBytes / (16 * SampleBytes);
             macroblocks = lumaSamples / 256;
-            int metadataBytes = checked(lumaBlocks * (2 + MotionBytesPerBlock * referenceLists) + chromaBlocks * 2 + macroblocks * 2);
+            modesOffset = packedResiduals ? checked(macroblocks * sizeof(uint)) : checked(lumaBlocks + chromaBlocks * 2);
+            int metadataBytes = checked(modesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists) + macroblocks * 2);
             int fieldPairBytes = Layout.MacroblockAdaptiveFrameField ? macroblocks / 2 : 0;
             storage = allocator.Allocate(checked(metadataBytes + fieldPairBytes));
             bool complete = false;
             try
             {
                 metadata = storage.Memory;
-                modesOffset = lumaBlocks + chromaBlocks * 2;
                 lumaModes = metadata.Slice(modesOffset, lumaBlocks);
                 quantizersOffset = modesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);
                 Grid = new(Layout, sequence.WidthInMbs, metadata.Slice(metadataBytes, fieldPairBytes));
@@ -158,13 +160,20 @@ namespace Mediana.Codecs.H264
             flags = enabled ? flags | H264MacroblockFlags.Transform8x8 : flags & ~H264MacroblockFlags.Transform8x8;
         }
 
-        public Span<byte> Counts(int index) => index switch
+        public Span<byte> Counts(int index)
         {
-            0 => Metadata[..lumaBlocks],
-            1 => Metadata.Slice(lumaBlocks, chromaBlocks),
-            2 => Metadata.Slice(lumaBlocks + chromaBlocks, chromaBlocks),
-            _ => throw new ArgumentOutOfRangeException(nameof(index))
-        };
+            if (packedResiduals)
+            {
+                throw new InvalidOperationException("This H.264 picture stores coded block flags.");
+            }
+            return index switch
+            {
+                0 => Metadata[..lumaBlocks],
+                1 => Metadata.Slice(lumaBlocks, chromaBlocks),
+                2 => Metadata.Slice(lumaBlocks + chromaBlocks, chromaBlocks),
+                _ => throw new ArgumentOutOfRangeException(nameof(index))
+            };
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int BlockIndex(int plane, int x, int y) => (y / 4) * (Stride(plane) / 4) + x / 4;

@@ -11,6 +11,7 @@ namespace Mediana.Codecs.H264
         {
             (int x, int y) = target.Grid.Position(address);
             H264IntraMacroblock.ReadPcm(ref bits, target, x, y);
+            target.MarkPcmResiduals(address);
             state.Types[address] = 25;
             state.Patterns[address] = 47;
             state.DcFlags[address] = 7;

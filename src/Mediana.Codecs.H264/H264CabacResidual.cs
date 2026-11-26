@@ -37,16 +37,7 @@ namespace Mediana.Codecs.H264
         public static int Read(ref H264BitReader bits, H264CabacReader reader,
             H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients, int bitDepth = 8, bool field = false, int? fullResolutionPlane = null)
         {
-            (int count, int significantBase, int lastBase, int levelBase) = category switch
-            {
-                H264ResidualCategory.Intra16LumaDc => (16, 105, 166, 227),
-                H264ResidualCategory.Intra16LumaAc => (15, 120, 181, 237),
-                H264ResidualCategory.Luma4x4 => (16, 134, 195, 247),
-                H264ResidualCategory.ChromaDc when coefficients.Length is 4 or 8 => (coefficients.Length, 149, 210, 257),
-                H264ResidualCategory.ChromaAc => (15, 152, 213, 266),
-                H264ResidualCategory.Luma8x8 => (64, 402, 417, 426),
-                _ => throw new ArgumentOutOfRangeException(nameof(category))
-            };
+            (int count, int significantBase, int lastBase, int levelBase) = FrameContexts(category, coefficients.Length);
             int? codedBase = category == H264ResidualCategory.Luma8x8 ? null : 85 + (int)category * 4;
             if (fullResolutionPlane is int plane)
             {
@@ -98,6 +89,39 @@ namespace Mediana.Codecs.H264
             {
                 return 0;
             }
+            return ReadCoefficients(ref bits, reader, category, count, significantBase, lastBase, levelBase,
+                coefficients, bitDepth, field);
+        }
+
+        internal static int ReadProgressiveBlock(ref H264BitReader bits, H264CabacReader reader,
+            H264ResidualCategory category, int context, scoped Span<int> coefficients)
+        {
+            if (!reader.Read(ref bits, 85 + (int)category * 4 + context))
+            {
+                coefficients.Clear();
+                return 0;
+            }
+            (int count, int significantBase, int lastBase, int levelBase) = FrameContexts(category, coefficients.Length);
+            coefficients.Clear();
+            return ReadCoefficients(ref bits, reader, category, count, significantBase, lastBase, levelBase,
+                coefficients, 8, field: false);
+        }
+
+        private static (int Count, int Significant, int Last, int Level) FrameContexts(
+            H264ResidualCategory category, int coefficientCount) => category switch
+        {
+            H264ResidualCategory.Intra16LumaDc => (16, 105, 166, 227),
+            H264ResidualCategory.Intra16LumaAc => (15, 120, 181, 237),
+            H264ResidualCategory.Luma4x4 => (16, 134, 195, 247),
+            H264ResidualCategory.ChromaDc when coefficientCount is 4 or 8 => (coefficientCount, 149, 210, 257),
+            H264ResidualCategory.ChromaAc => (15, 152, 213, 266),
+            H264ResidualCategory.Luma8x8 => (64, 402, 417, 426),
+            _ => throw new ArgumentOutOfRangeException(nameof(category))
+        };
+
+        private static int ReadCoefficients(ref H264BitReader bits, H264CabacReader reader, H264ResidualCategory category,
+            int count, int significantBase, int lastBase, int levelBase, scoped Span<int> coefficients, int bitDepth, bool field)
+        {
             ReadOnlySpan<byte> significance = count switch
             {
                 64 => field ? Significant8x8Field : Significant8x8,

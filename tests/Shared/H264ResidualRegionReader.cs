@@ -33,10 +33,9 @@ namespace Mediana.Tests
             }
             (int dx, int dy) = Position(next);
             if (next == 16 || category != H264ResidualCategory.Luma4x4 || plane != 0
-                || sampleX != x + dx || sampleY != y + dy || coefficients.Length != 16
-                || coefficients.ContainsAnyExcept(0))
+                || sampleX != x + dx || sampleY != y + dy || coefficients.Length != 16)
             {
-                throw new InvalidDataException("Residual reconstruction changed entropy order, coordinates or coefficient initialization.");
+                throw new InvalidDataException("Residual reconstruction changed entropy order or coordinates.");
             }
             for (int index = 0; index < next; index++)
             {
@@ -50,6 +49,7 @@ namespace Mediana.Tests
                 }
             }
             int count = Count(next, style);
+            coefficients.Clear();
             if (count != 0)
             {
                 coefficients[0] = Level(next);
