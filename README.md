@@ -73,7 +73,7 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Containers.Mp4` | Ordinary and fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AV1/MPEG-4 Visual/AAC/MP3/AC-3/E-AC-3 packet reading |
 | `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML DV25/MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM, G.711 A-law and μ-law, IMA ADPCM and Microsoft ADPCM reading |
-| `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
+| `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and AIFF-C PCM and Apple IMA4 reading |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing |
 | `Mediana.Containers.Adts` | Streaming/indexed ADTS transport reading, CRC, multiple AAC blocks and exact core sample clocks |
@@ -495,7 +495,7 @@ for independent references and format definitions.
 
 `Mediana.Containers.Aiff` reads one `SSND` chunk from AIFF or AIFF-C, with exact
 sample counts and timestamps. Add `AiffReaderFactory` to the container registry
-and `AiffPcmDecoderFactory` from `Mediana.Codecs.Pcm` to the audio decoder registry.
+and `AiffPcmDecoderFactory` or `AiffIma4Codec` from `Mediana.Codecs.Pcm` to the audio decoder registry.
 The decoder shares PCM conversion with the WAVE path. Its `pcm.aiff` configuration
 contains the four-byte FORM type followed by the complete `COMM` payload.
 
@@ -504,11 +504,15 @@ AIFF-C `NONE`, 16-bit `sowt`/`twos`, and big-endian `fl32`/`fl64`. Decoded integ
 storage is native-endian and left-aligned; signed 8-bit input becomes unsigned
 8-bit PCM. A positive integral sample rate must fit `AudioFormat`.
 
+AIFF-C `ima4` uses one 34-byte packet per channel for 64 interleaved PCM16
+sample frames. The reader expands the COMM packet count into decoded samples.
+Register `AiffIma4Codec` as a stream metadata reader to inspect it without decoding.
+
 The reader borrows the source, streams bounded packets and honors `SSND` offsets
 and trailing block fill. `COMM` and the AIFF-C version chunk must precede `SSND`;
 other chunk orders requiring a backwards read are unsupported. Unknown metadata
-chunks are skipped within byte/count limits. Tags, artwork, multichannel layouts,
-fractional sample rates and compressed AIFF-C codecs are not supported.
+chunks are skipped within byte/count limits. Artwork and fractional sample rates
+require additional handling. Audio channel layouts are mono and stereo.
 Trailing chunks and padding are checked when the stream is drained.
 
 The CLI detects AIFF by content for WAVE conversion, raw PCM, resampling and

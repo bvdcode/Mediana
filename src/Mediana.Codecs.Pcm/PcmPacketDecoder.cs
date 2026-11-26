@@ -80,7 +80,10 @@ namespace Mediana.Codecs.Pcm
             pending = null;
             completed = false;
             faulted = false;
+            ResetPredictors();
         }
+
+        protected virtual void ResetPredictors() { }
 
         private void Fault()
         {

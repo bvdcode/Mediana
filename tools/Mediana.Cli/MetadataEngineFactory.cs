@@ -19,6 +19,7 @@ namespace Mediana.Cli
         public static MediaEngine Create() => ImageEngineFactory.AddDecoders(ContainerEngineFactory.CreateBuilder())
             .AddStreamMetadataReader(new PcmStreamMetadataReader())
             .AddStreamMetadataReader(new AiffPcmStreamMetadataReader())
+            .AddStreamMetadataReader(new AiffIma4Codec())
             .AddStreamMetadataReader(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ALaw))
             .AddStreamMetadataReader(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.MuLaw))
             .AddStreamMetadataReader(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ImaAdpcm))

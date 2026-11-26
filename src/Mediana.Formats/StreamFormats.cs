@@ -42,6 +42,7 @@ namespace Mediana.Formats
         /// <summary>Blocks with WAVE predictor headers. Packet duration, if set, counts valid sample frames and may trim the final block.</summary>
         public static EncodedStreamFormat WaveMicrosoftAdpcm { get; } = new("wave.format", "adpcm.ms.wave.blocks", EncodedPacketBoundary.SampleBlock);
         public static EncodedStreamFormat AiffPcm { get; } = new("aiff.common", "pcm.samples", EncodedPacketBoundary.SampleBlock);
+        public static EncodedStreamFormat AiffIma4 { get; } = new("aiff.common", "adpcm.ima.apple.blocks", EncodedPacketBoundary.SampleBlock);
         public static EncodedStreamFormat QuickTimeTimecode32 { get; } = new("quicktime.timecode-description", "quicktime.timecode32-be", EncodedPacketBoundary.SampleBlock);
     }
 }

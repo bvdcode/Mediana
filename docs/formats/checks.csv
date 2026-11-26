@@ -495,7 +495,7 @@ g711-mulaw,decode,partial,partial,partial,planned,planned,planned,../../tests/Me
 g711-mulaw,encode,planned,planned,planned,planned,planned,planned,
 adpcm-ima-wave,decode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/WaveCompressedAudioTests.cs
 adpcm-ima-wave,encode,planned,planned,planned,planned,planned,planned,
-adpcm-ima-qt,decode,planned,planned,planned,planned,planned,planned,
+adpcm-ima-qt,decode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/Data/Aiff/README.md
 adpcm-ima-qt,encode,planned,planned,planned,planned,planned,planned,
 adpcm-ms,decode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/WaveCompressedAudioTests.cs
 adpcm-ms,encode,planned,planned,planned,planned,planned,planned,

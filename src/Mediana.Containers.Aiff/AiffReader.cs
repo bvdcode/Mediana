@@ -12,7 +12,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Containers.Aiff
 {
-    /// <summary>Sequential mono/stereo PCM reader for AIFF and AIFF-C. Borrows its source.
+    /// <summary>Sequential mono/stereo PCM and Apple IMA4 reader for AIFF and AIFF-C. Borrows its source.
     /// COMM and the AIFF-C FVER chunk must precede SSND. Trailing chunks are validated on drain.</summary>
     public partial class AiffReader : IContainerReader
     {
@@ -25,6 +25,9 @@ namespace Mediana.Containers.Aiff
         private readonly MediaBufferAllocator allocator;
         private readonly AiffReadOptions options;
         private readonly WritableMediaBuffer scratch;
+        private PcmConfiguration? pcmConfiguration;
+        private int blockAlignment;
+        private int samplesPerBlock;
         private long remaining;
         private long metadataBytes;
         private long soundRemaining;
@@ -48,9 +51,11 @@ namespace Mediana.Containers.Aiff
 
         public ContainerInfo Info { get; private set; } = null!;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
-        public PcmConfiguration Configuration { get; private set; } = null!;
+        /// <summary>The uncompressed storage description for a PCM stream.</summary>
+        public PcmConfiguration Configuration => pcmConfiguration ??
+            throw new InvalidOperationException("The AIFF stream does not contain PCM.");
         public long SamplesPerChannel { get; private set; }
-        public MediaDuration Duration => new(SamplesPerChannel, new TimeBase(1, Configuration.Format.SampleRate));
+        public MediaDuration Duration => new(SamplesPerChannel, Streams[0].TimeBase);
 
         public static async ValueTask<AiffReader> OpenAsync(IByteSource source, MediaBufferAllocator allocator,
             AiffReadOptions? options = null, CancellationToken cancellationToken = default)
@@ -137,14 +142,16 @@ namespace Mediana.Containers.Aiff
                     succeeded = true;
                     return null;
                 }
-                int samples = (int)Math.Min(options.SamplesPerPacket, soundRemaining / Configuration.BlockAlignment);
-                int bytes = checked(samples * Configuration.BlockAlignment);
+                int blocks = (int)Math.Min(Math.Max(1, options.SamplesPerPacket / samplesPerBlock), soundRemaining / blockAlignment);
+                int samples = checked(blocks * samplesPerBlock);
+                int bytes = checked(blocks * blockAlignment);
                 using WritableMediaBuffer writable = allocator.Allocate(bytes);
                 await ReadAsync(writable.Memory, cancellationToken).ConfigureAwait(false);
                 using MediaBuffer buffer = writable.Publish();
                 TimeBase timeBase = Streams[0].TimeBase;
                 MediaPacket packet = new(0, buffer, new MediaTimestamp(samplePosition, timeBase),
-                    new MediaTimestamp(samplePosition, timeBase), new MediaDuration(samples, timeBase), isKeyFrame: true);
+                    new MediaTimestamp(samplePosition, timeBase), new MediaDuration(samples, timeBase),
+                    isKeyFrame: samplesPerBlock == 1 || samplePosition == 0);
                 samplePosition += samples;
                 soundRemaining -= bytes;
                 succeeded = true;

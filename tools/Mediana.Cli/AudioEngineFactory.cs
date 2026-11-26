@@ -25,6 +25,7 @@ namespace Mediana.Cli
             .AddAudioDecoder(new DtsDecoderFactory())
             .AddAudioDecoder(new PcmDecoderFactory())
             .AddAudioDecoder(new AiffPcmDecoderFactory())
+            .AddAudioDecoder(new AiffIma4Codec())
             .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ALaw))
             .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.MuLaw))
             .AddAudioDecoder(new WaveCompressedAudioCodec(WaveCompressedAudioEncoding.ImaAdpcm))

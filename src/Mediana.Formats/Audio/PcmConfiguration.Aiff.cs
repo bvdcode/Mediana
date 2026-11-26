@@ -15,21 +15,7 @@ namespace Mediana.Formats.Audio
         public static PcmConfiguration? ReadAiffFormat(ReadOnlySpan<byte> configuration, out string? unsupportedReason)
         {
             unsupportedReason = null;
-            if (configuration.Length < 22)
-            {
-                throw new InvalidDataException("The AIFF common chunk is truncated.");
-            }
-            bool compressed = configuration[..4].SequenceEqual("AIFC"u8);
-            if (!compressed && !configuration[..4].SequenceEqual("AIFF"u8))
-            {
-                throw new InvalidDataException("The PCM configuration has an invalid AIFF form type.");
-            }
-            ReadOnlySpan<byte> common = configuration[4..];
-            if ((!compressed && common.Length != 18) || (compressed && (common.Length < 24 ||
-                common.Length != 22 + ((common[22] + 2) & ~1) || ((common[22] & 1) == 0 && common[^1] != 0))))
-            {
-                throw new InvalidDataException("The AIFF common chunk or its compression name has an invalid length.");
-            }
+            ReadOnlySpan<byte> common = ReadAiffCommon(configuration, out bool compressed);
             int channels = BinaryPrimitives.ReadInt16BigEndian(common);
             int precision = BinaryPrimitives.ReadInt16BigEndian(common[6..]);
             if (channels <= 0 || precision <= 0)
@@ -105,7 +91,27 @@ namespace Mediana.Formats.Audio
                 storageBits, precision, bigEndian, !floating && storageBits == 8);
         }
 
-        private static int? ReadAiffRate(ReadOnlySpan<byte> extended)
+        internal static ReadOnlySpan<byte> ReadAiffCommon(ReadOnlySpan<byte> configuration, out bool compressed)
+        {
+            if (configuration.Length < 22)
+            {
+                throw new InvalidDataException("The AIFF common chunk is truncated.");
+            }
+            compressed = configuration[..4].SequenceEqual("AIFC"u8);
+            if (!compressed && !configuration[..4].SequenceEqual("AIFF"u8))
+            {
+                throw new InvalidDataException("The configuration has an invalid AIFF form type.");
+            }
+            ReadOnlySpan<byte> common = configuration[4..];
+            if ((!compressed && common.Length != 18) || (compressed && (common.Length < 24 ||
+                common.Length != 22 + ((common[22] + 2) & ~1) || ((common[22] & 1) == 0 && common[^1] != 0))))
+            {
+                throw new InvalidDataException("The AIFF common chunk or its compression name has an invalid length.");
+            }
+            return common;
+        }
+
+        internal static int? ReadAiffRate(ReadOnlySpan<byte> extended)
         {
             int exponent = BinaryPrimitives.ReadUInt16BigEndian(extended);
             ulong mantissa = BinaryPrimitives.ReadUInt64BigEndian(extended[2..]);
