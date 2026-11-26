@@ -12,6 +12,7 @@ using Mediana.Codecs.Ffv1;
 using Mediana.Codecs.Vp8;
 using Mediana.Codecs.Vp9;
 using Mediana.Codecs.Theora;
+using Mediana.Codecs.Mpeg2;
 using Mediana.Codecs.Mpeg4Visual;
 using Mediana.Containers.Aiff;
 using Mediana.Containers.Ac3;
@@ -37,6 +38,7 @@ namespace Mediana.Cli
             Action<string> warningHandler = message => logger.LogWarning("{Warning}", message);
             return CreateBuilder(timestampMode)
                 .AddVideoDecoder(new H264DecoderFactory(new() { IgnoreInconsistentPictureTiming = true }, warningHandler))
+                .AddVideoDecoder(new H264AnnexBDecoderFactory(new() { IgnoreInconsistentPictureTiming = true }, warningHandler))
                 .AddVideoDecoder(new HevcDecoderFactory())
                 .AddVideoDecoder(new ProResDecoderFactory(new() { RecoverLegacyAlpha = true }, warningHandler))
                 .AddVideoDecoder(new DvDecoderFactory())
@@ -44,6 +46,7 @@ namespace Mediana.Cli
                 .AddVideoDecoder(new MjpegDecoderFactory(warningHandler: warningHandler))
                 .AddVideoDecoder(new Vp8DecoderFactory())
                 .AddVideoDecoder(new Vp9DecoderFactory())
+                .AddVideoDecoder(new Mpeg2DecoderFactory())
                 .AddVideoDecoder(new Mpeg4DecoderFactory())
                 .AddVideoDecoder(new MicrosoftMpeg4DecoderFactory(MicrosoftMpeg4Configuration.Version3CodecId))
                 .AddVideoDecoder(new MicrosoftMpeg4DecoderFactory(MicrosoftMpeg4Configuration.Wmv2CodecId))
