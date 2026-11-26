@@ -176,6 +176,50 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        public void PredictChromaMacroblock(int x, int y, int mode, Span<byte> output, bool constrained = false)
+        {
+            int planeBytes = ChromaMacroblockBytes;
+            if (Layout.MacroblockAdaptiveFrameField || FullResolutionChroma)
+            {
+                PredictMacroblock(1, x, y, mode, output[..planeBytes], constrained);
+                PredictMacroblock(2, x, y, mode, output[planeBytes..], constrained);
+                return;
+            }
+
+            int lumaX = x * ChromaHorizontalScale;
+            int lumaY = y * ChromaVerticalScale;
+            bool hasTop = mode != 1 && IsAvailable(lumaX, lumaY - 1, constrained);
+            bool hasLeft = mode != 2 && IsAvailable(lumaX - 1, lumaY, constrained);
+            bool hasCorner = mode == 3 && IsAvailable(lumaX - 1, lumaY - 1, constrained);
+            if (SampleBytes == 1)
+            {
+                PredictRasterChromaMacroblock<byte>(x, y, mode, output, hasTop, hasLeft, hasCorner);
+            }
+            else
+            {
+                PredictRasterChromaMacroblock<ushort>(x, y, mode, MemoryMarshal.Cast<byte, ushort>(output),
+                    hasTop, hasLeft, hasCorner);
+            }
+        }
+
+        private void PredictRasterChromaMacroblock<TSample>(int x, int y, int mode, Span<TSample> output,
+            bool hasTop, bool hasLeft, bool hasCorner) where TSample : unmanaged, IBinaryInteger<TSample>
+        {
+            const int size = 8;
+            int height = ChromaMacroblockHeight;
+            int stride = Stride(1);
+            Span<TSample> top = stackalloc TSample[size];
+            Span<TSample> left = stackalloc TSample[height];
+            for (int plane = 1; plane <= 2; plane++)
+            {
+                ReadOnlySpan<TSample> pixels = MemoryMarshal.Cast<byte, TSample>(Plane(plane));
+                TSample? corner = ReadRasterMacroblockNeighbours(pixels, stride, x, y, size, height, top, left,
+                    hasTop, hasLeft, hasCorner);
+                H264IntraPrediction<TSample>.Chroma(mode, hasTop ? top : [], hasLeft ? left : [], corner,
+                    output.Slice((plane - 1) * ChromaMacroblockSamples, ChromaMacroblockSamples), height, MaximumSample);
+            }
+        }
+
         public Span<byte> PredictIntra16InPlace(int plane, int x, int y, int mode, bool constrained, out int stride)
         {
             (int offset, int sampleStride) = SampleLocation(plane, x, y);
@@ -239,19 +283,30 @@ namespace Mediana.Codecs.H264
             int verticalScale = VerticalScale(plane);
             bool hasTop = IsAvailable(x * scale, y * verticalScale - 1, constrained);
             bool hasLeft = IsAvailable(x * scale - 1, y * verticalScale, constrained);
+            bool hasCorner = IsAvailable(x * scale - 1, y * verticalScale - 1, constrained);
+            TSample? corner = ReadRasterMacroblockNeighbours<TSample>(pixels, stride, x, y, size, height, top, left,
+                hasTop, hasLeft, hasCorner);
+            return (hasTop, hasLeft, corner);
+        }
+
+        private static TSample? ReadRasterMacroblockNeighbours<TSample>(ReadOnlySpan<TSample> pixels, int stride,
+            int x, int y, int size, int height, Span<TSample> top, Span<TSample> left,
+            bool hasTop, bool hasLeft, bool hasCorner) where TSample : unmanaged
+        {
+            int start = y * stride + x;
             if (hasTop)
             {
-                pixels.Slice((y - 1) * stride + x, size).CopyTo(top);
+                pixels.Slice(start - stride, size).CopyTo(top);
             }
             if (hasLeft)
             {
-                for (int index = 0; index < height; index++)
+                int offset = start - 1;
+                for (int index = 0; index < height; index++, offset += stride)
                 {
-                    left[index] = pixels[(y + index) * stride + x - 1];
+                    left[index] = pixels[offset];
                 }
             }
-            TSample? corner = IsAvailable(x * scale - 1, y * verticalScale - 1, constrained) ? pixels[(y - 1) * stride + x - 1] : null;
-            return (hasTop, hasLeft, corner);
+            return hasCorner ? pixels[start - stride - 1] : null;
         }
     }
 }

@@ -74,10 +74,7 @@ namespace Mediana.Codecs.H264
             int pattern = H264IntraLumaEncoder.Analyze(bits, source.Luma, reconstructed, x, y, qp, luma);
             Span<byte> prediction = stackalloc byte[128];
             Span<int> coefficients = stackalloc int[H264ChromaEncoder.CoefficientCount];
-            for (int plane = 1; plane <= 2; plane++)
-            {
-                reconstructed.PredictMacroblock(plane, x / 2, y / 2, 0, prediction.Slice((plane - 1) * 64, 64));
-            }
+            reconstructed.PredictChromaMacroblock(x / 2, y / 2, 0, prediction);
             int chromaPattern = H264ChromaEncoder.Analyze(source.Chroma, qp, prediction, coefficients);
             bits.WriteUnsigned(0);
             bits.WriteUnsigned((uint)H264IntraMacroblock.CodedPatterns.IndexOf((byte)(pattern | (chromaPattern << 4))));

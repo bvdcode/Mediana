@@ -76,10 +76,7 @@ namespace Mediana.Codecs.H264
         {
             int planeBytes = target.ChromaMacroblockBytes;
             Span<byte> prediction = stackalloc byte[2 * planeBytes];
-            for (int plane = 1; plane <= 2; plane++)
-            {
-                target.PredictMacroblock(plane, x, y, mode, prediction.Slice((plane - 1) * planeBytes, planeBytes), picture.ConstrainedIntraPrediction);
-            }
+            target.PredictChromaMacroblock(x, y, mode, prediction, picture.ConstrainedIntraPrediction);
             H264Residuals.ReadChroma(ref bits, reader, target, picture, x, y, pattern, qp, prediction);
         }
 

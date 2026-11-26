@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using Mediana.Core.Memory;
@@ -19,6 +20,7 @@ namespace Mediana.Codecs.H264
         private readonly int macroblocks;
         private readonly int referenceLists;
         private Memory<byte> metadata;
+        private Memory<byte> lumaModes;
 
         public H264Picture(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, H264SliceKind kind,
             H264PictureStructure structure = H264PictureStructure.Frame)
@@ -66,6 +68,7 @@ namespace Mediana.Codecs.H264
             {
                 metadata = storage.Memory;
                 modesOffset = lumaBlocks + chromaBlocks * 2;
+                lumaModes = metadata.Slice(modesOffset, lumaBlocks);
                 quantizersOffset = modesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);
                 Grid = new(Layout, sequence.WidthInMbs, metadata.Slice(metadataBytes, fieldPairBytes));
                 writablePixels = allocator.Allocate(checked(lumaBytes + chromaBytes * 2));
@@ -113,7 +116,15 @@ namespace Mediana.Codecs.H264
         public int VerticalScale(int plane) => plane == 0 ? 1 : ChromaVerticalScale;
         public bool HasBidirectionalMotion => referenceLists == 2;
         public int FirstMacroblock { get; set; }
-        public Span<byte> Modes => Metadata.Slice(modesOffset, lumaBlocks);
+        public Span<byte> Modes
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ObjectDisposedException.ThrowIf(lumaModes.IsEmpty, this);
+                return lumaModes.Span;
+            }
+        }
         public Span<byte> Quantizers => Metadata.Slice(quantizersOffset, macroblocks);
         public Span<H264MacroblockFlags> MacroblockFlags =>
             MemoryMarshal.Cast<byte, H264MacroblockFlags>(Metadata.Slice(quantizersOffset + macroblocks, macroblocks));
@@ -143,6 +154,7 @@ namespace Mediana.Codecs.H264
             _ => throw new ArgumentOutOfRangeException(nameof(index))
         };
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int BlockIndex(int plane, int x, int y) => (y / 4) * (Stride(plane) / 4) + x / 4;
         public int Stride(int plane) => Width / HorizontalScale(plane);
 
@@ -282,13 +294,16 @@ namespace Mediana.Codecs.H264
             firstChromaPixels = default;
             secondChromaPixels = default;
             metadata = default;
+            lumaModes = default;
             writablePixels?.Dispose();
             publishedPixels?.Dispose();
             storage.Dispose();
         }
 
-        public bool IsInCurrentSlice(int x, int y) => x >= 0 && x < Width && y >= 0 && y < Height &&
-            y / 16 * Sequence.WidthInMbs + x / 16 >= FirstMacroblock;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsInCurrentSlice(int x, int y) =>
+            (uint)x < (uint)Width && (uint)y < (uint)Height &&
+            (FirstMacroblock == 0 || (y >> 4) * Sequence.WidthInMbs + (x >> 4) >= FirstMacroblock);
 
         private bool IsAvailable(int x, int y, bool constrained)
         {
@@ -296,7 +311,7 @@ namespace Mediana.Codecs.H264
             {
                 return false;
             }
-            byte mode = Modes[BlockIndex(0, x, y)];
+            byte mode = Modes[(y >> 2) * (Width >> 2) + (x >> 2)];
             return mode < 128 && (!constrained || mode != InterMode);
         }
     }

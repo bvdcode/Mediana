@@ -27,8 +27,7 @@ namespace Mediana.Codecs.H264
                 {
                     continue;
                 }
-                target.PredictMacroblock(1, x / 2, y / 2, mode, candidate[..64]);
-                target.PredictMacroblock(2, x / 2, y / 2, mode, candidate[64..]);
+                target.PredictChromaMacroblock(x / 2, y / 2, mode, candidate);
                 Vector128<ushort> sum = Vector128<ushort>.Zero;
                 for (int i = 0; i < candidate.Length; i += 16)
                 {
