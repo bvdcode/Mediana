@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
-using Mediana.Core.Timing;
 using Mediana.Core.Metadata;
+using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.Formats;
 using Mediana.Formats.Audio;
@@ -17,6 +17,7 @@ namespace Mediana.Containers.MpegTs
         public StreamMetadata? Metadata { get; private set; }
         private FrameRate? nominalFrameRate;
         private long? reference;
+        private long? firstPresentation;
         private long packetCount;
         private long payloadBytes;
 
@@ -49,6 +50,10 @@ namespace Mediana.Containers.MpegTs
             long? decode = Expand(header.Dts, reference);
             long? presentation = Expand(header.Pts, decode ?? reference);
             reference = decode ?? presentation ?? reference;
+            if (presentation is long time && (firstPresentation is null || time < firstPresentation.Value))
+            {
+                firstPresentation = time;
+            }
             packetCount++;
             payloadBytes = checked(payloadBytes + length);
             return new(Stream.StreamIndex, position, payload.ToArray(), length,
@@ -60,7 +65,7 @@ namespace Mediana.Containers.MpegTs
         {
             if (Stream.CodecId == "h264")
             {
-                Stream = new(Stream.StreamIndex, Stream.Kind, Stream.CodecId, StreamFormats.AvcAnnexB, Clock, ReadAvcSequence(opening));
+                SetVideoRepresentation(Stream.CodecId, StreamFormats.AvcAnnexB, ReadAvcSequence(opening));
             }
             else if (Stream.Format.PacketFraming == StreamFormats.AacAdtsByteStream.PacketFraming)
             {
@@ -80,10 +85,19 @@ namespace Mediana.Containers.MpegTs
                 MpegVideoSequence.Read(opening) is MpegVideoSequence video)
             {
                 string id = video.Mpeg2 ? "mpeg2video" : "mpeg1video";
-                Stream = new(Stream.StreamIndex, Stream.Kind, id, Stream.Format, Clock);
+                EncodedStreamFormat format = video.Mpeg2 ? StreamFormats.Mpeg2Video : Stream.Format;
+                SetVideoRepresentation(id, format, []);
                 Metadata = video.Metadata;
                 nominalFrameRate = video.Rate;
             }
+        }
+
+        private void SetVideoRepresentation(string codecId, EncodedStreamFormat format, ReadOnlySpan<byte> configuration)
+        {
+            Stream = new(Stream.StreamIndex, MediaKind.Video, codecId, format, Clock, configuration, VideoDisplayMatrix.Identity)
+            {
+                PresentationOrigin = firstPresentation is long time ? new(time, Clock) : null
+            };
         }
 
         private void ReadSyncframeMetadata(ReadOnlySpan<byte> opening)
