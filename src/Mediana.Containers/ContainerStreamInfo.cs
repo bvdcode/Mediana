@@ -13,16 +13,27 @@ namespace Mediana.Containers
         public ContainerStreamInfo(int streamIndex, MediaDuration? declaredDuration = null,
             IEnumerable<MediaTag>? tags = null, ContainerPacketIndexInfo? packetIndex = null, string? language = null,
             IEnumerable<MediaDateTimeTag>? dates = null, FrameRate? averageFrameRate = null)
+            : this(streamIndex, declaredDuration, tags, packetIndex, language, dates, averageFrameRate, null)
+        {
+        }
+
+        public ContainerStreamInfo(int streamIndex, MediaDuration? declaredDuration, IEnumerable<MediaTag>? tags,
+            ContainerPacketIndexInfo? packetIndex, string? language, IEnumerable<MediaDateTimeTag>? dates,
+            FrameRate? averageFrameRate, FrameRate? nominalFrameRate, long? declaredBitRate = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
             declaredDuration?.TimeBase.Validate();
             averageFrameRate?.Validate();
+            nominalFrameRate?.Validate();
+            if (declaredBitRate is <= 0) { throw new ArgumentOutOfRangeException(nameof(declaredBitRate)); }
             StreamIndex = streamIndex;
             DeclaredDuration = declaredDuration;
             Tags = ContainerMetadataSnapshot.CopyTags(tags);
             Dates = ContainerMetadataSnapshot.CopyDates(dates);
             PacketIndex = packetIndex;
             AverageFrameRate = averageFrameRate;
+            NominalFrameRate = nominalFrameRate;
+            DeclaredBitRate = declaredBitRate;
             if (language is not null)
             {
                 ArgumentException.ThrowIfNullOrWhiteSpace(language);
@@ -43,6 +54,10 @@ namespace Mediana.Containers
         /// <summary>Mean coded-video sample rate on the container's decode timeline, or null when unavailable.
         /// Does not declare constant cadence, edit-list presentation rate or decoded output frame count.</summary>
         public FrameRate? AverageFrameRate { get; }
+        /// <summary>Picture cadence declared by the container or opening bitstream headers.</summary>
+        public FrameRate? NominalFrameRate { get; }
+        /// <summary>Bit rate supplied by the native format header, in bits per second.</summary>
+        public long? DeclaredBitRate { get; }
         /// <summary>Declared language identifier (ISO 639 or BCP 47), or null when unavailable.
         /// Original declarations and format-specific selection rules belong to the reader module.</summary>
         public string? Language { get; }

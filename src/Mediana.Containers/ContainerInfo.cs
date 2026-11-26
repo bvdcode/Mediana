@@ -14,9 +14,17 @@ namespace Mediana.Containers
         public ContainerInfo(string formatId, MediaDuration? declaredDuration = null, IEnumerable<MediaTag>? tags = null,
             IEnumerable<ContainerStreamInfo>? streamInfo = null, IEnumerable<MediaDateTimeTag>? dates = null,
             MediaMetadata? metadata = null)
+            : this(formatId, declaredDuration, tags, streamInfo, dates, metadata, null)
+        {
+        }
+
+        public ContainerInfo(string formatId, MediaDuration? declaredDuration, IEnumerable<MediaTag>? tags,
+            IEnumerable<ContainerStreamInfo>? streamInfo, IEnumerable<MediaDateTimeTag>? dates,
+            MediaMetadata? metadata, MediaDuration? indexedDuration)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
             declaredDuration?.TimeBase.Validate();
+            indexedDuration?.TimeBase.Validate();
             Tags = ContainerMetadataSnapshot.CopyTags(tags);
             Dates = ContainerMetadataSnapshot.CopyDates(dates);
             if (streamInfo is not null)
@@ -35,6 +43,7 @@ namespace Mediana.Containers
             FormatId = formatId;
             Metadata = metadata ?? MediaMetadata.Empty;
             DeclaredDuration = declaredDuration;
+            IndexedDuration = indexedDuration;
         }
 
         /// <summary>Stable container-family identifier, independent of the filename and implementation ID.</summary>
@@ -43,6 +52,8 @@ namespace Mediana.Containers
         /// <summary>Duration declared by container metadata in the reader's time representation. Null means unknown.
         /// Format-specific declarations retain native precision when the common representation requires rounding.</summary>
         public MediaDuration? DeclaredDuration { get; }
+        /// <summary>Presentation duration established by a complete index when available.</summary>
+        public MediaDuration? IndexedDuration { get; }
         /// <summary>Text tags from inspected headers in file order. Null means this reader does not expose
         /// header text tags; an empty list means none were found in the supported inspected metadata.
         /// Later metadata, binary values and unimplemented tag structures are not included.</summary>

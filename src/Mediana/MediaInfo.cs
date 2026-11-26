@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using Mediana.Containers;
 using Mediana.Core;
 using Mediana.Core.Metadata;
+using Mediana.Core.Timing;
 
 namespace Mediana
 {
@@ -39,6 +40,8 @@ namespace Mediana
         public ImageInfo? Image { get; }
         /// <summary>Extensible native properties from the inspected media, independent of its representation.</summary>
         public MediaMetadata Metadata => Image?.Metadata ?? Container?.Metadata ?? MediaMetadata.Empty;
+        /// <summary>Container presentation duration from a declaration or complete packet index.</summary>
+        public MediaDuration? Duration => Container?.DeclaredDuration ?? Container?.IndexedDuration;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
         /// <summary>Codec header facts keyed by stream index. Missing entries mean neither container framing
         /// nor registered codec metadata readers established parameters for that stream.</summary>
