@@ -22,7 +22,7 @@ RawImagePreview? preview = await RawPreviewReader.ExtractAsync(
     source, requestedSize: 800, cancellationToken: cancellationToken);
 if (preview is not null)
 {
-    using VideoFrame image = preview.Decode(allocator, cancellationToken: cancellationToken);
+    using VideoFrame image = preview.DecodeForPreview(allocator, cancellationToken);
 }
 ```
 
@@ -37,6 +37,23 @@ RAW readers and sequential streams buffer the encoded input.
 returns null. Invalid preview extents and malformed directories raise read errors.
 Pixel decoding validates compressed samples. JPEG orientation takes precedence
 over the preview directory and camera orientation, including an explicit value of 1.
+
+`DecodeForPreview` carries the extraction size into the JPEG decoder. To supply
+other decode options, pass an `ImageDecodeRequest` with `PreferredLongEdge` to
+`Decode`.
+JPEG selects a native DCT reduction (1, 2, 4 or 8) that retains the requested
+dimensions. The 1/8 mode uses only the mean of each 8 × 8 block and is selected
+when at least two block samples fit per target pixel on each constrained axis.
+For example, a 6000 × 4000 JPEG requested at 2560
+decodes to 3000 × 2000 before the final resize. Intermediate dimensions round up
+to whole samples. For exact output geometry, size the final resize using the
+original display dimensions. Omit the hint for full-resolution
+pixels and use `preview.Encoded` for the original JPEG. The same hints work with
+standalone JPEG and PNG. Each specified axis constrains reduction. `MaximumPixels`
+always applies to the source dimensions. JPEG progressive scans still need
+full-resolution coefficient storage. Reduced JPEG reconstruction averages encoded
+component samples before color conversion, so its pixels can differ from a
+full decode followed by linear-light resizing, especially on thin, high-contrast lines.
 
 | Module | Decoded representations |
 | --- | --- |

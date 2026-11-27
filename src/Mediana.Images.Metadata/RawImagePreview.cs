@@ -12,16 +12,23 @@ namespace Mediana.Images.Metadata
     public class RawImagePreview
     {
         private readonly JpegColorSpace? colorSpace;
+        private readonly int requestedSize;
 
-        internal RawImagePreview(byte[] encoded, int containerExifOrientation, JpegColorSpace? colorSpace)
+        internal RawImagePreview(byte[] encoded, int containerExifOrientation, JpegColorSpace? colorSpace, int requestedSize)
         {
             this.colorSpace = colorSpace;
+            this.requestedSize = requestedSize;
             Encoded = encoded;
             ContainerExifOrientation = containerExifOrientation;
         }
 
         public ReadOnlyMemory<byte> Encoded { get; }
         public int ContainerExifOrientation { get; }
+
+        /// <summary>Decodes the oriented JPEG at a native resolution suitable for the long edge
+        /// requested at extraction. The caller can resize the returned frame to the exact output size.</summary>
+        public VideoFrame DecodeForPreview(MediaBufferAllocator allocator, CancellationToken cancellationToken = default) =>
+            Decode(allocator, new() { PreferredLongEdge = requestedSize }, cancellationToken);
 
         /// <summary>Decodes directly into display orientation. An explicit JPEG orientation takes precedence.</summary>
         public VideoFrame Decode(MediaBufferAllocator allocator, ImageDecodeRequest? request = null, CancellationToken cancellationToken = default)

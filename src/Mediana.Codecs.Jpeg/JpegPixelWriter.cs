@@ -23,12 +23,12 @@ namespace Mediana.Codecs.Jpeg
             else if (!deviceCmyk && image.Metadata.Uncalibrated) { description = new JpegExifColorDescription(); }
             if (preserveCmyk) { color = new(Range: ColorRange.Full); }
             bool swap = image.Metadata.Orientation.SwapsAxes;
-            VideoFormat format = new(swap ? image.Height : image.Width, swap ? image.Width : image.Height,
+            JpegSampleLayout samples = image.Samples;
+            VideoFormat format = new(swap ? samples.Height : samples.Width, swap ? samples.Width : samples.Height,
                 preserveCmyk ? VideoPixelFormat.Cmyk32 : VideoPixelFormat.Rgba32, color, image.Metadata.Aspect, description);
             PlaneLayout[] layout = format.CreateTightLayout();
             using WritableMediaBuffer output = allocator.Allocate(checked((int)layout[0].EndOffset));
-            Write(new(image.Width, image.Height, image.MaximumHorizontal, image.MaximumVertical, image.Components),
-                output.Memory.Span, image.Metadata.ColorSpace, token, image.Metadata.Orientation, image.Metadata.Centered, preserveCmyk);
+            Write(samples, output.Memory.Span, image.Metadata.ColorSpace, token, image.Metadata.Orientation, image.Metadata.Centered, preserveCmyk);
             using MediaBuffer buffer = output.Publish();
             return new VideoFrame(format, buffer, layout);
         }
@@ -46,25 +46,23 @@ namespace Mediana.Codecs.Jpeg
             token.ThrowIfCancellationRequested();
             int width = orientation.SwapsAxes ? image.Height : image.Width;
             int height = orientation.SwapsAxes ? image.Width : image.Height;
-            int phaseX = centered ? image.MaximumHorizontal : 0;
-            int phaseY = centered ? image.MaximumVertical : 0;
             for (int y = 0; y < height; y++)
             {
                 token.ThrowIfCancellationRequested();
                 int sourceX = orientation.SourceX(0, y, image.Width);
                 int sourceY = orientation.SourceY(0, y, image.Height);
-                JpegSampleCursor firstSamples = new(image, image.Components[0], sourceX, sourceY, orientation, phaseX, phaseY);
+                JpegSampleCursor firstSamples = new(image, image.Components[0], sourceX, sourceY, orientation, centered);
                 JpegSampleCursor secondSamples = default;
                 JpegSampleCursor thirdSamples = default;
                 JpegSampleCursor blackSamples = default;
                 if (image.Components.Count > 1)
                 {
-                    secondSamples = new(image, image.Components[1], sourceX, sourceY, orientation, phaseX, phaseY);
-                    thirdSamples = new(image, image.Components[2], sourceX, sourceY, orientation, phaseX, phaseY);
+                    secondSamples = new(image, image.Components[1], sourceX, sourceY, orientation, centered);
+                    thirdSamples = new(image, image.Components[2], sourceX, sourceY, orientation, centered);
                 }
                 if (image.Components.Count == 4)
                 {
-                    blackSamples = new(image, image.Components[3], sourceX, sourceY, orientation, phaseX, phaseY);
+                    blackSamples = new(image, image.Components[3], sourceX, sourceY, orientation, centered);
                 }
                 for (int x = 0; x < width; x++)
                 {

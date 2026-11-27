@@ -53,18 +53,11 @@ namespace Mediana.Codecs.Png
             {
                 throw new InvalidDataException("PNG source exceeds MaximumPixels.");
             }
-            int factor = options.ReductionFactor;
-            if (request.PreferredWidth is not null || request.PreferredHeight is not null)
-            {
-                int displayWidth = image.Orientation.SwapsAxes ? image.Height : image.Width;
-                int displayHeight = image.Orientation.SwapsAxes ? image.Width : image.Height;
-                double horizontal = request.PreferredWidth is int preferredWidth ? displayWidth / (double)preferredWidth : double.PositiveInfinity;
-                double vertical = request.PreferredHeight is int preferredHeight ? displayHeight / (double)preferredHeight : double.PositiveInfinity;
-                factor = Math.Max(factor, (int)Math.Clamp(Math.Floor(Math.Min(horizontal, vertical)), 1, 256));
-            }
+            bool swap = image.Orientation.SwapsAxes;
+            int preferred = request.GetMaximumReduction(swap ? image.Height : image.Width, swap ? image.Width : image.Height);
+            int factor = Math.Max(options.ReductionFactor, Math.Min(256, preferred));
             int width = (image.Width - 1) / factor + 1, height = (image.Height - 1) / factor + 1;
             SampleAspectRatio? aspect = ReducedAspect(image, width, height);
-            bool swap = image.Orientation.SwapsAxes;
             if (swap && aspect is SampleAspectRatio ratio) { aspect = new(ratio.Denominator, ratio.Numerator); }
             VideoFormat format = new(swap ? height : width, swap ? width : height, VideoPixelFormat.Rgba32, image.Color,
                 aspect, image.ColorDescription);

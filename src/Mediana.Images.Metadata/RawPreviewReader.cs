@@ -71,7 +71,7 @@ namespace Mediana.Images.Metadata
             if (selected is null) { return null; }
             int orientation = (selected as RawJpegCandidate)?.DirectoryOrientation ?? image.ContainerExifOrientation;
             token.ThrowIfCancellationRequested();
-            return new(selected.Encoded.ToArray(), orientation, image.PreviewColorSpace);
+            return new(selected.Encoded.ToArray(), orientation, image.PreviewColorSpace, requestedSize);
         }
     }
 }
