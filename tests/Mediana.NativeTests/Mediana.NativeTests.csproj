@@ -26,6 +26,8 @@
     <ProjectReference Include="../../src/Mediana.Images.Apk/Mediana.Images.Apk.csproj" />
     <None Include="../Mediana.Tests/Data/H264DeblockingEncoding/*" Link="Data/H264DeblockingEncoding/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Mpeg4TestInput.cs" Link="Mpeg4TestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Mpeg2/Mediana.Codecs.Mpeg2.csproj" />
+    <None Include="../Mediana.Tests/Data/ReadSupport/timed-mpeg2.mpg" Link="Data/ReadSupport/timed-mpeg2.mpg" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Mpeg4ContainerTestInput.cs" Link="Mpeg4ContainerTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Mpeg4Visual/Mediana.Codecs.Mpeg4Visual.csproj" />
     <None Include="../Mediana.Codecs.Mpeg4Visual.Tests/Data/*" Link="Data/Mpeg4Visual/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
