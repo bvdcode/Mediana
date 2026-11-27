@@ -28,7 +28,7 @@ namespace Mediana.Codecs.H264
                 case H264MacroblockAnalysis.Fast:
                     WriteBlocks<H264FastMacroblockAnalysis>(input, target, reference, keyFrame, quantizer,
                         options.MotionSearchRange, syntax, arithmetic, motion, token, interpolation, null, stationary,
-                        compareMotionRate: options.RateControl is null, lumaOffset: lumaOffset,
+                        lumaFirst: options.RateControl is null, lumaOffset: lumaOffset,
                         coalesceReferenceRuns: !keyFrame && options.Deblocking is not null && options.RateControl is null && lumaOffset == 0);
                     break;
                 case H264MacroblockAnalysis.RateDistortion when keyFrame:
@@ -80,7 +80,7 @@ namespace Mediana.Codecs.H264
         private static void WriteBlocks<TAnalysis>(VideoFrame input, H264Picture target, H264Picture? reference,
             bool keyFrame, int quantizer, int searchRange, H264CabacEncodingSyntax syntax, H264CabacEncoder arithmetic,
             H264CabacPredictionWindow? motion, CancellationToken token, H264MotionReference? interpolation,
-            H264RateDistortionAnalysis? analysis, H264StationaryHistory? stationary, bool compareMotionRate = false,
+            H264RateDistortionAnalysis? analysis, H264StationaryHistory? stationary, bool lumaFirst = false,
             int lumaOffset = 0, bool coalesceReferenceRuns = false)
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
@@ -117,7 +117,7 @@ namespace Mediana.Codecs.H264
                     else
                     {
                         WriteInter<TAnalysis>(syntax, source, target, reference!, motion!, address, x, y, quantizer,
-                            searchRange, prediction, coefficients, token, interpolation, analysis, bounds, stationary, compareMotionRate, lumaOffset);
+                            searchRange, prediction, coefficients, token, interpolation, analysis, bounds, stationary, lumaFirst, lumaOffset);
                     }
                     target.Quantizers[address] = (byte)quantizer;
                     arithmetic.WriteTermination(address == target.Quantizers.Length - 1);
@@ -174,7 +174,7 @@ namespace Mediana.Codecs.H264
         private static void WriteInter<TAnalysis>(H264CabacEncodingSyntax syntax, H264SourceMacroblock source, H264Picture target,
             H264Picture reference, H264CabacPredictionWindow motion, int address, int x, int y, int quantizer,
             int searchRange, Span<byte> prediction, Span<int> coefficients, CancellationToken token, H264MotionReference? interpolation,
-            H264RateDistortionAnalysis? analysis, H264SkipResidualBounds bounds, H264StationaryHistory? stationary, bool compareMotionRate,
+            H264RateDistortionAnalysis? analysis, H264SkipResidualBounds bounds, H264StationaryHistory? stationary, bool lumaFirst,
             int lumaOffset)
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
@@ -197,18 +197,18 @@ namespace Mediana.Codecs.H264
             else if (lumaOffset == 0)
             {
                 (motionX, motionY, temporalDifference) = H264MotionSearch.SelectWithDifference<TAnalysis>(source, reference, target, x, y,
-                    searchRange, prediction, token, interpolation, quantizer, out estimatedVectorBits, lumaFirst: compareMotionRate);
+                    searchRange, prediction, token, interpolation, quantizer, out estimatedVectorBits, lumaFirst);
             }
             else
             {
                 (motionX, motionY, temporalDifference) = SearchWeighted(source, target, reference, x, y, searchRange,
-                    prediction, token, interpolation, quantizer, lumaOffset, compareMotionRate, out estimatedVectorBits);
+                    prediction, token, interpolation, quantizer, lumaOffset, lumaFirst, out estimatedVectorBits);
             }
             int pattern = 0;
             if (temporalDifference != 0)
             {
                 if (!TAnalysis.Enabled && H264FastIntraCandidate.TryWrite(syntax, source, target, address, x, y,
-                    quantizer, temporalDifference, compareMotionRate ? estimatedVectorBits : null, coefficients))
+                    quantizer, temporalDifference, estimatedVectorBits, coefficients))
                 {
                     stationary?.Record(address, source.Samples, false);
                     return;
