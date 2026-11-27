@@ -22,6 +22,29 @@ namespace Mediana.Codecs
         /// <summary>Optional decoding resolution hints. Decoders may retain a higher resolution; presentation controls final sizing.</summary>
         public int? PreferredWidth { get; init; }
         public int? PreferredHeight { get; init; }
+        /// <summary>Minimum desired sample count on the longer display axis when decoding a preview.
+        /// Can be combined with axis-specific hints. Final resizing remains the caller's choice.</summary>
+        public int? PreferredLongEdge { get; init; }
+
+        /// <summary>Largest integer reduction that meets all requested dimensions, or one for full resolution.</summary>
+        public int GetMaximumReduction(int displayWidth, int displayHeight)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(displayWidth);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(displayHeight);
+            ValidateResolutionHints();
+            if (PreferredWidth is null && PreferredHeight is null && PreferredLongEdge is null) { return 1; }
+            int factor = PreferredWidth is int width ? displayWidth / width : int.MaxValue;
+            if (PreferredHeight is int height) { factor = Math.Min(factor, displayHeight / height); }
+            if (PreferredLongEdge is int edge) { factor = Math.Min(factor, Math.Max(displayWidth, displayHeight) / edge); }
+            return Math.Max(1, factor);
+        }
+
+        private void ValidateResolutionHints()
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(PreferredWidth.GetValueOrDefault(1), nameof(PreferredWidth));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(PreferredHeight.GetValueOrDefault(1), nameof(PreferredHeight));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(PreferredLongEdge.GetValueOrDefault(1), nameof(PreferredLongEdge));
+        }
 
         public void Validate(ImageDecoderFeatures features)
         {
@@ -30,7 +53,8 @@ namespace Mediana.Codecs
                 throw new ArgumentOutOfRangeException(nameof(features));
             }
             ArgumentOutOfRangeException.ThrowIfNegative(PageIndex);
-            if (MaximumPixels is <= 0 || PreferredWidth is <= 0 || PreferredHeight is <= 0) { throw new ArgumentOutOfRangeException(nameof(MaximumPixels)); }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumPixels.GetValueOrDefault(1), nameof(MaximumPixels));
+            ValidateResolutionHints();
             if (Time is MediaTimestamp time)
             {
                 time.TimeBase.Validate();
