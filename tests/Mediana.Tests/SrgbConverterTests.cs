@@ -114,6 +114,33 @@ namespace Mediana.Tests
             Assert.Equal(Srgb, output.Format.Color);
         }
 
+        [Fact]
+        public void PolicyResolvedSrgbSharesExactPixelsAndRetainsFrameMetadata()
+        {
+            byte[] pixels = new byte[256 * 4];
+            for (int i = 0; i < 256; i++)
+            {
+                pixels[i * 4] = (byte)i;
+                pixels[i * 4 + 1] = (byte)(255 - i);
+                pixels[i * 4 + 2] = (byte)(i ^ 127);
+                pixels[i * 4 + 3] = (byte)i;
+            }
+            VideoColorInfo color = new(Matrix: MatrixCoefficients.Rgb, Range: ColorRange.Full);
+            VideoFormat format = new(256, 1, VideoPixelFormat.Rgba32, color, SampleAspectRatio.Square, null);
+            MediaBufferAllocator allocator = new(pixels.Length);
+            MediaTimestamp timestamp = new(7, new TimeBase(1, 30));
+            using VideoFrame input = Frame(allocator, format, pixels, timestamp: timestamp);
+            using VideoFrame output = SrgbConverter.ApplyWithColorPolicy(input, PreviewColorPolicy.Resolve, allocator);
+            Assert.True(input.Data.Equals(output.Data));
+            Assert.Equal(color, input.Format.Color);
+            input.Dispose();
+            Assert.Equal(Srgb, output.Format.Color);
+            Assert.Equal(timestamp, output.Timestamp);
+            Assert.Equal(SampleAspectRatio.Square, output.Format.SampleAspectRatio);
+            Assert.Equal(pixels, output.Data.ToArray());
+            Assert.Equal(pixels.Length, allocator.AllocatedBytes);
+        }
+
         [Theory]
         [InlineData(TransferFunction.Pq)]
         [InlineData(TransferFunction.Hlg)]
