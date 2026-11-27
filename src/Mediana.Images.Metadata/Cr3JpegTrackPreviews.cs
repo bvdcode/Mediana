@@ -8,8 +8,8 @@ namespace Mediana.Images.Metadata
 {
     internal static class Cr3JpegTrackPreviews
     {
-        internal static void Read(ReadOnlyMemory<byte> file, ReadOnlyMemory<byte> movie, IReadOnlyList<Mp4DataRange> media,
-            RawJpegPreviews previews, CancellationToken token)
+        internal static IEnumerable<Mp4DataRange> Enumerate(ReadOnlyMemory<byte> movie, IReadOnlyList<Mp4DataRange> media,
+            CancellationToken token)
         {
             Mp4ReadOptions options = new() { MaxBoxes = int.MaxValue, MaxSamplesPerTrack = int.MaxValue };
             Mp4ParseBudget budget = new(options, token);
@@ -43,7 +43,7 @@ namespace Mediana.Images.Metadata
                 {
                     token.ThrowIfCancellationRequested();
                     Mp4SampleLocation sample = cursor.Current;
-                    previews.Add(file.Slice(checked((int)sample.Offset), sample.Size));
+                    yield return new(sample.Offset, sample.Size);
                     cursor.Advance(sample);
                 }
             }
