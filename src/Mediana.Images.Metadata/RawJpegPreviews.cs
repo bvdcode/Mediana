@@ -14,13 +14,15 @@ namespace Mediana.Images.Metadata
         private readonly HashSet<ReadOnlyMemory<byte>> slices = [];
         internal IReadOnlyList<EncodedImagePreview> Images => images;
 
-        internal static JpegImageDecoder CreateDecoder(int orientation, JpegColorSpace? colorSpace = null) => new(new()
+        internal static JpegImageDecoder CreateDecoder(int orientation, JpegColorSpace? colorSpace = null) => new(CreateOptions(orientation, colorSpace));
+
+        internal static JpegDecodeOptions CreateOptions(int orientation, JpegColorSpace? colorSpace = null) => new()
         {
             ContainerColorSpace = colorSpace,
             ContainerExifOrientation = orientation,
             MaximumEncodedBytes = Array.MaxLength,
             MaximumPixels = Array.MaxLength / 4
-        });
+        };
 
         internal void Add(ReadOnlyMemory<byte> jpeg, int? width = null, int? height = null, int? directoryOrientation = null, bool embeddedField = false)
         {
@@ -30,10 +32,18 @@ namespace Mediana.Images.Metadata
             Core.Metadata.ImageInfo info = embeddedField ? Jpeg.ReadEmbeddedInfo(jpeg, out length, token) : Jpeg.ReadInfo(jpeg, token);
             jpeg = jpeg[..length];
             if (!slices.Add(jpeg)) { return; }
+            ValidateDimensions(info, width, height);
+            images.Add(new RawJpegCandidate(info, jpeg, directoryOrientation));
+        }
+
+        internal static void InspectJpeg(ReadOnlyMemory<byte> jpeg, int width, int height, CancellationToken token) =>
+            ValidateDimensions(Jpeg.ReadInfo(jpeg, token), width, height);
+
+        private static void ValidateDimensions(Core.Metadata.ImageInfo info, int? width, int? height)
+        {
             Core.Metadata.MediaProperty dimensions = info.Metadata.Properties.Single(item => item.Name == "stored_dimensions");
             if ((width.HasValue && dimensions.Values[0].AsInteger() != width) || (height.HasValue && dimensions.Values[1].AsInteger() != height))
             { throw new InvalidDataException("RAW preview dimensions disagree with its JPEG."); }
-            images.Add(new RawJpegCandidate(info, jpeg, directoryOrientation));
         }
 
         internal void ReadPair(TiffDirectoryReader reader, TiffDirectory directory, ushort offsetTag, ushort lengthTag, bool imageDirectory = false)

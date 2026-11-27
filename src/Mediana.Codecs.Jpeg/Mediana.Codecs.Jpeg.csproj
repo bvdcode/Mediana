@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <InternalsVisibleTo Include="Mediana.Images.Metadata" />
     <InternalsVisibleTo Include="Mediana.Tests" />
     <InternalsVisibleTo Include="Mediana.Codecs.Raster.Tests" />
     <InternalsVisibleTo Include="Mediana.NativeTests" />

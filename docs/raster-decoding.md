@@ -29,7 +29,10 @@ if (preview is not null)
 The requested size is the long edge in pixels. Selection minimizes area among
 sufficient images and otherwise chooses the largest area. Equal areas retain
 directory order. The reader consumes the stream from its current position, leaves
-it open, buffers the encoded RAW, and retains only the selected JPEG in the result.
+it open, and retains only the selected JPEG in the result. For seekable Canon
+CR3 streams it reads the movie index, embedded JPEG headers and the selected
+JPEG payload. Camera sample data and unselected JPEG scans are skipped. Other
+RAW readers and sequential streams buffer the encoded input.
 `maximumInputBytes` bounds the input. A recognized RAW with no declared preview
 returns null. Invalid preview extents and malformed directories raise read errors.
 Pixel decoding validates compressed samples. JPEG orientation takes precedence

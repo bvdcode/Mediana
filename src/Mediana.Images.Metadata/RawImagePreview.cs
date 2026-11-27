@@ -13,10 +13,10 @@ namespace Mediana.Images.Metadata
     {
         private readonly JpegColorSpace? colorSpace;
 
-        internal RawImagePreview(ReadOnlyMemory<byte> encoded, int containerExifOrientation, JpegColorSpace? colorSpace)
+        internal RawImagePreview(byte[] encoded, int containerExifOrientation, JpegColorSpace? colorSpace)
         {
             this.colorSpace = colorSpace;
-            Encoded = encoded.ToArray();
+            Encoded = encoded;
             ContainerExifOrientation = containerExifOrientation;
         }
 
