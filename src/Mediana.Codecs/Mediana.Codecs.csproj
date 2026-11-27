@@ -3,6 +3,7 @@
     <InternalsVisibleTo Include="Mediana.Codecs.Mp3" />
     <InternalsVisibleTo Include="Mediana.Tests" />
     <InternalsVisibleTo Include="Mediana.Codecs.Mpeg4Visual" />
+    <InternalsVisibleTo Include="Mediana.Codecs.Mpeg2" />
     <InternalsVisibleTo Include="Mediana.Codecs.H264" />
     <InternalsVisibleTo Include="Mediana.Codecs.Hevc" />
     <InternalsVisibleTo Include="Mediana.Codecs.Opus" />

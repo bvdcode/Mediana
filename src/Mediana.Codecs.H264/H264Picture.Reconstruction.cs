@@ -137,6 +137,10 @@ namespace Mediana.Codecs.H264
 
         private void ClearBlockCounts(int plane, int x, int y, int width, int height)
         {
+            if (packedResiduals)
+            {
+                return;
+            }
             int countStride = Stride(plane) / 4;
             int first = BlockIndex(plane, x, y);
             Span<byte> counts = Counts(plane);

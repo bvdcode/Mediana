@@ -75,7 +75,7 @@ namespace Mediana.Containers.Asf
                     PixelFormat = VideoPixelFormat.Yuv420P8
                 }]);
             }
-            return new(number, new(index, MediaKind.Video, codec, format, Clock, extra), metadata);
+            return new(number, new(index, MediaKind.Video, codec, format, Clock, extra, VideoDisplayMatrix.Identity), metadata);
         }
 
         private static AsfStream ReadAudio(int number, int index, ReadOnlySpan<byte> data)

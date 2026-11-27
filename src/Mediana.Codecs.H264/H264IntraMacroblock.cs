@@ -99,7 +99,7 @@ namespace Mediana.Codecs.H264
                     for (int column = 0; column < size; column += 4)
                     {
                         int position = target.BlockIndex(plane, x / target.HorizontalScale(plane) + column, y / verticalScale + row);
-                        target.Counts(plane)[position] = 16;
+                        target.StoreCount(plane, position, 16);
                         if (plane == 0)
                         {
                             target.Modes[position] = 2;

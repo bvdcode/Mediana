@@ -66,7 +66,6 @@ namespace Mediana.Codecs.H264
                 {
                     int blockX = groupX + block % 2 * 4;
                     int blockY = groupY + block / 2 * 4;
-                    coefficients.Clear();
                     int count = reader.Read(ref bits, H264ResidualCategory.Luma4x4, plane, x + blockX, y + blockY, coefficients);
                     if (count == 0)
                     {
@@ -74,7 +73,7 @@ namespace Mediana.Codecs.H264
                             macroPrediction[((blockY * 16 + blockX) * target.SampleBytes)..], 16);
                         continue;
                     }
-                    target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
+                    target.StoreCount(plane, x + blockX, y + blockY, count);
                     target.Reconstruct4x4(plane, x + blockX, y + blockY,
                         macroPrediction[((blockY * 16 + blockX) * target.SampleBytes)..], 16, coefficients, qp, field: field);
                 }
@@ -108,9 +107,12 @@ namespace Mediana.Codecs.H264
             Span<int> coefficients = stackalloc int[15];
             Span<int> dcCoefficients = stackalloc int[2 * blocks];
             Span<int> dc = stackalloc int[blocks];
-            dcCoefficients.Clear();
             reader.Read(ref bits, H264ResidualCategory.ChromaDc, 1, x, y, dcCoefficients[..blocks]);
             reader.Read(ref bits, H264ResidualCategory.ChromaDc, 2, x, y, dcCoefficients[blocks..]);
+            if (pattern != 2)
+            {
+                coefficients.Clear();
+            }
             for (int plane = 1; plane <= 2; plane++)
             {
                 int offset = plane == 1 ? picture.ChromaQpOffset : picture.SecondChromaQpOffset;
@@ -120,7 +122,6 @@ namespace Mediana.Codecs.H264
                 {
                     int blockX = (index % 2) * 4;
                     int blockY = (index / 2) * 4;
-                    coefficients.Clear();
                     int count = pattern == 2
                         ? reader.Read(ref bits, H264ResidualCategory.ChromaAc, plane, x + blockX, y + blockY, coefficients) : 0;
                     if (count == 0 && dc[index] == 0)
@@ -129,7 +130,7 @@ namespace Mediana.Codecs.H264
                             macroPrediction[((plane - 1) * planeBytes + (blockY * 8 + blockX) * target.SampleBytes)..], 8);
                         continue;
                     }
-                    target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
+                    target.StoreCount(plane, x + blockX, y + blockY, count);
                     target.Reconstruct4x4(plane, x + blockX, y + blockY,
                         macroPrediction[((plane - 1) * planeBytes + (blockY * 8 + blockX) * target.SampleBytes)..],
                         8, coefficients, chromaQp, dc[index], field);

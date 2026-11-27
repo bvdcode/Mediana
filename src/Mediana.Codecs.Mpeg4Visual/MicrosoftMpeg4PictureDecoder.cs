@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Runtime.InteropServices;
+using Mediana.Codecs.Transforms;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Formats.Video;
@@ -250,7 +251,7 @@ namespace Mediana.Codecs.Mpeg4Visual
             }
             else
             {
-                Mpeg4InverseDct.Write(coefficients, target, blockStride, intra);
+                BlockInverseDct8x8.Write(coefficients, target, blockStride, intra);
             }
         }
 

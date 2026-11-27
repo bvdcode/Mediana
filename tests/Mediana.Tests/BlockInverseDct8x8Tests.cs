@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.Mpeg4Visual.Tests
+using Mediana.Codecs.Transforms;
+
+namespace Mediana.Tests
 {
-    public class TransformTests
+    public class BlockInverseDct8x8Tests
     {
         [Fact]
         public void IntegerDctMatchesDirectFloatingPointDefinition()
@@ -17,7 +19,8 @@ namespace Mediana.Codecs.Mpeg4Visual.Tests
                 block.AsSpan().Clear();
                 if (test < 128) { block[test % 64] = test < 64 ? 2047 : -2048; }
                 else { for (int i = 0; i < 64; i++) { block[i] = random.Next(-256, 256); } }
-                actual.AsSpan().Fill(128); Mpeg4InverseDct.Write(block, actual, 8, false);
+                actual.AsSpan().Fill(128);
+                BlockInverseDct8x8.Write(block, actual, 8, intra: false);
                 for (int y = 0; y < 8; y++)
                 {
                     for (int x = 0; x < 8; x++)

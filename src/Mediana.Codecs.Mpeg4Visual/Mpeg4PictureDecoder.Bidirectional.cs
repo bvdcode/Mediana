@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Codecs.Transforms;
 using Mediana.Formats.Video;
 
 namespace Mediana.Codecs.Mpeg4Visual
@@ -66,7 +67,7 @@ namespace Mediana.Codecs.Mpeg4Visual
                     if ((cbp & (1 << (5 - block))) == 0) { continue; }
                     coefficients.Clear(); ulong nonzero = ReadResidual(ref bits, coefficients, false, 0, header.AlternateScan ? Mpeg4Scan.Vertical : Mpeg4Scan.Zigzag);
                     nonzero = Dequantize(coefficients, quantizer, false, 0, nonzero); (int offset, int stride) = BlockAddress(mb, block);
-                    Mpeg4InverseDct.Write(coefficients, picture[offset..], stride, false, nonzero);
+                    BlockInverseDct8x8.Write(coefficients, picture[offset..], stride, false, nonzero);
                 }
             }
         }

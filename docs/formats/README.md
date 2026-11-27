@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **471 variants · 1070 operations · 19 groups.**
 
-**Existing implementations: 148 variants · 181 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 151 variants · 186 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -23,14 +23,14 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | Group | Implemented variants | Target variants | Implemented operations | Target operations |
 | --- | ---: | ---: | ---: | ---: |
-| [Containers and packaging](#containers-and-packaging) | 19 | 44 | 21 | 88 |
-| [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 7 | 30 |
+| [Containers and packaging](#containers-and-packaging) | 21 | 44 | 24 | 88 |
+| [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 8 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 9 | 23 | 10 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 26 | 35 | 26 | 71 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
-| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 21 | 64 | 22 | 128 |
+| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 22 | 64 | 23 | 128 |
 | [Audio coding and sample representations](#audio-coding-and-sample-representations) | 23 | 63 | 29 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
@@ -59,13 +59,13 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `ogg-chained` | Ogg — Chained logical streams | .ogg .opus | R ◐ · W □ | B | Current reader keeps chained links separately selectable; selecting a link does not concatenate links. [ogg](sources.md#ogg) | — |
 | `avi` | AVI — RIFF AVI 1.0 | .avi | R ◐ · W □ | B | Indexed MJPEG/MPEG-4 Visual/PCM/MP3 input; declared packed DivX/Xvid normalizes into complete VOPs. [API](../avi.md). [riff](sources.md#riff) | — |
 | `avi-opendml` | AVI — OpenDML / AVI 2.0 | .avi | R ◐ · W □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
-| `asf` | ASF — File and streaming structure | .asf .wmv .wma | R □ · W □ | B | [asf](sources.md#asf) | — |
+| `asf` | ASF — File and streaming structure | .asf .wmv .wma | R ◐ · W □ | B | [asf](sources.md#asf) | — |
 | `flv` | FLV — Classic file structure | .flv | R □ · W □ | B | [flv](sources.md#flv) | — |
 | `flv-enhanced` | Enhanced FLV — Extended codec mappings | .flv | R □ · W □ | C | Pin the extended specification and codec mappings first. [discovery](sources.md#discovery) | — |
-| `mpeg-ts` | MPEG-TS — 188-byte transport packets | .ts .mpegts | R □ · W ◐ | A | Current writer: one program with AVC/AAC/MP3; reader and broader mappings are open. [mpeg-systems](sources.md#mpeg-systems) | [avc-transcode-30m](../performance/README.md#avc-transcode-30m), [remux-hls](../performance/README.md#remux-hls), [hls-segment-30m](../performance/README.md#hls-segment-30m) |
+| `mpeg-ts` | MPEG-TS — 188-byte transport packets | .ts .mpegts | R ◐ · W ◐ | A | Current writer supports one program with AVC/AAC/MP3. The reader supports selected PES mappings. [mpeg-systems](sources.md#mpeg-systems) | [avc-transcode-30m](../performance/README.md#avc-transcode-30m), [remux-hls](../performance/README.md#remux-hls), [hls-segment-30m](../performance/README.md#hls-segment-30m) |
 | `m2ts` | MPEG-TS — 192-byte source packets | .m2ts .mts | R □ · W □ | B | [mpeg-systems](sources.md#mpeg-systems), [discovery](sources.md#discovery) | — |
 | `mpeg-ts-204` | MPEG-TS — 204-byte protected packets | .ts | R □ · W □ | C | [mpeg-systems](sources.md#mpeg-systems) | — |
-| `mpeg-ps` | MPEG Program Stream — MPEG-1 / MPEG-2 systems | .mpg .mpeg .vob | R □ · W □ | B | [mpeg-systems](sources.md#mpeg-systems) | — |
+| `mpeg-ps` | MPEG Program Stream — MPEG-1 / MPEG-2 systems | .mpg .mpeg .vob | R ◐ · W □ | B | [mpeg-systems](sources.md#mpeg-systems) | — |
 | `mxf-op1a` | MXF — OP1a interleaved essence | .mxf | R □ · W □ | B | Essence mappings require their own codec and metadata fixtures. [mxf](sources.md#mxf) | — |
 | `mxf-opatom` | MXF — OP-Atom essence | .mxf | R □ · W □ | C | [mxf](sources.md#mxf) | — |
 | `gxf` | GXF — Broadcast exchange | .gxf | R □ · W □ | C | [discovery](sources.md#discovery) | — |
@@ -96,7 +96,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
-| `avc-annexb` | AVC — Annex B byte stream | .h264 .264 | R □ · W ◐ | A | Current access-unit converter is not a complete arbitrary-stream demuxer. [h264](sources.md#h264) | — |
+| `avc-annexb` | AVC — Annex B byte stream | .h264 .264 | R ◐ · W ◐ | A | Video decoding assembles access units from MPEG-TS PES payloads. [h264](sources.md#h264) | — |
 | `avc-length` | AVC — Length-prefixed NAL units / avcC | .avc | R ◐ · W ◐ | A | Configuration and packet syntax already shared by container and codec modules. [h264](sources.md#h264), [iso-bmff](sources.md#iso-bmff) | — |
 | `hevc-annexb` | HEVC — Annex B byte stream | .h265 .265 .hevc | R □ · W □ | B | [h265](sources.md#h265) | — |
 | `hevc-length` | HEVC — Length-prefixed NAL units / hvcC | .hevc | R □ · W □ | B | HEIC configuration parsing is not a complete video elementary-stream reader. [h265](sources.md#h265), [iso-bmff](sources.md#iso-bmff) | — |
@@ -289,7 +289,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `av1-scalable` | AV1 — Operating points and scalable streams | .obu .ivf | D □ · E □ | B | Film grain, super-resolution and temporal/spatial layers need explicit tool coverage. [av1](sources.md#av1) | — |
 | `av2` | AV2 — Versioned AOM bitstream | .obu | D □ · E □ | C | Pin the published bitstream revision and profile before implementation. [av2](sources.md#av2) | — |
 | `mpeg1-video` | MPEG-1 Video — ISO/IEC 11172-2 | .m1v .mpg | D □ · E □ | B | [mpeg-video](sources.md#mpeg-video) | — |
-| `mpeg2-main` | MPEG-2 Video — Simple/Main profiles | .m2v .mpg | D □ · E □ | B | [mpeg-video](sources.md#mpeg-video) | — |
+| `mpeg2-main` | MPEG-2 Video — Simple/Main profiles | .m2v .mpg | D ◐ · E □ | B | Managed 4:2:0 frame-picture decoding with frame-based DCT and motion compensation. [mpeg-video](sources.md#mpeg-video) | — |
 | `mpeg2-high` | MPEG-2 Video — 4:2:2 / High / scalable profiles | .m2v | D □ · E □ | C | [mpeg-video](sources.md#mpeg-video) | — |
 | `mpeg4-simple` | MPEG-4 Visual — Simple profile | .m4v | D ◐ · E □ | B | Managed progressive I/P decoding, spatial prediction, resynchronization and AVI/MP4 mappings. [API](../mpeg4-visual.md). [mpeg-video](sources.md#mpeg-video) | — |
 | `mpeg4-asp` | MPEG-4 Visual — Advanced Simple profile | .m4v | D ◐ · E □ | B | Managed progressive I/P/B and quarter-pixel motion; interlace, sprites and partitioned layers remain separate tools. [API](../mpeg4-visual.md). [mpeg-video](sources.md#mpeg-video) | — |

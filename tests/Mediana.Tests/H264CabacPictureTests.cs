@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
 using Mediana.Codecs.H264;
 using Mediana.Core.Memory;
 
@@ -66,7 +67,7 @@ namespace Mediana.Tests
             H264SequenceParameterSet sequence = configuration.Sequences[0];
             MediaBufferAllocator measurement = new(1024 * 1024);
             long pictureBytes;
-            using (H264Picture picture = H264Picture.CreateForCoding(sequence, measurement, H264SliceKind.P))
+            using (H264Picture picture = H264Picture.CreateForCoding(sequence, measurement, H264SliceKind.P, packedResiduals: true))
             {
                 pictureBytes = measurement.AllocatedBytes;
             }
@@ -102,7 +103,7 @@ namespace Mediana.Tests
             {
                 H264TestInput.VerifyPicture(picture, samples);
                 Assert.Equal(0, picture.Quantizers[0]);
-                Assert.All(picture.Counts(0).ToArray(), count => Assert.Equal(16, count));
+                Assert.Equal(H264CodedBlockFlags.All, MemoryMarshal.Read<uint>(picture.PackedResidualStorage.Span));
             }
             Assert.Equal(0, allocator.AllocatedBytes);
         }
@@ -150,7 +151,7 @@ namespace Mediana.Tests
             {
                 H264TestInput.VerifyPicture(picture, Enumerable.Repeat((byte)128, 1536).ToArray());
                 Assert.All(picture.MacroblockFlags.ToArray(), flag => Assert.Equal(H264MacroblockFlags.Transform8x8, flag));
-                Assert.All(picture.Counts(0).ToArray(), count => Assert.Equal(0, count));
+                Assert.All(MemoryMarshal.Cast<byte, uint>(picture.PackedResidualStorage.Span).ToArray(), flags => Assert.Equal(0u, flags));
             }
             Assert.Equal(0, allocator.AllocatedBytes);
         }

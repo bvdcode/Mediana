@@ -14,7 +14,7 @@ avi-opendml,Containers and packaging,AVI,OpenDML / AVI 2.0,container,.avi,B,riff
 asf,Containers and packaging,ASF,File and streaming structure,container,.asf .wmv .wma,B,asf,
 flv,Containers and packaging,FLV,Classic file structure,container,.flv,B,flv,
 flv-enhanced,Containers and packaging,Enhanced FLV,Extended codec mappings,container,.flv,C,discovery,Pin the extended specification and codec mappings first.
-mpeg-ts,Containers and packaging,MPEG-TS,188-byte transport packets,container,.ts .mpegts,A,mpeg-systems,Current writer: one program with AVC/AAC/MP3; reader and broader mappings are open.
+mpeg-ts,Containers and packaging,MPEG-TS,188-byte transport packets,container,.ts .mpegts,A,mpeg-systems,Current writer supports one program with AVC/AAC/MP3. The reader supports selected PES mappings.
 m2ts,Containers and packaging,MPEG-TS,192-byte source packets,container,.m2ts .mts,B,mpeg-systems;discovery,
 mpeg-ts-204,Containers and packaging,MPEG-TS,204-byte protected packets,container,.ts,C,mpeg-systems,
 mpeg-ps,Containers and packaging,MPEG Program Stream,MPEG-1 / MPEG-2 systems,container,.mpg .mpeg .vob,B,mpeg-systems,
@@ -43,7 +43,7 @@ jxl-wrapper,Containers and packaging,JPEG XL,Part 2 boxed file format,container,
 ktx1-wrapper,Containers and packaging,KTX,Version 1 texture container,container,.ktx,B,ktx,
 ktx2-wrapper,Containers and packaging,KTX,Version 2 texture container,container,.ktx2,B,ktx,"Supercompression, levels, layers, faces and format descriptors are independent checks."
 dds-wrapper,Containers and packaging,DDS,Legacy and DX10 texture headers,container,.dds,B,bmp-dds,
-avc-annexb,Elementary streams and packet representations,AVC,Annex B byte stream,framing,.h264 .264,A,h264,Current access-unit converter is not a complete arbitrary-stream demuxer.
+avc-annexb,Elementary streams and packet representations,AVC,Annex B byte stream,framing,.h264 .264,A,h264,Video decoding assembles access units from MPEG-TS PES payloads.
 avc-length,Elementary streams and packet representations,AVC,Length-prefixed NAL units / avcC,framing,.avc,A,h264;iso-bmff,Configuration and packet syntax already shared by container and codec modules.
 hevc-annexb,Elementary streams and packet representations,HEVC,Annex B byte stream,framing,.h265 .265 .hevc,B,h265,
 hevc-length,Elementary streams and packet representations,HEVC,Length-prefixed NAL units / hvcC,framing,.hevc,B,h265;iso-bmff,HEIC configuration parsing is not a complete video elementary-stream reader.
@@ -206,7 +206,7 @@ av1-professional,Video codecs and substantial profiles,AV1,Professional profile,
 av1-scalable,Video codecs and substantial profiles,AV1,Operating points and scalable streams,video-codec,.obu .ivf,B,av1,"Film grain, super-resolution and temporal/spatial layers need explicit tool coverage."
 av2,Video codecs and substantial profiles,AV2,Versioned AOM bitstream,video-codec,.obu,C,av2,Pin the published bitstream revision and profile before implementation.
 mpeg1-video,Video codecs and substantial profiles,MPEG-1 Video,ISO/IEC 11172-2,video-codec,.m1v .mpg,B,mpeg-video,
-mpeg2-main,Video codecs and substantial profiles,MPEG-2 Video,Simple/Main profiles,video-codec,.m2v .mpg,B,mpeg-video,
+mpeg2-main,Video codecs and substantial profiles,MPEG-2 Video,Simple/Main profiles,video-codec,.m2v .mpg,B,mpeg-video,Managed 4:2:0 frame-picture decoding with frame-based DCT and motion compensation.
 mpeg2-high,Video codecs and substantial profiles,MPEG-2 Video,4:2:2 / High / scalable profiles,video-codec,.m2v,C,mpeg-video,
 mpeg4-simple,Video codecs and substantial profiles,MPEG-4 Visual,Simple profile,video-codec,.m4v,B,mpeg-video,"Managed progressive I/P decoding, spatial prediction, resynchronization and AVI/MP4 mappings. [API](../mpeg4-visual.md)."
 mpeg4-asp,Video codecs and substantial profiles,MPEG-4 Visual,Advanced Simple profile,video-codec,.m4v,B,mpeg-video,"Managed progressive I/P/B and quarter-pixel motion; interlace, sprites and partitioned layers remain separate tools. [API](../mpeg4-visual.md)."

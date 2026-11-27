@@ -13,8 +13,10 @@ container video decoding uses the budget in `VisualOpenOptions.Media`.
 
 `VisualOpenOptions.Request` selects the zero-based document page or elapsed media time.
 `StreamIndex` selects container video and is rejected for images/documents. Video rejects
-nonzero document page selection. A nonzero video time uses indexed seeking and then discards
-required preroll up to the first presentation timestamp at or after the target.
+nonzero document page selection. A nonzero video time uses indexed seeking when available
+and otherwise decodes sequentially. Both paths return the first frame at or after the target.
+For video tracks with a declared presentation origin, requests are elapsed from that origin
+and returned frame timestamps retain the source timeline.
 `ReadImageSequence` selects animation enumeration instead of a single image.
 
 `ExportPreviewAsync` applies display orientation, sample aspect ratio and sRGB conversion,
