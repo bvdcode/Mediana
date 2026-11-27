@@ -16,6 +16,12 @@ SOF1/SOF2 also support table selectors two/three and 16-bit quantization entries
 Quantization tables are applied at the component's scan; redefinition between
 sequential component scans does not change previously reconstructed samples.
 
+Predictive Huffman JPEG (SOF3) supports 2–16 bits per sample, predictors 1–7,
+point transforms, separate or interleaved scans and row-aligned restart intervals.
+The decoder retains predictor rows at source precision, then converts to 8-bit
+presentation samples. The 8-bit component API accepts 8-bit SOF3 at full size.
+DCT reduction applies only to DCT frames.
+
 Progressive scans support spectral selection, successive approximation, signed DC
 refinement, new AC values and corrections to existing coefficients. AC bands can
 arrive in any order after that component's first DC scan; AC scans contain one
@@ -296,13 +302,13 @@ These local process measurements include startup, parsing, IDCT, pixel conversio
 PNG encoding, logging and I/O. Peak RSS includes runtime and collection behavior;
 it is separate from the exact live media-buffer budget.
 
-Arithmetic/lossless/hierarchical JPEG, 12-bit samples, DNL,
+Arithmetic and hierarchical JPEG, 12-bit DCT samples, DNL,
 custom Exif colorimetry without ICC, SPIFF and RGB/gray ICC LUT conversion are not
 implemented. These encodings are rejected explicitly by standalone decoding.
 PDF `DCTDecode` integration uses the container component API described above.
 
 Format references: [ITU T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf),
-Annexes A/B/C/E/F/G, and [JFIF 1.02](https://www.w3.org/Graphics/JPEG/jfif3.pdf).
+Annexes A/B/C/E/F/G/H, and [JFIF 1.02](https://www.w3.org/Graphics/JPEG/jfif3.pdf).
 
 ## Reduced component resolution
 

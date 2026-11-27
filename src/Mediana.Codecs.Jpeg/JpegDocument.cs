@@ -30,6 +30,8 @@ namespace Mediana.Codecs.Jpeg
             MaximumHorizontal, MaximumVertical, components);
         internal JpegMetadata Metadata => metadata;
         internal bool Progressive => frameMarker == 194;
+        internal bool Lossless => frameMarker == 195;
+        internal int Precision { get; private set; }
         internal IReadOnlyList<string> Warnings { get; private set; } = Array.Empty<string>();
 
         private void AddWarning(string warning) => Warnings = Array.AsReadOnly<string>([.. Warnings, warning]);
@@ -45,7 +47,7 @@ namespace Mediana.Codecs.Jpeg
             }
         }
 
-        internal void Read(MediaBufferAllocator? allocator, bool componentSamples = false, bool embedded = false, ImageDecodeRequest? resolution = null)
+        internal void Read(MediaBufferAllocator? allocator, bool componentSamples = false, bool embedded = false, ImageDecodeRequest? resolution = null, bool inspectMetadata = true)
         {
             token.ThrowIfCancellationRequested();
             if (encoded.Length > options.MaximumEncodedBytes)
@@ -100,7 +102,8 @@ namespace Mediana.Codecs.Jpeg
                     case 192:
                     case 193:
                     case 194:
-                        ReadFrame(marker, segment, allocator, resolution);
+                    case 195:
+                        ReadFrame(marker, segment, allocator, resolution, componentSamples);
                         break;
                     case 196:
                         ReadHuffman(segment);
@@ -116,20 +119,20 @@ namespace Mediana.Codecs.Jpeg
                         restartInterval = BinaryPrimitives.ReadUInt16BigEndian(segment);
                         break;
                     case 218:
-                        JpegScanReader.Read(segment, reader, this, allocator is not null, restartInterval, token);
+                        JpegScanReader.Read(segment, reader, this, allocator, restartInterval, token);
                         break;
                     case >= 224 and <= 239:
                         if (!componentSamples || marker == 238)
                         {
                             metadata.Read(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), options.AllowUnalignedExifOffsets, token);
-                            if (allocator is null)
+                            if (allocator is null && inspectMetadata)
                             {
                                 metadata.Inspect(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), token);
                             }
                         }
                         break;
                     case 254:
-                        if (allocator is null)
+                        if (allocator is null && inspectMetadata)
                         {
                             metadata.Inspect(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), token);
                         }
@@ -208,13 +211,20 @@ namespace Mediana.Codecs.Jpeg
             sampleStorage = null;
         }
 
-        internal void ReadFrame(byte marker, ReadOnlySpan<byte> segment, MediaBufferAllocator? allocator, ImageDecodeRequest? resolution = null)
+        internal void ReadFrame(byte marker, ReadOnlySpan<byte> segment, MediaBufferAllocator? allocator, ImageDecodeRequest? resolution = null, bool componentSamples = false)
         {
             if (frameMarker != 0 || segment.Length < 6)
             {
                 throw new InvalidDataException("JPEG frame header is duplicated or truncated.");
             }
-            if (segment[0] != 8)
+            Precision = segment[0];
+            if (marker == 195)
+            {
+                if (Precision is < 2 or > 16) { throw new InvalidDataException("Invalid lossless JPEG sample precision."); }
+                if (componentSamples && Precision != 8) { throw new NotSupportedException("The native component API requires 8-bit JPEG samples."); }
+                if (reduction != 1) { throw new NotSupportedException("DCT reduction is unavailable for predictive JPEG components."); }
+            }
+            else if (Precision != 8)
             {
                 throw new NotSupportedException("JPEG decoding currently requires 8-bit sample precision.");
             }
@@ -237,7 +247,7 @@ namespace Mediana.Codecs.Jpeg
             {
                 throw new NotSupportedException("JPEG decoding requires grayscale, three-component or four-component color.");
             }
-            if (resolution is not null)
+            if (resolution is not null && marker != 195)
             {
                 bool swap = metadata.Orientation.SwapsAxes;
                 int factor = resolution.GetMaximumReduction(swap ? Height : Width, swap ? Width : Height);
@@ -258,7 +268,7 @@ namespace Mediana.Codecs.Jpeg
                 int horizontal = segment[offset + 1] >> 4;
                 int vertical = segment[offset + 1] & 15;
                 int table = segment[offset + 2];
-                if (horizontal is < 1 or > 4 || vertical is < 1 or > 4 || table > 3)
+                if (horizontal is < 1 or > 4 || vertical is < 1 or > 4 || table > 3 || marker == 195 && table != 0)
                 {
                     throw new InvalidDataException("JPEG sampling factors or quantization selector are invalid.");
                 }
@@ -274,15 +284,16 @@ namespace Mediana.Codecs.Jpeg
                 MaximumVertical = Math.Max(MaximumVertical, vertical);
             }
             frameMarker = marker;
-            int mcuColumns = (Width + MaximumHorizontal * 8 - 1) / (MaximumHorizontal * 8);
-            int mcuRows = (Height + MaximumVertical * 8 - 1) / (MaximumVertical * 8);
+            int unit = Lossless ? 1 : 8;
+            int mcuColumns = (Width + MaximumHorizontal * unit - 1) / (MaximumHorizontal * unit);
+            int mcuRows = (Height + MaximumVertical * unit - 1) / (MaximumVertical * unit);
             int sampleBytes = 0;
             foreach (JpegComponent component in components)
             {
                 component.Width = (Width * component.Horizontal + MaximumHorizontal - 1) / MaximumHorizontal;
                 component.Height = (Height * component.Vertical + MaximumVertical - 1) / MaximumVertical;
-                component.Stride = checked(mcuColumns * component.Horizontal * 8);
-                component.PaddedHeight = checked(mcuRows * component.Vertical * 8);
+                component.Stride = checked(mcuColumns * component.Horizontal * unit);
+                component.PaddedHeight = checked(mcuRows * component.Vertical * unit);
                 component.SampleWidth = (component.Width + reduction - 1) / reduction;
                 component.SampleHeight = (component.Height + reduction - 1) / reduction;
                 component.SampleStride = component.Stride / reduction;

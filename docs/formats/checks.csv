@@ -125,7 +125,7 @@ jpeg-progressive,decode,partial,partial,partial,partial,partial,planned,../jpeg.
 jpeg-progressive,encode,planned,planned,planned,planned,planned,planned,
 jpeg-arithmetic,decode,planned,planned,planned,planned,planned,planned,
 jpeg-arithmetic,encode,planned,planned,planned,planned,planned,planned,
-jpeg-lossless,decode,planned,planned,planned,planned,planned,planned,
+jpeg-lossless,decode,partial,partial,partial,planned,partial,planned,../jpeg.md;../../tests/Mediana.Tests/Data/Jpeg/README.md
 jpeg-lossless,encode,planned,planned,planned,planned,planned,planned,
 jpeg-hierarchical,decode,planned,planned,planned,planned,planned,planned,
 jpeg-hierarchical,encode,planned,planned,planned,planned,planned,planned,

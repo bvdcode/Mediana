@@ -32,13 +32,14 @@ namespace Mediana.Codecs.Jpeg
         {
             List<MediaProperty> properties = [new("media", "codec", "jpeg"), new("jpeg", "stored_dimensions", image.Width, image.Height),
                 new("jpeg", "progressive", image.Progressive), new("jpeg", "components", image.Components.Count),
-                new("jpeg", "bit_depth", 8), new("jpeg", "has_icc_profile", HasIcc),
+                new("jpeg", "bit_depth", image.Precision), new("jpeg", "has_icc_profile", HasIcc),
                 new("media", "display_to_source_matrix", Orientation.A, Orientation.B, Orientation.C, Orientation.D)];
             if (Aspect is Core.Video.SampleAspectRatio aspect)
             {
                 properties.Add(new("media", "sample_aspect_ratio", MediaPropertyValue.FromRational(aspect.Numerator, aspect.Denominator)));
             }
             if (AdobeColorTransform is int transform) { properties.Add(new("jpeg", "adobe_color_transform", transform)); }
+            if (image.Lossless) { properties.Add(new("jpeg", "lossless", true)); }
             if (IsSrgb) { properties.Add(new("exif", "color_space", "sRGB")); }
             if (image.Warnings.Count != 0)
             {
