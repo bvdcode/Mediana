@@ -10,6 +10,8 @@ namespace Mediana.Images.Metadata
     {
         private static readonly ImageMetadataReader[] Readers = [new TiffImageMetadataReader(), new RafMetadataReader(), new Cr3MetadataReader()];
 
+        private static readonly int ProbeLength = Readers.Max(reader => reader.ProbeLength);
+
         /// <summary>Reads from the current position, leaving the stream open. Returns the smallest-area embedded JPEG
         /// whose longest side reaches the requested size, or the largest by area. Returns null for a recognized
         /// RAW without an embedded JPEG. Invalid directory or preview data propagates as a read error.</summary>
@@ -27,6 +29,18 @@ namespace Mediana.Images.Metadata
                 if (length < 0 || length > Math.Min(maximumInputBytes, Array.MaxLength))
                 {
                     throw new InvalidDataException("The RAW stream length exceeds the input limit or is invalid.");
+                }
+                await using RandomAccessStreamByteSource indexedSource = new(source, leaveOpen: true);
+                byte[] prefix = new byte[Math.Min((int)length, ProbeLength)];
+                await indexedSource.ReadExactlyAtAsync(0, prefix, cancellationToken).ConfigureAwait(false);
+                foreach (ImageMetadataReader reader in Readers)
+                {
+                    if (reader is IIndexedRawPreviewReader indexed && reader.CanRead(prefix, length))
+                    {
+                        RawImagePreview? result = await indexed.ExtractAsync(indexedSource, (int)length, requestedSize, cancellationToken).ConfigureAwait(false);
+                        source.Seek(length, SeekOrigin.Current);
+                        return result;
+                    }
                 }
                 data = GC.AllocateUninitializedArray<byte>((int)length);
                 await source.ReadExactlyAsync(data, cancellationToken).ConfigureAwait(false);
@@ -47,25 +61,17 @@ namespace Mediana.Images.Metadata
 
         private static RawImagePreview? Select(ImageInspection image, int requestedSize, CancellationToken token)
         {
-            EncodedImagePreview? sufficient = null, largest = null;
-            double smallestArea = double.PositiveInfinity, largestArea = 0;
+            RawPreviewSelection selection = new(requestedSize);
+            EncodedImagePreview? selected = null;
             foreach (EncodedImagePreview candidate in image.Previews)
             {
                 token.ThrowIfCancellationRequested();
-                double width = candidate.Info.Width, height = candidate.Info.Height;
-                double area = width * height;
-                if (area > largestArea) { largest = candidate; largestArea = area; }
-                if (Math.Max(width, height) >= requestedSize && area < smallestArea)
-                {
-                    sufficient = candidate;
-                    smallestArea = area;
-                }
+                if (selection.Consider(candidate.Info.Width, candidate.Info.Height)) { selected = candidate; }
             }
-            EncodedImagePreview? selected = sufficient ?? largest;
             if (selected is null) { return null; }
             int orientation = (selected as RawJpegCandidate)?.DirectoryOrientation ?? image.ContainerExifOrientation;
             token.ThrowIfCancellationRequested();
-            return new(selected.Encoded, orientation, image.PreviewColorSpace);
+            return new(selected.Encoded.ToArray(), orientation, image.PreviewColorSpace);
         }
     }
 }

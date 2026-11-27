@@ -207,7 +207,7 @@ namespace Mediana.Codecs.Jpeg
             sampleStorage = null;
         }
 
-        private void ReadFrame(byte marker, ReadOnlySpan<byte> segment, MediaBufferAllocator? allocator)
+        internal void ReadFrame(byte marker, ReadOnlySpan<byte> segment, MediaBufferAllocator? allocator)
         {
             if (frameMarker != 0 || segment.Length < 6)
             {
