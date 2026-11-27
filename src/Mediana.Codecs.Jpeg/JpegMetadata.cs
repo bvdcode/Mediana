@@ -19,6 +19,7 @@ namespace Mediana.Codecs.Jpeg
         private readonly bool[] iccSeen = new bool[256];
         internal JpegColorSpace ColorSpace { get; private set; } = JpegColorSpace.YCbCr;
         internal bool HasIcc => iccCount != 0;
+        internal bool HasExif => exif;
         internal int? AdobeColorTransform => adobeTransform;
         internal SampleAspectRatio? Aspect { get; private set; }
         internal OrthogonalTransform Orientation { get; private set; } = Formats.Metadata.ExifOrientation.ToTransform(containerExifOrientation);
