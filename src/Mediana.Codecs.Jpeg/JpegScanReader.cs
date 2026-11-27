@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Core.Memory;
+
 namespace Mediana.Codecs.Jpeg
 {
     internal static class JpegScanReader
     {
         internal static void Read(ReadOnlySpan<byte> header, JpegMarkerReader reader, JpegDocument image,
-            bool decode, int restartInterval, CancellationToken token)
+            MediaBufferAllocator? allocator, int restartInterval, CancellationToken token)
         {
             if (header.Length < 4 || header[0] is < 1 or > 4 || header.Length != 4 + header[0] * 2 || image.Components.Count == 0)
             {
@@ -14,7 +16,12 @@ namespace Mediana.Codecs.Jpeg
             }
             int count = header[0];
             JpegScanParameters scan = new(header[^3], header[^2], header[^1] >> 4, header[^1] & 15);
-            scan.Validate(image.Progressive, count);
+            if (image.Lossless)
+            {
+                if (scan.First is < 1 or > 7 || scan.Last != 0 || scan.High != 0 || scan.Low >= image.Precision)
+                { throw new InvalidDataException("Invalid lossless JPEG predictor or point transform."); }
+            }
+            else { scan.Validate(image.Progressive, count); }
             Span<int> indices = stackalloc int[4];
             Span<int> dcTables = stackalloc int[4];
             Span<int> acTables = stackalloc int[4];
@@ -38,7 +45,7 @@ namespace Mediana.Codecs.Jpeg
                 indices[i] = componentIndex;
                 int dc = header[2 + i * 2] >> 4;
                 int ac = header[2 + i * 2] & 15;
-                if (dc > 3 || ac > 3)
+                if (dc > 3 || ac > 3 || image.Lossless && ac != 0)
                 {
                     throw new InvalidDataException("JPEG scan Huffman table selectors are invalid.");
                 }
@@ -48,11 +55,11 @@ namespace Mediana.Codecs.Jpeg
                 {
                     image.GetHuffman(dc);
                 }
-                if (!image.Progressive || scan.First != 0)
+                if (!image.Lossless && (!image.Progressive || scan.First != 0))
                 {
                     image.GetHuffman(ac + 4);
                 }
-                image.GetQuantization(component);
+                if (!image.Lossless) { image.GetQuantization(component); }
                 if (image.Progressive)
                 {
                     component.Progression!.Validate(scan);
@@ -64,7 +71,11 @@ namespace Mediana.Codecs.Jpeg
             {
                 throw new InvalidDataException("JPEG interleaved scan exceeds ten blocks per MCU.");
             }
-            if (decode)
+            if (allocator is not null && image.Lossless)
+            {
+                JpegLosslessScan.Decode(reader, image, indices[..count], dcTables, scan, restartInterval, allocator, token);
+            }
+            else if (allocator is not null)
             {
                 Decode(reader, image, indices[..count], dcTables, acTables, scan, restartInterval, token);
             }

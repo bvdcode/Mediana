@@ -15,12 +15,12 @@ namespace Mediana.Formats.Metadata
         public static ImageInfo Read(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default) => ReadDocument(encoded, TiffHeaderKind.Standard, cancellationToken).Info;
 
         internal static TiffMetadataDocument ReadDocument(ReadOnlyMemory<byte> encoded, TiffHeaderKind kind,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, bool previewOnly = false)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            TiffDirectoryReader reader = new(encoded, kind);
+            TiffDirectoryReader reader = new(encoded, kind, previewOnly ? IsPreviewField : null);
             TiffDirectory first = reader.Read(reader.FirstOffset, cancellationToken);
-            MediaMetadata exif = ExifMetadataReader.Read(reader, cancellationToken, kind == TiffHeaderKind.Panasonic ? new HashSet<ushort> { 46, 295 } : null);
+            MediaMetadata exif = ExifMetadataReader.Read(reader, cancellationToken, kind == TiffHeaderKind.Panasonic ? new HashSet<ushort> { 46, 295 } : null, includeProperties: !previewOnly);
             string format = kind switch
             {
                 TiffHeaderKind.Standard => Identify(encoded.Span, first, reader.Directories),
@@ -29,6 +29,7 @@ namespace Mediana.Formats.Metadata
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             };
             TiffDirectory selected = first;
+            TiffDirectory? cr2Sensor = null;
             if (format != "tiff")
             {
                 ulong largest = 0;
@@ -36,7 +37,7 @@ namespace Mediana.Formats.Metadata
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     ulong photo = directory.Number(262), width = directory.Number(256), height = directory.Number(257);
-                    if ((directory.Number(254) & 1) != 0 || photo is not (32803 or 34892) || width == 0 || height == 0) { continue; }
+                    if ((directory.Number(254) & 1) != 0 || !(photo is 32803 or 34892 || format == "srw" && IsSamsungRaw(directory)) || width == 0 || height == 0) { continue; }
                     ulong area = checked(width * height);
                     if (area > largest) { largest = area; selected = directory; }
                 }
@@ -44,8 +45,8 @@ namespace Mediana.Formats.Metadata
                 {
                     uint rawOffset = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(encoded[12..].Span);
                     if (!reader.LittleEndian) { rawOffset = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(encoded[12..].Span); }
-                    TiffDirectory sensor = reader.Read(rawOffset, cancellationToken);
-                    if (sensor.Number(256) > 0 && sensor.Number(257) > 0) { selected = sensor; }
+                    cr2Sensor = reader.Read(rawOffset, cancellationToken);
+                    if (cr2Sensor.Number(256) > 0 && cr2Sensor.Number(257) > 0) { selected = cr2Sensor; }
                 }
             }
             ulong sourceWidth = format == "rw2" ? first.Number(2) : selected.Number(256);
@@ -77,15 +78,18 @@ namespace Mediana.Formats.Metadata
             }
             ImageInfo info = new(format, orientation >= 5 ? sourceHeight : sourceWidth, orientation >= 5 ? sourceWidth : sourceHeight,
                 ImageDimensionUnit.Pixels, pages, metadata: new("image", properties, [exif]));
-            return new(reader, info, (int)orientation);
+            return new(reader, info, (int)orientation, cr2Sensor);
         }
+        private static bool IsPreviewField(ushort tag) => tag is 2 or 3 or 46 or 254 or 256 or 257 or 259 or 262 or 271 or 273 or 274 or 279 or 295 or 330 or 347 or 513 or 514 or 34665 or 37500 or 50706 or 50740;
+        private static bool IsSamsungRaw(TiffDirectory directory) => directory.Number(259) is 32770 or 32772;
         private static string Identify(ReadOnlySpan<byte> encoded, TiffDirectory first, IReadOnlyCollection<TiffDirectory> directories)
         {
             if (directories.Any(directory => directory.Fields.ContainsKey(50706))) { return "dng"; }
             if (encoded.Length >= 16 && encoded.Slice(8, 4).SequenceEqual("CR\x02\0"u8)) { return "cr2"; }
-            if (!directories.Any(directory => directory.Number(262) is 32803 or 34892)) { return "tiff"; }
             string make = first.Fields.TryGetValue(271, out TiffField? field) && field.Type == 2
                 ? Encoding.ASCII.GetString(field.Bytes.Span).TrimEnd('\0').Trim() : string.Empty;
+            if (make.StartsWith("SAMSUNG", StringComparison.OrdinalIgnoreCase) && directories.Any(IsSamsungRaw)) { return "srw"; }
+            if (!directories.Any(directory => directory.Number(262) is 32803 or 34892)) { return "tiff"; }
             if (make.Equals("NIKON CORPORATION", StringComparison.OrdinalIgnoreCase) || make.Equals("NIKON", StringComparison.OrdinalIgnoreCase)) { return first.Number(259) == 6 && first.Fields.ContainsKey(513) ? "nrw" : "nef"; }
             if (make.StartsWith("PENTAX", StringComparison.OrdinalIgnoreCase) || make.StartsWith("RICOH", StringComparison.OrdinalIgnoreCase)
                 || directories.Any(directory => directory.Number(259) == 65535)) { return "pef"; }

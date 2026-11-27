@@ -44,3 +44,14 @@ resolution, produced with libjpeg's reduced IDCT through Pillow's `draft` API.
 They cover grayscale, three-component 4:4:4, RGB, sequential and progressive
 scans, restart markers and odd dimensions. The permitted difference is three
 codes per color component; alpha and dimensions must match exactly.
+
+## Predictive Huffman (SOF3)
+
+The 17×7 grayscale and RGB images in `Lossless/` were generated with
+libjpeg-turbo 3.1.3 `cjpeg -precision P -lossless predictor,Pt -restart 2`.
+Source samples are `(1009*x + 1901*y + 503*x*y + 331*channel) mod 2^P`
+with channel zero for grayscale. The separate RGB fixture stores one component
+per scan. Tests compare every channel with the source after the point transform
+and conversion to 8-bit output. The 18×14 4:2:0 fixture was encoded with FFmpeg
+`ljpeg` from full-range planar YCbCr, using neutral chroma and luma
+`(11*x + 17*y + 3*x*y) mod 256`.

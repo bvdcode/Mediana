@@ -44,7 +44,7 @@ namespace Mediana.Images.Metadata
                 { throw new InvalidDataException("Embedded JPEG has no valid frame header before its first scan."); }
                 int segment = BinaryPrimitives.ReadUInt16BigEndian((await ReadAsync(position, 2).ConfigureAwait(false)).Span);
                 if (segment < 2 || segment > length - position) { throw new InvalidDataException("JPEG segment exceeds the embedded image."); }
-                if (marker is 192 or 193 or 194)
+                if (marker is 192 or 193 or 194 or 195)
                 {
                     ReadOnlyMemory<byte> frame = await ReadAsync(position + 2, segment - 2).ConfigureAwait(false);
                     using JpegDocument image = new(default, Options, null, null, token);

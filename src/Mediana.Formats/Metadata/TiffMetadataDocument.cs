@@ -6,5 +6,5 @@ using Mediana.Formats.Tiff;
 
 namespace Mediana.Formats.Metadata
 {
-    internal record TiffMetadataDocument(TiffDirectoryReader Reader, ImageInfo Info, int Orientation);
+    internal record TiffMetadataDocument(TiffDirectoryReader Reader, ImageInfo Info, int Orientation, TiffDirectory? Cr2Sensor);
 }

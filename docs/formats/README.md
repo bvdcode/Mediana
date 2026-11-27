@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **471 variants · 1070 operations · 19 groups.**
 
-**Existing implementations: 151 variants · 186 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 152 variants · 187 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -25,7 +25,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | --- | ---: | ---: | ---: | ---: |
 | [Containers and packaging](#containers-and-packaging) | 21 | 44 | 24 | 88 |
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 8 | 30 |
-| [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 9 | 23 | 10 | 46 |
+| [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 10 | 23 | 11 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 26 | 35 | 26 | 71 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
@@ -120,7 +120,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `jpeg-sequential` | JPEG — Extended sequential Huffman DCT, 8/12-bit | .jpg .jpeg | D ◐ · E □ | B | Current SOF1 decoder is 8-bit; 12-bit precision remains open. [jpeg](sources.md#jpeg) | — |
 | `jpeg-progressive` | JPEG — Progressive Huffman DCT, 8/12-bit | .jpg .jpeg | D ◐ · E □ | A | Current SOF2 decoder is 8-bit; no encoder or 12-bit reconstruction yet. [jpeg](sources.md#jpeg) | [jpeg-photo-progressive](../performance/README.md#jpeg-photo-progressive) |
 | `jpeg-arithmetic` | JPEG — Arithmetic DCT coding | .jpg .jpeg | D □ · E □ | B | [jpeg](sources.md#jpeg) | — |
-| `jpeg-lossless` | JPEG — Predictive lossless, Huffman/arithmetic | .jpg .jpeg | D □ · E □ | B | Original JPEG lossless is distinct from JPEG-LS and JPEG XL. [jpeg](sources.md#jpeg) | — |
+| `jpeg-lossless` | JPEG — Predictive lossless, Huffman/arithmetic | .jpg .jpeg | D ◐ · E □ | B | Original JPEG lossless is distinct from JPEG-LS and JPEG XL. [jpeg](sources.md#jpeg) | — |
 | `jpeg-hierarchical` | JPEG — Hierarchical modes | .jpg .jpeg | D □ · E □ | C | [jpeg](sources.md#jpeg) | — |
 | `jpeg-cmyk` | JPEG — Four-component CMYK / YCCK presentation | .jpg .jpeg | D ◐ · E □ | A | Device CMYK, Adobe inverted CMYK and YCCK; embedded CMYK ICC v2/v4 AToB LUT conversion to sRGB with independent pixel references. [jpeg](sources.md#jpeg), [metadata](sources.md#metadata) | — |
 | `jpeg-mpo` | MPO — Multi-picture JPEG | .mpo | D □ · E □ | B | [jpeg](sources.md#jpeg), [metadata](sources.md#metadata), [discovery](sources.md#discovery) | — |

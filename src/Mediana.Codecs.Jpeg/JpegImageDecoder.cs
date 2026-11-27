@@ -10,7 +10,8 @@ namespace Mediana.Codecs.Jpeg
     /// <summary>Decodes 8-bit sequential and progressive Huffman JPEG to independent RGBA32, or CMYK32 with an embedded CMYK ICC profile. Encoded input is borrowed;
     /// progressive coefficients, component samples and output are charged to the allocator. Chroma uses bilinear reconstruction at its declared sample positions.
     /// JFIF/Adobe/Exif declare component interpretation; Exif sRGB labels are retained and orientation applied.
-    /// Supports device CMYK and Adobe CMYK/YCCK. Lossless/arithmetic and custom Exif colorimetry are unsupported.</summary>
+    /// Predictive Huffman JPEG (SOF3) supports 2–16-bit input and presents reconstructed samples at 8 bits.
+    /// Supports device CMYK and Adobe CMYK/YCCK. Arithmetic coding and custom Exif colorimetry are unsupported.</summary>
     public class JpegImageDecoder : ISynchronousImageDecoder, IImageInfoReader
     {
         private readonly JpegDecodeOptions options;
@@ -50,9 +51,19 @@ namespace Mediana.Codecs.Jpeg
 
         /// <summary>Inspects the JPEG at offset zero of a containing field and reports its length through EOI.</summary>
         public ImageInfo ReadEmbeddedInfo(ReadOnlyMemory<byte> field, out int encodedLength, CancellationToken cancellationToken = default)
+            => ReadEmbeddedInfo(field, out encodedLength, out _, true, cancellationToken);
+
+        internal ImageInfo ReadEmbeddedInfo(ReadOnlyMemory<byte> field, out int encodedLength, out JpegColorSpace? componentConvention,
+            bool inspectMetadata, CancellationToken cancellationToken)
         {
             using JpegDocument image = new(field, options, sourceColorSpace, sampleAspectRatio, cancellationToken);
-            image.Read(null, embedded: true);
+            image.Read(null, embedded: true, inspectMetadata: inspectMetadata);
+            componentConvention = image.Components switch
+            {
+                [{ Id: 1 }, { Id: 2 }, { Id: 3 }] => JpegColorSpace.YCbCr,
+                [{ Id: (byte)'R' }, { Id: (byte)'G' }, { Id: (byte)'B' }] => JpegColorSpace.Rgb,
+                _ => null
+            };
             encodedLength = image.BytesConsumed;
             return Describe(image);
         }
