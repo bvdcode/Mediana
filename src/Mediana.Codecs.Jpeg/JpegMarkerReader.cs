@@ -50,15 +50,20 @@ namespace Mediana.Codecs.Jpeg
 
         internal void SkipEntropy()
         {
+            const int cancellationInterval = 64 * 1024;
             ReadOnlySpan<byte> bytes = Encoded.Span;
             while (Position < bytes.Length)
             {
                 token.ThrowIfCancellationRequested();
-                if (bytes[Position++] != 255)
+                int window = Math.Min(cancellationInterval, bytes.Length - Position);
+                int markerOffset = bytes.Slice(Position, window).IndexOf((byte)255);
+                if (markerOffset < 0)
                 {
+                    Position += window;
                     continue;
                 }
-                int start = Position - 1;
+                int start = Position + markerOffset;
+                Position = start + 1;
                 while (Position < bytes.Length && bytes[Position] == 255)
                 {
                     token.ThrowIfCancellationRequested();
