@@ -16,7 +16,7 @@ namespace Mediana.Processing
         /// <summary>Converts SDR planar integer YUV/GBR, straight RGBA32, ICC-tagged CMYK32 or premultiplied float32 RGBA to full-range straight sRGB RGBA32.
         /// Uses supported ICC v2/v4 matrix/TRC or CMYK LUT profiles, or known source color parameters.
         /// Borrows input; returns an independently disposable frame.
-        /// Unchanged tightly packed sRGB storage retains its original allocation budget without copying.
+        /// Tightly packed RGBA can share pixel storage when its resolved sRGB interpretation agrees with all declared color labels.
         /// Clips nominal source RGB before display transfer and target RGB to the sRGB gamut.
         /// BT.709 and SMPTE 240M use an ideal BT.1886 reference display. Does not perform HDR tone mapping.</summary>
         public static VideoFrame Apply(VideoFrame input, MediaBufferAllocator allocator,
@@ -65,7 +65,11 @@ namespace Mediana.Processing
             if (floating) { return ApplyFloatingRgba(input, map, aspectRatio, allocator, transform, cancellationToken); }
             if (!yuv && !gbr && CanRetain(input, sourceColor, map, aspectRatio))
             {
-                return input.Retain();
+                VideoFormat original = input.Format;
+                if (original.Color == SrgbColor) { return input.Retain(); }
+                VideoFormat resolved = new(original.Width, original.Height, original.PixelFormat, SrgbColor, aspectRatio,
+                    null, original.ScanMode, original.FullFrameHeight);
+                return input.WithFormat(resolved);
             }
             if (!yuv && !gbr)
             {
@@ -96,7 +100,15 @@ namespace Mediana.Processing
         {
             PlaneLayout plane = input.Planes[0];
             int rowBytes = checked(input.Format.Width * 4);
-            return sourceColor == SrgbColor && input.Format.Color == SrgbColor && input.Format.ColorDescription is null
+            return sourceColor == SrgbColor && input.Format.ColorDescription is null && input.Format.Color is
+            {
+                Primaries: ColorPrimaries.Unspecified or ColorPrimaries.Bt709,
+                Transfer: TransferFunction.Unspecified or TransferFunction.Srgb,
+                Matrix: MatrixCoefficients.Unspecified or MatrixCoefficients.Rgb,
+                Range: ColorRange.Unspecified or ColorRange.Full,
+                ChromaLocation: ChromaLocation.Unspecified,
+                FieldChromaLocations: null
+            }
                 && map.IsIdentity && input.Format.SampleAspectRatio == aspectRatio
                 && plane.Offset == 0 && plane.Stride == rowBytes && input.Data.Length == (long)rowBytes * input.Format.Height;
         }
