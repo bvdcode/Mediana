@@ -3,6 +3,12 @@
 
 using Mediana.Tests;
 using Mediana.Containers.Mp4;
+using Mediana.Codecs.Mpeg2;
+using Mediana.Containers.MpegTs;
+using Mediana.Core.Memory;
+using Mediana.Core.Timing;
+using Mediana.Core.Video;
+using Mediana.IO;
 
 namespace Mediana.NativeTests
 {
@@ -10,6 +16,7 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            await VerifyMpeg2PreviewAsync();
             H264DirectRegionTestInput.Verify();
             Console.WriteLine("PASS H.264 direct regions: spatial/temporal motion, both inference sizes, every pixel and both reference lists.");
             H264FramePublicationTestInput.VerifyPublication();
@@ -56,6 +63,23 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS server video previews: midpoint targets, VFR, movie edits, exact pixels, out-of-order requests and EOF restart.");
             await ServerVideoPreviewTestInput.VerifyPngAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
             Console.WriteLine("PASS server HD preview: complete sample PNG, dimensions, sRGB labels and every independent pixel.");
+        }
+
+        private static async Task VerifyMpeg2PreviewAsync()
+        {
+            MediaEngine engine = new MediaEngineBuilder().AddContainer(new MpegPsReaderFactory())
+                .AddVideoDecoder(new Mpeg2DecoderFactory()).Build();
+            string path = Path.Combine(AppContext.BaseDirectory, "Data", "ReadSupport", "timed-mpeg2.mpg");
+            await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
+            await using VisualSession session = await engine.OpenVisualAsync(source, new MediaBufferAllocator(4 * 1024 * 1024),
+                new() { Request = new() { Time = new(1, new(1, 1)) } });
+            using VideoFrame frame = await session.ReadFrameAsync() ?? throw new InvalidDataException("Missing MPEG-2 preview frame.");
+            if (frame.Timestamp != new MediaTimestamp(138600, new(1, 90000)) || frame.Format.PixelFormat != VideoPixelFormat.Yuv420P8
+                || frame.Format.Width != 64 || frame.Format.Height != 48)
+            {
+                throw new InvalidDataException("MPEG-2 preview timing or decoded format differs from the reference.");
+            }
+            Console.WriteLine("PASS MPEG-2 timed preview: decoded the reference frame from a program stream.");
         }
     }
 }
