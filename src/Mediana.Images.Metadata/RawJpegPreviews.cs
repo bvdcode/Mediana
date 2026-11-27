@@ -4,15 +4,31 @@
 using Mediana.Codecs;
 using Mediana.Codecs.Jpeg;
 using Mediana.Formats.Tiff;
+using System.Runtime.ExceptionServices;
 
 namespace Mediana.Images.Metadata
 {
-    internal class RawJpegPreviews(CancellationToken token)
+    internal class RawJpegPreviews(CancellationToken token, bool tiffCandidates = false, bool previewOnly = false)
     {
         private static readonly JpegImageDecoder Jpeg = CreateDecoder(1);
         private readonly List<EncodedImagePreview> images = [];
         private readonly HashSet<ReadOnlyMemory<byte>> slices = [];
-        internal IReadOnlyList<EncodedImagePreview> Images => images;
+        private ExceptionDispatchInfo? firstFailure;
+        internal IReadOnlyList<EncodedImagePreview> Images
+        {
+            get
+            {
+                if (images.Count == 0) { firstFailure?.Throw(); }
+                return images;
+            }
+        }
+
+        internal void Collect(Action candidate)
+        {
+            try { candidate(); }
+            catch (Exception exception) when (tiffCandidates && exception is InvalidDataException or NotSupportedException)
+            { firstFailure ??= ExceptionDispatchInfo.Capture(exception); }
+        }
 
         internal static JpegImageDecoder CreateDecoder(int orientation, JpegColorSpace? colorSpace = null) => new(CreateOptions(orientation, colorSpace));
 
@@ -24,16 +40,21 @@ namespace Mediana.Images.Metadata
             MaximumPixels = Array.MaxLength / 4
         };
 
-        internal void Add(ReadOnlyMemory<byte> jpeg, int? width = null, int? height = null, int? directoryOrientation = null, bool embeddedField = false)
+        internal void Add(ReadOnlyMemory<byte> jpeg, int? width = null, int? height = null, int? directoryOrientation = null, bool embeddedField = false, JpegColorSpace? colorSpace = null)
+            => Collect(() => AddCandidate(jpeg, width, height, directoryOrientation, embeddedField, colorSpace));
+
+        private void AddCandidate(ReadOnlyMemory<byte> jpeg, int? width, int? height, int? directoryOrientation, bool embeddedField, JpegColorSpace? colorSpace)
         {
             token.ThrowIfCancellationRequested();
             if (slices.Contains(jpeg)) { return; }
             int length = jpeg.Length;
-            Core.Metadata.ImageInfo info = embeddedField ? Jpeg.ReadEmbeddedInfo(jpeg, out length, token) : Jpeg.ReadInfo(jpeg, token);
+            JpegColorSpace? convention = null;
+            Core.Metadata.ImageInfo info = embeddedField || tiffCandidates
+                ? Jpeg.ReadEmbeddedInfo(jpeg, out length, out convention, !previewOnly, token) : Jpeg.ReadInfo(jpeg, token);
             jpeg = jpeg[..length];
-            if (!slices.Add(jpeg)) { return; }
             ValidateDimensions(info, width, height);
-            images.Add(new RawJpegCandidate(info, jpeg, directoryOrientation));
+            if (!slices.Add(jpeg)) { return; }
+            images.Add(new RawJpegCandidate(info, jpeg, directoryOrientation, colorSpace ?? (tiffCandidates ? convention : null)));
         }
 
         internal static void InspectJpeg(ReadOnlyMemory<byte> jpeg, int width, int height, CancellationToken token) =>
@@ -47,14 +68,25 @@ namespace Mediana.Images.Metadata
         }
 
         internal void ReadPair(TiffDirectoryReader reader, TiffDirectory directory, ushort offsetTag, ushort lengthTag, bool imageDirectory = false)
+            => Collect(() => ReadExtent(reader, directory, offsetTag, lengthTag, imageDirectory));
+
+        private void ReadExtent(TiffDirectoryReader reader, TiffDirectory directory, ushort offsetTag, ushort lengthTag, bool imageDirectory)
         {
             bool hasOffset = directory.Fields.ContainsKey(offsetTag), hasLength = directory.Fields.ContainsKey(lengthTag);
             if (!hasOffset && !hasLength) { return; }
             if (!hasOffset || !hasLength) { throw new InvalidDataException("RAW JPEG preview offset and length must occur together."); }
+            if (directory.Fields[offsetTag].Count != 1 || directory.Fields[lengthTag].Count != 1)
+            { throw new InvalidDataException("RAW JPEG preview offset and length must each have one value."); }
             ulong offset = directory.Number(offsetTag), length = directory.Number(lengthTag);
             if (offset == 0 && length == 0) { return; }
             if (offset < (ulong)reader.HeaderLength || length == 0) { throw new InvalidDataException("Invalid RAW JPEG preview extent."); }
-            Add(reader.Slice(offset, length), directoryOrientation: imageDirectory ? DirectoryOrientation(directory) : null);
+            JpegColorSpace? color = imageDirectory ? directory.Number(262) switch
+            {
+                2 => JpegColorSpace.Rgb,
+                6 => JpegColorSpace.YCbCr,
+                _ => null
+            } : null;
+            AddCandidate(reader.Slice(offset, length), null, null, imageDirectory ? DirectoryOrientation(directory) : null, false, color);
         }
 
         internal static int? DirectoryOrientation(TiffDirectory directory)

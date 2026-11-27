@@ -2,18 +2,22 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Buffers.Binary;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using Mediana.Core.Metadata;
 
 namespace Mediana.Formats.Tiff
 {
-    internal class TiffField(ushort tag, ushort type, ulong count, ReadOnlyMemory<byte> bytes, bool littleEndian, ulong offset)
+    internal class TiffField(ushort tag, ushort type, ulong count, ReadOnlyMemory<byte> bytes, bool littleEndian, ulong offset, ExceptionDispatchInfo? readError = null)
     {
         internal ulong Offset { get; } = offset;
         internal ushort Tag { get; } = tag;
         internal ushort Type { get; } = type;
         internal ulong Count { get; } = count;
-        internal ReadOnlyMemory<byte> Bytes { get; } = bytes;
+        internal ReadOnlyMemory<byte> Bytes
+        {
+            get { readError?.Throw(); return bytes; }
+        }
         internal static int Size(int type) => type switch
         {
             1 or 2 or 6 or 7 or 129 => 1,
@@ -24,6 +28,7 @@ namespace Mediana.Formats.Tiff
         };
         internal ulong Unsigned(int index = 0)
         {
+            readError?.Throw();
             if ((ulong)index >= Count) { throw new ArgumentOutOfRangeException(nameof(index)); }
             return Type switch
             {

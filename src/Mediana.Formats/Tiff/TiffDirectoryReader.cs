@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Buffers.Binary;
+using System.Runtime.ExceptionServices;
 
 namespace Mediana.Formats.Tiff
 {
@@ -9,6 +10,7 @@ namespace Mediana.Formats.Tiff
     internal class TiffDirectoryReader
     {
         private readonly ReadOnlyMemory<byte> data;
+        private readonly Func<ushort, bool>? includeField;
         private readonly Dictionary<ulong, TiffDirectory> directories = [];
         internal IReadOnlyCollection<TiffDirectory> Directories => directories.Values;
         internal bool LittleEndian { get; }
@@ -16,9 +18,10 @@ namespace Mediana.Formats.Tiff
         internal ulong FirstOffset { get; }
         internal int HeaderLength { get; }
         internal TiffHeaderKind HeaderKind { get; }
-        internal TiffDirectoryReader(ReadOnlyMemory<byte> data, TiffHeaderKind headerKind = TiffHeaderKind.Standard)
+        internal TiffDirectoryReader(ReadOnlyMemory<byte> data, TiffHeaderKind headerKind = TiffHeaderKind.Standard, Func<ushort, bool>? includeField = null)
         {
             this.data = data;
+            this.includeField = includeField;
             LittleEndian = data.Span switch
             {
                 [73, 73, ..] => true,
@@ -48,9 +51,10 @@ namespace Mediana.Formats.Tiff
             if (BigTiff && (U16(4) != 8 || U16(6) != 0)) { throw new InvalidDataException("Invalid BigTIFF offset header."); }
             FirstOffset = BigTiff ? U64(8) : U32(4);
         }
-        internal TiffDirectoryReader(ReadOnlyMemory<byte> data, bool littleEndian, ulong firstOffset, int headerLength)
+        internal TiffDirectoryReader(ReadOnlyMemory<byte> data, bool littleEndian, ulong firstOffset, int headerLength, Func<ushort, bool>? includeField = null)
         {
             this.data = data; LittleEndian = littleEndian; FirstOffset = firstOffset; HeaderLength = headerLength;
+            this.includeField = includeField;
         }
         internal ReadOnlyMemory<byte> Slice(ulong offset, ulong length)
         {
@@ -72,22 +76,36 @@ namespace Mediana.Formats.Tiff
             {
                 token.ThrowIfCancellationRequested();
                 ulong entry = offset + (uint)countSize + index * (uint)entrySize;
-                ushort tag = U16(entry), type = U16(entry + 2);
+                ushort tag = U16(entry);
+                if (includeField is not null && !includeField(tag)) { continue; }
+                ushort type = U16(entry + 2);
                 ulong elements = BigTiff ? U64(entry + 4) : U32(entry + 4);
-                int size = TiffField.Size(type);
-                if (elements > (ulong)data.Length / (uint)size) { throw new InvalidDataException("Exif value exceeds the supported byte range."); }
-                ulong bytes = elements * (uint)size, location = entry + (BigTiff ? 12u : 8u);
-                if (bytes > (uint)inline)
+                TiffField field;
+                try { field = ReadField(tag, type, elements, entry, inline); }
+                catch (Exception error) when (includeField is not null && error is InvalidDataException or NotSupportedException)
                 {
-                    location = BigTiff ? U64(location) : U32(location);
-                    if (location < (ulong)HeaderLength) { throw new InvalidDataException("Exif value overlaps the TIFF header."); }
+                    // A projected directory can contain several independent preview extents.
+                    // Report an unreadable value when the corresponding extent is evaluated.
+                    field = new(tag, type, elements, default, LittleEndian, 0, ExceptionDispatchInfo.Capture(error));
                 }
-                if (!fields.TryAdd(tag, new(tag, type, elements, Slice(location, bytes), LittleEndian, location)))
+                if (!fields.TryAdd(tag, field))
                 { throw new InvalidDataException("Duplicate TIFF directory tag."); }
             }
             ulong next = offset + (uint)countSize + count * (uint)entrySize;
             directory = new(fields, BigTiff ? U64(next) : U32(next));
             directories.Add(offset, directory); return directory;
+        }
+        private TiffField ReadField(ushort tag, ushort type, ulong elements, ulong entry, int inline)
+        {
+            int size = TiffField.Size(type);
+            if (elements > (ulong)data.Length / (uint)size) { throw new InvalidDataException("Exif value exceeds the supported byte range."); }
+            ulong bytes = elements * (uint)size, location = entry + (BigTiff ? 12u : 8u);
+            if (bytes > (uint)inline)
+            {
+                location = BigTiff ? U64(location) : U32(location);
+                if (location < (ulong)HeaderLength) { throw new InvalidDataException("Exif value overlaps the TIFF header."); }
+            }
+            return new(tag, type, elements, Slice(location, bytes), LittleEndian, location);
         }
         private ushort U16(ulong position) => LittleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(Slice(position, 2).Span) : BinaryPrimitives.ReadUInt16BigEndian(Slice(position, 2).Span);
         private uint U32(ulong position) => LittleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(Slice(position, 4).Span) : BinaryPrimitives.ReadUInt32BigEndian(Slice(position, 4).Span);

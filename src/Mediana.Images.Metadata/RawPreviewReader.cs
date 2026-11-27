@@ -14,7 +14,8 @@ namespace Mediana.Images.Metadata
 
         /// <summary>Reads from the current position, leaving the stream open. Returns the smallest-area embedded JPEG
         /// whose longest side reaches the requested size, or the largest by area. Returns null for a recognized
-        /// RAW without an embedded JPEG. Invalid directory or preview data propagates as a read error.</summary>
+        /// RAW without an embedded JPEG. For TIFF-based RAW, invalid candidates are skipped when another
+        /// valid candidate is available. Invalid directory data or exclusively damaged previews produce a read error.</summary>
         public static async ValueTask<RawImagePreview?> ExtractAsync(Stream source, int requestedSize,
             int maximumInputBytes = int.MaxValue, CancellationToken cancellationToken = default)
         {
@@ -69,9 +70,10 @@ namespace Mediana.Images.Metadata
                 if (selection.Consider(candidate.Info.Width, candidate.Info.Height)) { selected = candidate; }
             }
             if (selected is null) { return null; }
-            int orientation = (selected as RawJpegCandidate)?.DirectoryOrientation ?? image.ContainerExifOrientation;
+            RawJpegCandidate? candidateInfo = selected as RawJpegCandidate;
+            int orientation = candidateInfo?.DirectoryOrientation ?? image.ContainerExifOrientation;
             token.ThrowIfCancellationRequested();
-            return new(selected.Encoded.ToArray(), orientation, image.PreviewColorSpace, requestedSize);
+            return new(selected.Encoded.ToArray(), orientation, candidateInfo?.ColorSpace ?? image.PreviewColorSpace, requestedSize);
         }
     }
 }

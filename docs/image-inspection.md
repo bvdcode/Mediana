@@ -88,12 +88,21 @@ native names, types and fractions. Camera MakerNotes remain opaque metadata,
 except for documented preview directories and offset conventions.
 
 Original JPEG previews are read from TIFF JPEG offset/length pairs, single
-JPEG-compressed RGB/YCbCr strips, Panasonic JPEG fields, and known Nikon, Olympus
-and Pentax MakerNote layouts. Sensor lossless-JPEG strips are not previews.
+JPEG-compressed RGB/YCbCr strips, Panasonic JPEG fields, and known Nikon, Olympus,
+Pentax and Samsung MakerNote layouts. The CR2 header identifies the sensor IFD;
+a separate preview IFD may contain either DCT or predictive Huffman JPEG.
 The original preview bytes are borrowed, including previews outside a MakerNote's
 own byte extent when the vendor's offset origin references the containing file.
-Unknown MakerNote layouts remain opaque. Invalid declared preview extents or JPEG
-structures are rejected. An uncompressed thumbnail is not exposed as a JPEG.
+RAW extraction validates each declared JPEG through its EOI and returns exactly
+those bytes. It can select another valid candidate when an extent or JPEG header
+is damaged. If every declared candidate fails, extraction reports the read error.
+A RAW without a declared embedded JPEG returns null.
+
+For preview extraction the TIFF reader reads only fields that locate and
+interpret the image. Full metadata inspection also validates capture strings and
+other TIFF values. For unmarked three-component JPEG previews, the preview
+IFD's RGB or YCbCr declaration supplies color interpretation. Where absent,
+component identifiers R/G/B or 1/2/3 identify camera RGB or YCbCr respectively.
 
 `RafMetadataReader` reads the Fujifilm CCD-RAW header and proprietary metadata
 directory. It retains full sensor dimensions, crop origin and dimensions, aspect

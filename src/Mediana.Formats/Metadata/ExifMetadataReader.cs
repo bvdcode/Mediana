@@ -16,7 +16,7 @@ namespace Mediana.Formats.Metadata
             cancellationToken.ThrowIfCancellationRequested();
             return Read(new TiffDirectoryReader(tiff), cancellationToken);
         }
-        internal static MediaMetadata Read(TiffDirectoryReader reader, CancellationToken token, IReadOnlySet<ushort>? borrowedBinaryTags = null, string rootScope = "IFD0")
+        internal static MediaMetadata Read(TiffDirectoryReader reader, CancellationToken token, IReadOnlySet<ushort>? borrowedBinaryTags = null, string rootScope = "IFD0", bool includeProperties = true)
         {
             Stack<(ulong Offset, string Scope, bool Exit)> pending = new();
             pending.Push((reader.FirstOffset, rootScope, false));
@@ -36,10 +36,13 @@ namespace Mediana.Formats.Metadata
                 List<MediaProperty> properties = [];
                 foreach (TiffField field in source.Fields.Values)
                 {
-                    string name = ExifTagNames.Get(directory.Scope, field.Tag);
-                    if (field.Type is 1 or 7 && borrowedBinaryTags?.Contains(field.Tag) == true)
-                    { properties.Add(new("exif", name + ".byte_length", field.Bytes.Length)); }
-                    else { properties.Add(new("exif", name, field.Values(token))); }
+                    if (includeProperties)
+                    {
+                        string name = ExifTagNames.Get(directory.Scope, field.Tag);
+                        if (field.Type is 1 or 7 && borrowedBinaryTags?.Contains(field.Tag) == true)
+                        { properties.Add(new("exif", name + ".byte_length", field.Bytes.Length)); }
+                        else { properties.Add(new("exif", name, field.Values(token))); }
+                    }
                     if (field.Tag is 330 or 34665 or 34853 or 40965)
                     {
                         if (field.Type is not (4 or 13 or 16 or 18) || (field.Tag != 330 && field.Count != 1))
@@ -58,7 +61,7 @@ namespace Mediana.Formats.Metadata
                         }
                     }
                 }
-                directories.Add(new(directory.Scope, properties));
+                if (includeProperties) { directories.Add(new(directory.Scope, properties)); }
                 children.Add((source.NextOffset, directory.Scope + "/next"));
                 for (int index = children.Count - 1; index >= 0; index--) { pending.Push((children[index].Offset, children[index].Scope, false)); }
             }

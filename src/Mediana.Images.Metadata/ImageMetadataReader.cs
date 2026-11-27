@@ -17,6 +17,6 @@ namespace Mediana.Images.Metadata
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default) =>
             ValueTask.FromResult(Inspect(encoded, cancellationToken).Info);
         public ValueTask<IReadOnlyList<EncodedImagePreview>> ReadPreviewsAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default) =>
-            ValueTask.FromResult(Inspect(encoded, cancellationToken).Previews);
+            ValueTask.FromResult(InspectForPreview(encoded, cancellationToken).Previews);
     }
 }
