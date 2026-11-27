@@ -85,7 +85,7 @@ namespace Mediana.Codecs.Jpeg
                 AllowUnalignedExifOffsets = options.AllowUnalignedExifOffsets
             } : options;
             using JpegDocument image = new(encoded, limits, sourceColorSpace, sampleAspectRatio, cancellationToken);
-            image.Read(allocator);
+            image.Read(allocator, resolution: request);
             foreach (string warning in image.Warnings)
             {
                 request.WarningHandler?.Invoke(warning);

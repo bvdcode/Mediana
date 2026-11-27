@@ -4,6 +4,7 @@
 using System.Globalization;
 using Mediana.Codecs.Jpeg;
 using Mediana.Core.Memory;
+using Mediana.Core.Video;
 
 namespace Mediana.Tests
 {
@@ -34,6 +35,11 @@ namespace Mediana.Tests
                         _ => throw new InvalidDataException("Invalid reduced JPEG reference transform.")
                     };
                     image.WriteRgbaTo(actual, color);
+                    JpegImageDecoder decoder = new();
+                    int edge = reduction == 8 ? 1 : Math.Max(width, height) / reduction;
+                    using VideoFrame preview = await decoder.DecodeAsync(encoded, new() { PreferredLongEdge = edge }, allocator);
+                    Require(preview.Format.Width == image.Width && preview.Format.Height == image.Height);
+                    Require(preview.Data.Span.SequenceEqual(actual.AsSpan(0, expected.Length)));
                     Require(expected.Length == image.Width * image.Height * 4 && actual.AsSpan(expected.Length).IndexOfAnyExcept((byte)19) < 0);
                     for (int i = 0; i < expected.Length; i++)
                     {

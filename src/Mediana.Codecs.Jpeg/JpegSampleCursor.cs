@@ -29,7 +29,7 @@ namespace Mediana.Codecs.Jpeg
         private int lowerRow;
 
         public JpegSampleCursor(scoped in JpegSampleLayout image, JpegComponent component, int x, int y,
-            OrthogonalTransform orientation, int phaseX, int phaseY)
+            OrthogonalTransform orientation, bool centered)
         {
             this = default;
             samples = component.Samples.Span;
@@ -40,12 +40,15 @@ namespace Mediana.Codecs.Jpeg
             directOffset = y * stride + x;
             directStep = orientation.A + orientation.C * stride;
             if (direct) { return; }
-            dx = image.MaximumHorizontal * 2;
-            dy = image.MaximumVertical * 2;
-            stepX = 2 * orientation.A * component.Horizontal;
-            stepY = 2 * orientation.C * component.Vertical;
-            int nx = 2 * x * component.Horizontal + (phaseX == 0 ? 0 : component.Horizontal - phaseX);
-            int ny = 2 * y * component.Vertical + (phaseY == 0 ? 0 : component.Vertical - phaseY);
+            // Each reduced sample represents the center of a box on the original component grid.
+            int unit = centered ? 1 : component.Reduction;
+            int phase = centered ? 1 : unit - 1;
+            dx = 2 * unit * image.MaximumHorizontal;
+            dy = 2 * unit * image.MaximumVertical;
+            stepX = 2 * unit * orientation.A * component.Horizontal;
+            stepY = 2 * unit * orientation.C * component.Vertical;
+            int nx = 2 * unit * x * component.Horizontal + phase * (component.Horizontal - image.MaximumHorizontal);
+            int ny = 2 * unit * y * component.Vertical + phase * (component.Vertical - image.MaximumVertical);
             lowX = Math.DivRem(nx, dx, out fractionX);
             lowY = Math.DivRem(ny, dy, out fractionY);
             if (fractionX < 0) { lowX--; fractionX += dx; }

@@ -26,6 +26,8 @@ namespace Mediana.Codecs.Jpeg
         internal int MaximumHorizontal { get; private set; }
         internal int MaximumVertical { get; private set; }
         internal IReadOnlyList<JpegComponent> Components => components;
+        internal JpegSampleLayout Samples => new((Width + reduction - 1) / reduction, (Height + reduction - 1) / reduction,
+            MaximumHorizontal, MaximumVertical, components);
         internal JpegMetadata Metadata => metadata;
         internal bool Progressive => frameMarker == 194;
         internal IReadOnlyList<string> Warnings { get; private set; } = Array.Empty<string>();
@@ -43,7 +45,7 @@ namespace Mediana.Codecs.Jpeg
             }
         }
 
-        internal void Read(MediaBufferAllocator? allocator, bool componentSamples = false, bool embedded = false)
+        internal void Read(MediaBufferAllocator? allocator, bool componentSamples = false, bool embedded = false, ImageDecodeRequest? resolution = null)
         {
             token.ThrowIfCancellationRequested();
             if (encoded.Length > options.MaximumEncodedBytes)
@@ -98,7 +100,7 @@ namespace Mediana.Codecs.Jpeg
                     case 192:
                     case 193:
                     case 194:
-                        ReadFrame(marker, segment, allocator);
+                        ReadFrame(marker, segment, allocator, resolution);
                         break;
                     case 196:
                         ReadHuffman(segment);
@@ -189,8 +191,7 @@ namespace Mediana.Codecs.Jpeg
 
         internal JpegSampleLayout TakeSamples(out MediaBuffer storage)
         {
-            JpegSampleLayout result = new((Width + reduction - 1) / reduction, (Height + reduction - 1) / reduction,
-                MaximumHorizontal, MaximumVertical, components);
+            JpegSampleLayout result = Samples;
             storage = (sampleStorage ?? throw new InvalidOperationException("The JPEG has no decoded sample storage.")).Publish();
             sampleStorage = null;
             components = [];
@@ -207,7 +208,7 @@ namespace Mediana.Codecs.Jpeg
             sampleStorage = null;
         }
 
-        internal void ReadFrame(byte marker, ReadOnlySpan<byte> segment, MediaBufferAllocator? allocator)
+        internal void ReadFrame(byte marker, ReadOnlySpan<byte> segment, MediaBufferAllocator? allocator, ImageDecodeRequest? resolution = null)
         {
             if (frameMarker != 0 || segment.Length < 6)
             {
@@ -235,6 +236,19 @@ namespace Mediana.Codecs.Jpeg
             if (count is not (1 or 3 or 4))
             {
                 throw new NotSupportedException("JPEG decoding requires grayscale, three-component or four-component color.");
+            }
+            if (resolution is not null)
+            {
+                bool swap = metadata.Orientation.SwapsAxes;
+                int factor = resolution.GetMaximumReduction(swap ? Height : Width, swap ? Width : Height);
+                // An Exif segment after SOF may still exchange the display axes.
+                if (!metadata.HasExif && resolution.PreferredWidth != resolution.PreferredHeight)
+                {
+                    factor = Math.Min(factor, resolution.GetMaximumReduction(swap ? Width : Height, swap ? Height : Width));
+                }
+                // A DC-only sample spans a whole block. Keep AC detail until the final filter
+                // can combine at least two such samples along the requested axis.
+                reduction = factor switch { >= 16 => 8, >= 4 => 4, >= 2 => 2, _ => 1 };
             }
             components = new JpegComponent[count];
             for (int i = 0; i < count; i++)

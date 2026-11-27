@@ -10,6 +10,11 @@ namespace Mediana.Tests
     {
         public static void Verify()
         {
+            foreach (int reduction in new[] { 1, 2, 4, 8 }) { Verify(reduction); }
+        }
+
+        private static void Verify(int reduction)
+        {
             (int A, int B, int C, int D)[] transforms = [(1, 0, 0, 1), (-1, 0, 0, 1), (-1, 0, 0, -1), (1, 0, 0, -1),
                 (0, 1, 1, 0), (0, 1, -1, 0), (0, -1, -1, 0), (0, -1, 1, 0)];
             foreach (int width in new[] { 1, 5, 13 })
@@ -24,7 +29,7 @@ namespace Mediana.Tests
                                     int stride = columns + 3;
                                     byte[] samples = new byte[stride * rows];
                                     for (int index = 0; index < samples.Length; index++) { samples[index] = (byte)((index * 97 + 37) % 256); }
-                                    JpegComponent component = new(1, horizontal, vertical, 0, 1)
+                                    JpegComponent component = new(1, horizontal, vertical, 0, reduction)
                                     { SampleWidth = columns, SampleHeight = rows, SampleStride = stride, Samples = samples };
                                     JpegSampleLayout layout = new(width, height, maximumX, maximumY, [component]);
                                     foreach ((int a, int b, int c, int d) in transforms)
@@ -37,11 +42,11 @@ namespace Mediana.Tests
                                             for (int y = 0; y < outputHeight; y++)
                                             {
                                                 JpegSampleCursor cursor = new(layout, component, transform.SourceX(0, y, width), transform.SourceY(0, y, height),
-                                                    transform, centered ? maximumX : 0, centered ? maximumY : 0);
+                                                    transform, centered);
                                                 for (int x = 0; x < outputWidth; x++)
                                                 {
                                                     int sx = transform.SourceX(x, y, width), sy = transform.SourceY(x, y, height);
-                                                    int expected = Reference(samples, stride, columns, rows, sx, sy, horizontal, vertical, maximumX, maximumY, centered);
+                                                    int expected = Reference(samples, stride, columns, rows, sx, sy, horizontal, vertical, maximumX, maximumY, centered, reduction);
                                                     int actual = cursor.ReadNext();
                                                     if (expected != actual)
                                                     {
@@ -55,12 +60,12 @@ namespace Mediana.Tests
         }
 
         private static int Reference(byte[] samples, int stride, int columns, int rows, int x, int y,
-            int horizontal, int vertical, int maximumX, int maximumY, bool centered)
+            int horizontal, int vertical, int maximumX, int maximumY, bool centered, int reduction)
         {
             if (horizontal == maximumX && vertical == maximumY) { return samples[y * stride + x]; }
-            int dx = 2 * maximumX, dy = 2 * maximumY;
-            int nx = 2 * x * horizontal + (centered ? horizontal - maximumX : 0);
-            int ny = 2 * y * vertical + (centered ? vertical - maximumY : 0);
+            int dx = 2 * reduction * maximumX, dy = 2 * reduction * maximumY;
+            int nx = (2 * reduction * x + reduction - 1) * horizontal - (reduction - 1) * maximumX - (centered ? maximumX - horizontal : 0);
+            int ny = (2 * reduction * y + reduction - 1) * vertical - (reduction - 1) * maximumY - (centered ? maximumY - vertical : 0);
             int left = (int)Math.Floor((double)nx / dx), top = (int)Math.Floor((double)ny / dy);
             int fx = nx - left * dx, fy = ny - top * dy;
             int sum = 0;
