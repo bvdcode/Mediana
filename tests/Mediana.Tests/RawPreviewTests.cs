@@ -33,6 +33,14 @@ namespace Mediana.Tests
             using VideoFrame frame = preview.Decode(new(8 * 1024 * 1024));
             Assert.Equal(large ? 19 : 5, frame.Format.Width);
             Assert.Equal(large ? 35 : 7, frame.Format.Height);
+            using VideoFrame sized = preview.DecodeForPreview(new(8 * 1024 * 1024));
+            (int width, int height) = size switch
+            {
+                1 => (2, 2),
+                8 => (5, 9),
+                _ => (frame.Format.Width, frame.Format.Height)
+            };
+            Assert.Equal((width, height), (sized.Format.Width, sized.Format.Height));
         }
 
         [Theory]

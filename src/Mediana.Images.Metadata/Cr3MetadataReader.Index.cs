@@ -61,7 +61,7 @@ namespace Mediana.Images.Metadata
             byte[] jpeg = GC.AllocateUninitializedArray<byte>(image.Length);
             await source.ReadExactlyAtAsync(image.Offset, jpeg, token).ConfigureAwait(false);
             RawJpegPreviews.InspectJpeg(jpeg, image.Width, image.Height, token);
-            return new(jpeg, camera.Orientation, camera.ColorSpace);
+            return new(jpeg, camera.Orientation, camera.ColorSpace, requestedSize);
         }
 
         private static async ValueTask<IsoBmffBoxHeader> ReadBoxAsync(IRandomAccessByteSource source, int offset, int remaining,
