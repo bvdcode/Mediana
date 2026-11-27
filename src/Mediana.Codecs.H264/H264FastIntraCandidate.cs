@@ -9,7 +9,7 @@ namespace Mediana.Codecs.H264
         private const int ZeroMotionDifferenceBits = 2;
 
         public static bool TryWrite(H264CabacEncodingSyntax syntax, H264SourceMacroblock source, H264Picture target,
-            int address, int x, int y, int qp, int temporalDifference, int? estimatedVectorBits, Span<int> coefficients)
+            int address, int x, int y, int qp, int temporalDifference, int estimatedVectorBits, Span<int> coefficients)
         {
             int intraBudget = temporalDifference - SignalingDifference(qp, estimatedVectorBits);
             if (intraBudget <= 0)
@@ -39,13 +39,9 @@ namespace Mediana.Codecs.H264
             return true;
         }
 
-        private static int SignalingDifference(int qp, int? estimatedVectorBits)
+        private static int SignalingDifference(int qp, int estimatedVectorBits)
         {
-            if (estimatedVectorBits is not int bits)
-            {
-                return 8 << (qp / 6);
-            }
-            int vectorOverhead = bits - ZeroMotionDifferenceBits;
+            int vectorOverhead = estimatedVectorBits - ZeroMotionDifferenceBits;
             int sadPerBit = 1 << Math.Max((qp - 12) / 6, 0);
             return sadPerBit * (IntraExtraSignalingBits - vectorOverhead);
         }
