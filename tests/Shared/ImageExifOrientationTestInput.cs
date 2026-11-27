@@ -82,6 +82,9 @@ namespace Mediana.Tests
             using (VideoFrame frame = await new PngImageDecoder().DecodeAsync(WithPng(simple, Metadata(6, true)),
                 new() { PreferredWidth = 1 }, new(128)))
             { Require(frame.Format.Width == 1 && frame.Format.Height == 2); }
+            using (VideoFrame frame = await new PngImageDecoder().DecodeAsync(WithPng(simple, Metadata(6, true)),
+                new() { PreferredLongEdge = 1 }, new(128)))
+            { Require(frame.Format.Width == 1 && frame.Format.Height == 1); }
         }
 
         internal static async Task VerifyWebpAsync(string root)
