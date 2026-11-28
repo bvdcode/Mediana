@@ -9,7 +9,7 @@ webm-file,Containers and packaging,WebM,File presentation,container,.webm,A,webm
 webm-live,Containers and packaging,WebM,Incremental / live presentation,container,.webm,B,webm,"Track metadata, unknown sizes and incremental clusters need separate fixtures."
 ogg,Containers and packaging,Ogg,Single and multiplexed logical streams,container,.ogg .oga .ogv .opus .spx,A,ogg,"Current indexed reader exposes Opus/Vorbis packets, headers, tags and granule timing; codec decoding and writing are separate."
 ogg-chained,Containers and packaging,Ogg,Chained logical streams,container,.ogg .opus,B,ogg,Current reader keeps chained links separately selectable; selecting a link does not concatenate links.
-avi,Containers and packaging,AVI,RIFF AVI 1.0,container,.avi,B,riff,Indexed MJPEG/MPEG-4 Visual/PCM/MP3 input; declared packed DivX/Xvid normalizes into complete VOPs. [API](../avi.md).
+avi,Containers and packaging,AVI,RIFF AVI 1.0,container,.avi,B,riff,Indexed MJPEG/AVC/MPEG-4 Visual/PCM/MP3 input; declared packed DivX/Xvid normalizes into complete VOPs. [API](../avi.md).
 avi-opendml,Containers and packaging,AVI,OpenDML / AVI 2.0,container,.avi,B,riff;discovery,
 asf,Containers and packaging,ASF,File and streaming structure,container,.asf .wmv .wma,B,asf,
 flv,Containers and packaging,FLV,Classic file structure,container,.flv,B,flv,

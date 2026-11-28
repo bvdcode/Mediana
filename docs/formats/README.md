@@ -57,7 +57,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `webm-live` | WebM — Incremental / live presentation | .webm | R □ · W □ | B | Track metadata, unknown sizes and incremental clusters need separate fixtures. [webm](sources.md#webm) | — |
 | `ogg` | Ogg — Single and multiplexed logical streams | .ogg .oga .ogv .opus .spx | R ◐ · W □ | A | Current indexed reader exposes Opus/Vorbis packets, headers, tags and granule timing; codec decoding and writing are separate. [ogg](sources.md#ogg) | [ogg-index](../performance/README.md#ogg-index) |
 | `ogg-chained` | Ogg — Chained logical streams | .ogg .opus | R ◐ · W □ | B | Current reader keeps chained links separately selectable; selecting a link does not concatenate links. [ogg](sources.md#ogg) | — |
-| `avi` | AVI — RIFF AVI 1.0 | .avi | R ◐ · W □ | B | Indexed MJPEG/MPEG-4 Visual/PCM/MP3 input; declared packed DivX/Xvid normalizes into complete VOPs. [API](../avi.md). [riff](sources.md#riff) | — |
+| `avi` | AVI — RIFF AVI 1.0 | .avi | R ◐ · W □ | B | Indexed MJPEG/AVC/MPEG-4 Visual/PCM/MP3 input; declared packed DivX/Xvid normalizes into complete VOPs. [API](../avi.md). [riff](sources.md#riff) | — |
 | `avi-opendml` | AVI — OpenDML / AVI 2.0 | .avi | R ◐ · W □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `asf` | ASF — File and streaming structure | .asf .wmv .wma | R ◐ · W □ | B | [asf](sources.md#asf) | — |
 | `flv` | FLV — Classic file structure | .flv | R □ · W □ | B | [flv](sources.md#flv) | — |

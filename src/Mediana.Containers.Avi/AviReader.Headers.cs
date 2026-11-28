@@ -87,6 +87,11 @@ namespace Mediana.Containers.Avi
             foreach (AviTrack track in tracks)
             {
                 if (track.Stream.CodecId == Mpeg4VisualConfiguration.CodecId) { await ReadVisualClocksAsync(track, cancellationToken).ConfigureAwait(false); }
+                if (track.Stream.CodecId == "h264")
+                {
+                    AviAvcIndexBuilder builder = new(source, allocator, track);
+                    await builder.BuildAsync(cancellationToken).ConfigureAwait(false);
+                }
                 if (track.Stream.CodecId == Mp3FrameHeader.CodecId) { await ReadMp3IndexAsync(track, cancellationToken).ConfigureAwait(false); }
                 TimeBase clock = track.Stream.TimeBase;
                 streams.Add(track.Stream);
@@ -222,12 +227,21 @@ namespace Mediana.Containers.Avi
             switch (type)
             {
                 case 0x73646976:
-                    if (format.Length < BitmapInfoHeaderSize || BinaryPrimitives.ReadUInt32LittleEndian(format) < BitmapInfoHeaderSize ||
-                        BinaryPrimitives.ReadUInt32LittleEndian(format) > format.Length)
+                    uint bitmapSize = format.Length >= BitmapInfoHeaderSize ? BinaryPrimitives.ReadUInt32LittleEndian(format) : 0;
+                    if (bitmapSize < BitmapInfoHeaderSize || bitmapSize > format.Length)
                     {
                         throw new InvalidDataException("An AVI video stream requires a complete bitmap header.");
                     }
                     uint compression = BinaryPrimitives.ReadUInt32LittleEndian(format[16..]);
+                    if (IsAvcCompression(compression))
+                    {
+                        if (sampleSize != 0)
+                        {
+                            throw new InvalidDataException("AVI AVC video requires one variable-size sample per chunk.");
+                        }
+                        return new(streamIndex, MediaKind.Video, "h264", StreamFormats.AvcAnnexBAccessUnit, clock,
+                            ReadAvcExtra(format, (int)bitmapSize), VideoDisplayMatrix.Identity, duration, aspectRatioDescription: aspectRatio);
+                    }
                     if (compression == 0x47504a4d)
                     {
                         return new(streamIndex, MediaKind.Video, "mjpeg", StreamFormats.Mjpeg, clock,
@@ -253,7 +267,7 @@ namespace Mediana.Containers.Avi
                     if (compression is 0x34504d46 or 0x58564944 or 0x30355844 or 0x44495658 or 0x64697678 or 0x5634504d or 0x7634706d or 0x32564933)
                     {
                         return new(streamIndex, MediaKind.Video, Mpeg4VisualConfiguration.CodecId, StreamFormats.Mpeg4Visual, clock,
-                            format[checked((int)BinaryPrimitives.ReadUInt32LittleEndian(format))..], VideoDisplayMatrix.Identity, duration,
+                            format[(int)bitmapSize..], VideoDisplayMatrix.Identity, duration,
                             aspectRatioDescription: aspectRatio);
                     }
                     if (compression is 0x3334504d or 0x33564944 or 0x32564d57)
@@ -296,6 +310,28 @@ namespace Mediana.Containers.Avi
                 default:
                     return new(streamIndex, MediaKind.Data, NativeId(type), NativeFormat, clock, format, codedDuration: duration);
             }
+        }
+
+        private static ReadOnlySpan<byte> ReadAvcExtra(ReadOnlySpan<byte> format, int bitmapSize)
+        {
+            int end = bitmapSize > BitmapInfoHeaderSize ? bitmapSize : format.Length;
+            if (end != format.Length && (end % 2 == 0 || format.Length - end != 1 || format[end] != 0))
+            {
+                throw new InvalidDataException("The AVI AVC bitmap header has unexpected data after its declared size.");
+            }
+            return format[BitmapInfoHeaderSize..end];
+        }
+
+        private static bool IsAvcCompression(uint compression)
+        {
+            Span<byte> tag = stackalloc byte[4];
+            BinaryPrimitives.WriteUInt32LittleEndian(tag, compression);
+            for (int index = 0; index < tag.Length; index++)
+            {
+                if (tag[index] is >= (byte)'a' and <= (byte)'z') { tag[index] -= (byte)('a' - 'A'); }
+            }
+            return tag.SequenceEqual("H264"u8) || tag.SequenceEqual("X264"u8) ||
+                tag.SequenceEqual("AVC1"u8) || tag.SequenceEqual("DAVC"u8);
         }
 
         private static string NativeId(uint value)
