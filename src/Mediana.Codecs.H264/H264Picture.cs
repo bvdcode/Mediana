@@ -265,6 +265,14 @@ namespace Mediana.Codecs.H264
             WriteLuma8x8(x, y, prediction, predictionStride, residual, plane);
         }
 
+        internal void WritePreparedLuma8x8(int x, int y, ReadOnlySpan<byte> prediction,
+            int predictionStride, Span<int> coefficients, H264ResidualSymmetry symmetry)
+        {
+            (int offset, int stride) = SampleLocation(0, x, y);
+            H264VectorInverse8x8.WritePrepared(coefficients, symmetry, prediction, predictionStride, Plane(0)[offset..], stride);
+            MarkReconstructed(BlockIndex(0, x, y), Stride(0) / 4, 2);
+        }
+
         private bool TryWriteInverse8x8(int plane, int x, int y, ReadOnlySpan<byte> prediction,
             int predictionStride, ReadOnlySpan<int> coefficients, int qp)
         {

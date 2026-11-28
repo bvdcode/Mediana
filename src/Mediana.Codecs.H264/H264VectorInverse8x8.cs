@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace Mediana.Codecs.H264
 {
-    internal static class H264VectorInverse8x8
+    internal static partial class H264VectorInverse8x8
     {
         private const int MaximumScale = 58;
         private const int MaximumScaledLevel = (int.MaxValue - 128) / 64;
@@ -16,6 +16,7 @@ namespace Mediana.Codecs.H264
         private static ReadOnlySpan<byte> ScaleClasses => [0, 3, 4, 3, 3, 1, 5, 1, 4, 5, 2, 5, 3, 1, 5, 1];
         private static readonly byte[] Scan = PrepareScan();
         private static readonly byte[] Factors = PrepareFactors();
+        private static readonly int[] PreparedLayouts = CreatePreparedLayouts();
 
         internal static bool IsSupported => Vector128.IsHardwareAccelerated;
 
@@ -53,10 +54,17 @@ namespace Mediana.Codecs.H264
                 }
             }
 
+            WriteTransposed(values, prediction, predictionStride, destination, stride);
+            return true;
+        }
+
+        private static void WriteTransposed(Span<int> values, ReadOnlySpan<byte> prediction, int predictionStride,
+            Span<byte> destination, int stride)
+        {
             if (!Avx2.IsSupported)
             {
                 WritePortable(values, prediction, predictionStride, destination, stride);
-                return true;
+                return;
             }
             ref int input = ref MemoryMarshal.GetReference(values);
             Vector256<int> a = Vector256.LoadUnsafe(ref input);
@@ -78,7 +86,6 @@ namespace Mediana.Codecs.H264
             WriteRow(f, prediction[(predictionStride * 5)..], destination[(stride * 5)..]);
             WriteRow(g, prediction[(predictionStride * 6)..], destination[(stride * 6)..]);
             WriteRow(h, prediction[(predictionStride * 7)..], destination[(stride * 7)..]);
-            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

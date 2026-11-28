@@ -29,6 +29,21 @@ namespace Mediana.Codecs.H264
             window?.Begin(address, left, top, intra);
         }
 
+        public bool TryReadPreparedLuma8x8(ref H264BitReader bits, int x, int y, int qp, scoped Span<int> coefficients,
+            out H264ResidualSymmetry symmetry, out int dcLevel)
+        {
+            if (window is null)
+            {
+                symmetry = H264ResidualSymmetry.None;
+                dcLevel = 0;
+                return false;
+            }
+
+            H264CabacResidual.ReadPreparedLuma8x8(ref bits, reader, qp, coefficients, out symmetry, out dcLevel);
+            window.Mark8x8(H264CodedBlockFlags.LumaIndex(x, y));
+            return true;
+        }
+
         public void CompleteMacroblock() => window?.Complete();
 
         private int Coded8x8Context(int plane, int x, int y)
