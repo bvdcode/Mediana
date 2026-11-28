@@ -27,7 +27,11 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             H264SequenceParameterSet sequence = new()
             {
-                WidthInMbs = 2, HeightInMapUnits = 2, FrameMbsOnly = true, Width = 32, Height = 32
+                WidthInMbs = 2,
+                HeightInMapUnits = 2,
+                FrameMbsOnly = true,
+                Width = 32,
+                Height = 32
             };
             using H264Picture picture = new(sequence, allocator, H264SliceKind.P);
             using H264MotionReference prepared = new(picture, 16, allocator);
