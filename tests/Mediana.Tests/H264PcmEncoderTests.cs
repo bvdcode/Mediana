@@ -32,7 +32,7 @@ namespace Mediana.Tests
             using H264Encoder encoder = H264Encoder.Create(format, new(1, 24), allocator, new() { Quantizer = 0 });
             Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(frame));
             using MediaPacket packet = encoder.Receive().Value!;
-            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, new());
+            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span);
             H264BitReader bits = H264Nal.Payload(packet.Data.Span[4..], 5);
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, packet.Data.Span[4]);
             Assert.Equal(0, header.Qp);

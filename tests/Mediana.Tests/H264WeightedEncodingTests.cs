@@ -23,7 +23,7 @@ namespace Mediana.Tests
             using H264Encoder encoder = H264Encoder.Create(format, clock, allocator,
                 new() { EntropyCoding = H264EntropyCoding.Cabac, Quantizer = 20 });
             H264DecoderOptions options = new();
-            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, options);
+            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, options.HeaderLimits);
             Assert.False(configuration.Pictures[0].WeightedPrediction);
             Assert.True(configuration.Pictures[(int)H264EncoderConfiguration.WeightedPictureId].WeightedPrediction);
 

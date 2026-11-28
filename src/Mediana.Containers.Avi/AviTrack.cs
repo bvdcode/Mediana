@@ -15,9 +15,11 @@ namespace Mediana.Containers.Avi
             IsIntraVideo || Stream.CodecId is MicrosoftMpeg4Configuration.Version3CodecId or MicrosoftMpeg4Configuration.Wmv2CodecId or Ffv1StreamConfiguration.CodecId;
         private bool IsIntraVideo => Stream.CodecId is "mjpeg" or DvFrameHeader.CodecId;
         public TimeBase PresentationClock { get; set; } = stream.TimeBase;
-        public void SetConfiguration(ReadOnlySpan<byte> configuration)
+        public void SetConfiguration(ReadOnlySpan<byte> configuration) => SetRepresentation(Stream.Format, configuration);
+
+        public void SetRepresentation(EncodedStreamFormat format, ReadOnlySpan<byte> configuration)
         {
-            Stream = new(Stream.StreamIndex, Stream.Kind, Stream.CodecId, Stream.Format, Stream.TimeBase, configuration,
+            Stream = new(Stream.StreamIndex, Stream.Kind, Stream.CodecId, format, Stream.TimeBase, configuration,
                 Stream.DisplayMatrix, Stream.CodedDuration, Stream.ColorDescription, Stream.AspectRatioDescription);
         }
         public uint SampleSize { get; } = sampleSize;

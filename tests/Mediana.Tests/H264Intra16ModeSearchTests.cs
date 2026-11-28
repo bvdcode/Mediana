@@ -20,7 +20,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(65536);
             VideoFormat format = H264EncoderTests.Format(64, 64);
             using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
-            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, new());
+            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span);
             using H264Picture picture = new(configuration.Sequences[0], allocator, H264SliceKind.I);
             picture.Modes.Fill(2);
             Span<byte> prediction = stackalloc byte[256];

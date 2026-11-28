@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace Mediana.Codecs.H264
 {
-    internal static class H264DeblockingVector
+    internal static partial class H264DeblockingVector
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Filter(ref H264DeblockingSamples samples, Vector128<short> strengths,
@@ -16,10 +16,7 @@ namespace Mediana.Codecs.H264
         {
             Vector128<short> beta = Vector128.Create((short)thresholds.Beta);
             Vector128<short> difference = Vector128.Abs(samples.P0 - samples.Q0);
-            Vector128<short> enabled = Vector128.GreaterThan(strengths, Vector128<short>.Zero)
-                & Vector128.LessThan(difference, Vector128.Create((short)thresholds.Alpha))
-                & Vector128.LessThan(Vector128.Abs(samples.P1 - samples.P0), beta)
-                & Vector128.LessThan(Vector128.Abs(samples.Q1 - samples.Q0), beta);
+            Vector128<short> enabled = Enabled(samples, strengths, beta, difference, thresholds.Alpha);
             if (enabled.ExtractMostSignificantBits() == 0)
             {
                 return false;
@@ -36,6 +33,14 @@ namespace Mediana.Codecs.H264
             }
             return true;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector128<short> Enabled(in H264DeblockingSamples samples, Vector128<short> strengths,
+            Vector128<short> beta, Vector128<short> difference, int alpha) =>
+            Vector128.GreaterThan(strengths, Vector128<short>.Zero)
+                & Vector128.LessThan(difference, Vector128.Create((short)alpha))
+                & Vector128.LessThan(Vector128.Abs(samples.P1 - samples.P0), beta)
+                & Vector128.LessThan(Vector128.Abs(samples.Q1 - samples.Q0), beta);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Normal(ref H264DeblockingSamples samples, Vector128<short> mask,
@@ -101,20 +106,24 @@ namespace Mediana.Codecs.H264
             Vector128.Min(Vector128.Max(value, -limit), limit);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static H264DeblockingSamples Read(ReadOnlySpan<byte> pixels, int position, int stride, bool vertical)
+        public static H264DeblockingSamples Read(ReadOnlySpan<byte> pixels, int position, int stride, bool vertical) =>
+            Read(pixels, position, stride, vertical, strongTaps: true);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static H264DeblockingSamples Read(ReadOnlySpan<byte> pixels, int position, int stride, bool vertical, bool strongTaps)
         {
             if (!vertical)
             {
                 return new()
                 {
-                    P3 = Read8(pixels, position - 4 * stride),
+                    P3 = strongTaps ? Read8(pixels, position - 4 * stride) : default,
                     P2 = Read8(pixels, position - 3 * stride),
                     P1 = Read8(pixels, position - 2 * stride),
                     P0 = Read8(pixels, position - stride),
                     Q0 = Read8(pixels, position),
                     Q1 = Read8(pixels, position + stride),
                     Q2 = Read8(pixels, position + 2 * stride),
-                    Q3 = Read8(pixels, position + 3 * stride)
+                    Q3 = strongTaps ? Read8(pixels, position + 3 * stride) : default
                 };
             }
             int left = position - 4;
@@ -125,14 +134,14 @@ namespace Mediana.Codecs.H264
             Transpose(ref first, ref second, ref third, ref fourth);
             return new()
             {
-                P3 = Vector128.WidenLower(first).AsInt16(),
+                P3 = strongTaps ? Vector128.WidenLower(first).AsInt16() : default,
                 P2 = Vector128.WidenUpper(first).AsInt16(),
                 P1 = Vector128.WidenLower(second).AsInt16(),
                 P0 = Vector128.WidenUpper(second).AsInt16(),
                 Q0 = Vector128.WidenLower(third).AsInt16(),
                 Q1 = Vector128.WidenUpper(third).AsInt16(),
                 Q2 = Vector128.WidenLower(fourth).AsInt16(),
-                Q3 = Vector128.WidenUpper(fourth).AsInt16()
+                Q3 = strongTaps ? Vector128.WidenUpper(fourth).AsInt16() : default
             };
         }
 

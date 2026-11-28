@@ -36,7 +36,7 @@ namespace Mediana.Tests
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
             {
                 H264DecoderOptions options = new();
-                H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span, options);
+                H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span, options.HeaderLimits);
                 H264PictureOrderState order = new();
                 int index = 0;
                 int ticks = 0;

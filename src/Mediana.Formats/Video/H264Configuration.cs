@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
     internal class H264Configuration(int lengthSize,
         IReadOnlyDictionary<int, H264SequenceParameterSet> sequences,
         IReadOnlyDictionary<int, H264PictureParameterSet> pictures)
     {
+        public static H264Configuration EmptyAnnexB { get; } = new(0, new Dictionary<int, H264SequenceParameterSet>(),
+            new Dictionary<int, H264PictureParameterSet>());
+
         public int LengthSize { get; } = lengthSize;
         public IReadOnlyDictionary<int, H264SequenceParameterSet> Sequences { get; } = sequences;
         public IReadOnlyDictionary<int, H264PictureParameterSet> Pictures { get; } = pictures;
@@ -14,9 +17,15 @@ namespace Mediana.Codecs.H264
         private IReadOnlyDictionary<int, int> PictureLengths { get; init; } = new Dictionary<int, int>();
         private int ConfigurationBytes { get; init; } = 7;
 
-        public H264Configuration WithParameterSet(ReadOnlySpan<byte> nal, H264DecoderOptions options)
+        public H264Configuration WithLengthSize(int lengthSize) => new(lengthSize, Sequences, Pictures)
         {
-            options.Validate();
+            SequenceLengths = SequenceLengths,
+            PictureLengths = PictureLengths,
+            ConfigurationBytes = ConfigurationBytes
+        };
+
+        public H264Configuration WithParameterSet(ReadOnlySpan<byte> nal, H264HeaderLimits options)
+        {
             if (nal.Length > options.MaxParameterSetBytes)
             {
                 throw new NotSupportedException("The AVC parameter set exceeds the configured byte limit.");
@@ -51,7 +60,7 @@ namespace Mediana.Codecs.H264
             throw new InvalidDataException("Expected an H.264 sequence or picture parameter set.");
         }
 
-        private int UpdatedBytes(int length, IReadOnlyDictionary<int, int> lengths, int id, H264DecoderOptions options)
+        private int UpdatedBytes(int length, IReadOnlyDictionary<int, int> lengths, int id, H264HeaderLimits options)
         {
             lengths.TryGetValue(id, out int previous);
             long total = (long)ConfigurationBytes - previous + length + 2;
@@ -62,9 +71,9 @@ namespace Mediana.Codecs.H264
             return (int)total;
         }
 
-        public static H264Configuration Parse(ReadOnlySpan<byte> data, H264DecoderOptions options)
+        public static H264Configuration Parse(ReadOnlySpan<byte> data, H264HeaderLimits? limits = null)
         {
-            options.Validate();
+            H264HeaderLimits options = limits ?? H264HeaderLimits.Default;
             H264ConfigurationRecord record = new(data, options.MaxConfigurationBytes, options.MaxParameterSetBytes);
             Dictionary<int, H264SequenceParameterSet> sequences = [];
             Dictionary<int, int> sequenceLengths = [];

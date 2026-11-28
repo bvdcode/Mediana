@@ -16,7 +16,7 @@ namespace Mediana.Tests
             VideoFormat format = new(32, 32, VideoPixelFormat.Yuv420P8,
                 new(ColorPrimaries.Bt709, TransferFunction.Bt709, MatrixCoefficients.Bt709, ColorRange.Limited, ChromaLocation.Center), new(1, 1));
             byte[] config = H264EncoderConfiguration.Create(format, allocator, new(), out _);
-            H264SequenceParameterSet sequence = H264Configuration.Parse(config, new()).Sequences.Values.Single();
+            H264SequenceParameterSet sequence = H264Configuration.Parse(config).Sequences.Values.Single();
             Random random = new(1751);
             int checks = 0;
             using (H264Picture target = new(sequence, allocator, H264SliceKind.P))

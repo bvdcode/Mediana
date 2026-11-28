@@ -9,10 +9,10 @@ using Mediana.Formats.Video;
 
 namespace Mediana.Codecs.H264
 {
-    /// <summary>Decodes H.264 Annex B input that may split or combine access units at packet boundaries.
-    /// In-band parameter sets and picture ordering follow the AVC decoder's supported syntax.</summary>
+    /// <summary>Decodes H.264 Annex B access units or byte ranges. Complete access units support indexed
+    /// restart inspection. In-band parameter sets and picture ordering follow the AVC decoder's supported syntax.</summary>
     public class H264AnnexBDecoderFactory(H264DecoderOptions? options = null, Action<string>? warningHandler = null)
-        : IVideoDecoderFactory
+        : IVideoDecoderFactory, IRandomAccessDecoderFactory
     {
         private readonly H264DecoderOptions decoderOptions = options ?? new();
 
@@ -21,31 +21,60 @@ namespace Mediana.Codecs.H264
 
         public string? GetUnsupportedReason(EncodedStreamInfo stream)
         {
-            ArgumentNullException.ThrowIfNull(stream);
-            if (stream.Kind != MediaKind.Video || stream.CodecId != CodecId)
-            {
-                return "The stream is not H.264 video.";
-            }
-            return StreamFormats.AvcAnnexB.GetUnsupportedReason(stream.Format);
+            string? reason = GetUnsupportedFormat(stream);
+            return reason is null && stream.Format == StreamFormats.AvcAnnexBAccessUnit
+                ? H264Support.GetUnsupportedReason(ReadConfiguration(stream)) : reason;
         }
 
         public IMediaCodec<MediaPacket, VideoFrame> Create(EncodedStreamInfo stream, MediaBufferAllocator allocator)
         {
             ArgumentNullException.ThrowIfNull(allocator);
-            if (GetUnsupportedReason(stream) is string reason)
+            H264Configuration configuration = ReadSupportedConfiguration(stream);
+            H264Decoder decoder = new(stream.StreamIndex, configuration, allocator, decoderOptions,
+                stream.ColorDescription, stream.AspectRatioDescription, warningHandler);
+            return stream.Format.Boundary == EncodedPacketBoundary.AccessUnit
+                ? decoder : new StartCodeVideoDecoder(new(stream.StreamIndex, allocator, Classify), decoder);
+        }
+
+        public IRandomAccessInspector CreateRandomAccessInspector(EncodedStreamInfo stream) =>
+            new H264RandomAccessInspector(stream, ReadSupportedConfiguration(stream), decoderOptions);
+
+        private H264Configuration ReadSupportedConfiguration(EncodedStreamInfo stream)
+        {
+            if (GetUnsupportedFormat(stream) is string reason)
             {
                 throw new NotSupportedException(reason);
             }
-            decoderOptions.Validate();
-            H264Configuration configuration = new(0, new Dictionary<int, H264SequenceParameterSet>(),
-                new Dictionary<int, H264PictureParameterSet>());
-            if (!stream.Configuration.IsEmpty)
+            H264Configuration configuration = ReadConfiguration(stream);
+            if (stream.Format == StreamFormats.AvcAnnexBAccessUnit &&
+                H264Support.GetUnsupportedReason(configuration) is string unsupported)
             {
-                configuration = configuration.WithParameterSet(stream.Configuration.Span, decoderOptions);
+                throw new NotSupportedException(unsupported);
             }
-            H264Decoder decoder = new(stream.StreamIndex, configuration, allocator, decoderOptions,
-                stream.ColorDescription, stream.AspectRatioDescription, warningHandler);
-            return new StartCodeVideoDecoder(new(stream.StreamIndex, allocator, Classify), decoder);
+            return configuration;
+        }
+
+        private string? GetUnsupportedFormat(EncodedStreamInfo stream)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+            if (stream.Kind != MediaKind.Video || stream.CodecId != CodecId)
+            {
+                return "The stream is not H.264 video.";
+            }
+            return stream.Format == StreamFormats.AvcAnnexBAccessUnit
+                ? null : StreamFormats.AvcAnnexB.GetUnsupportedReason(stream.Format);
+        }
+
+        private H264Configuration ReadConfiguration(EncodedStreamInfo stream)
+        {
+            decoderOptions.Validate();
+            if (stream.Format == StreamFormats.AvcAnnexBAccessUnit)
+            {
+                return H264Configuration.Parse(stream.Configuration.Span, decoderOptions.HeaderLimits).WithLengthSize(0);
+            }
+            H264Configuration configuration = H264Configuration.EmptyAnnexB;
+            return stream.Configuration.IsEmpty ? configuration
+                : configuration.WithParameterSet(stream.Configuration.Span, decoderOptions.HeaderLimits);
         }
 
         private static StartCodeUnitKind Classify(ReadOnlySpan<byte> unit)

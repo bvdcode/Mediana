@@ -72,6 +72,25 @@ picture, previews and whole/interval AVC encoding against independent output
 from the original AVI. Structural tests cover split-chunk extent validation,
 placeholder clocks, display durations, cancellation and released index storage.
 
+## H.264 video
+
+H.264 AVI tracks use the `h264` codec identifier. Complete Annex B access
+units use `H264AnnexBDecoderFactory`. Length-prefixed access units use
+`H264DecoderFactory`. Register both factories with the AVI reader to open
+either representation through the same media engine.
+
+Opening reads the AVC configuration and the first slice header of each indexed
+video chunk to establish presentation order. One frame picture per chunk is
+supported. The AVI sample clock supplies display intervals, while H.264 picture
+order assigns those intervals to individual pictures. AVI packet clocks remain
+available in decode order. Keyframe selection uses IDR pictures validated
+against opening SPS/PPS and parameter sets carried by the restart packet.
+The indexed source supports elapsed previews and on-demand HLS transcoding.
+
+The [AVC fixtures](../tests/Mediana.Containers.Avi.Tests/Data/h264-fixture.md)
+cover B pictures in four closed GOPs. The first and middle HLS segments are
+decoded individually and compared against the reference in presentation order.
+
 ## Audiovisual HLS
 
 The shared HLS audio preparation opens AVI through its registered reader and
@@ -109,7 +128,7 @@ have been independently decoded both with MP3 stream copy and with AAC encoding.
 ## Segment requests
 
 `AvcHlsTranscodeSession` also accepts an indexed AVI reader, its registered
-MJPEG/MPEG-4 decoder and explicit output preparation. PCM audio can be supplied
+video decoder and explicit output preparation. PCM audio can be supplied
 through `HlsAacEncoding`. Planning and initialization do not read compressed
 packets. The MJPEG/PCM test requests half-second audiovisual windows in order
 2, 0, 1, 2; each request reads only local payload and required audio warm-up,

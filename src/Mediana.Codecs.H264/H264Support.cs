@@ -7,19 +7,9 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264Support
     {
-        public static string? GetUnsupportedHeaderReason(H264SequenceParameterSet sequence)
-        {
-            if (sequence.ChromaFormat is not (1 or 2 or 3) || sequence.SeparateColourPlane ||
-                sequence.LumaBitDepth is not (8 or 10) || sequence.ChromaBitDepth != sequence.LumaBitDepth)
-            {
-                return "Slice header parsing currently requires 8-bit or 10-bit 4:2:0, 4:2:2 or 4:4:4 pictures.";
-            }
-            return null;
-        }
-
         public static string? GetUnsupportedReason(H264SequenceParameterSet sequence, H264PictureParameterSet picture)
         {
-            string? reason = GetUnsupportedHeaderReason(sequence);
+            string? reason = H264SliceHeaderReader.GetUnsupportedReason(sequence);
             if (reason is not null)
             {
                 return reason;

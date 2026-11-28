@@ -45,7 +45,7 @@ namespace Mediana.Codecs.H264
             {
                 return formatReason;
             }
-            return H264Support.GetUnsupportedReason(H264Configuration.Parse(stream.Configuration.Span, options));
+            return H264Support.GetUnsupportedReason(H264Configuration.Parse(stream.Configuration.Span, options.HeaderLimits));
         }
 
         /// <summary>Outputs owned cropped YUV surfaces with packet timing. Complementary fields form an interleaved frame
@@ -61,7 +61,7 @@ namespace Mediana.Codecs.H264
                 throw new NotSupportedException("The stream is not H.264 video.");
             }
             StreamFormats.Avc.Require(stream.Format);
-            H264Configuration configuration = H264Configuration.Parse(stream.Configuration.Span, options);
+            H264Configuration configuration = H264Configuration.Parse(stream.Configuration.Span, options.HeaderLimits);
             string? reason = H264Support.GetUnsupportedReason(configuration);
             if (reason is not null)
             {

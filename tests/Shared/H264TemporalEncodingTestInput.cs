@@ -98,7 +98,7 @@ namespace Mediana.Tests
             long clock = -120;
             long keyClock = clock;
             int frameNumber = 0;
-            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, new());
+            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span);
             for (int index = 0; index < FrameCount; index++)
             {
                 int duration = mode == 3 ? (index % 3) switch { 0 => 20, 1 => 80, _ => 40 } : 40;

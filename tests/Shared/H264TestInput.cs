@@ -80,7 +80,7 @@ namespace Mediana.Tests
             await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
-            H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span, new H264DecoderOptions());
+            H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span);
             int index = 0;
             while (true)
             {

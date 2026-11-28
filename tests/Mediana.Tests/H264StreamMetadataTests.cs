@@ -27,7 +27,7 @@ namespace Mediana.Tests
         {
             byte[] bytes = H264MetadataTestInput.Configuration([H264MetadataTestInput.Sequence()], [H264MetadataTestInput.Picture(groups: true)]);
             Assert.IsType<VideoStreamMetadata>(new H264StreamMetadataReader().Read(H264MetadataTestInput.Stream(bytes)));
-            Assert.Throws<NotSupportedException>(() => H264Configuration.Parse(bytes, new H264DecoderOptions()));
+            Assert.Throws<NotSupportedException>(() => H264Configuration.Parse(bytes));
         }
 
         [Fact]
@@ -51,7 +51,7 @@ namespace Mediana.Tests
         {
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata", file)));
             MediaInfo info = await MediaProbeTestInput.CreateEngine().ProbeAsync(source);
-            H264Configuration parsed = H264Configuration.Parse(info.Streams[0].Configuration.Span, new H264DecoderOptions());
+            H264Configuration parsed = H264Configuration.Parse(info.Streams[0].Configuration.Span);
             Assert.Single(parsed.Sequences);
             Assert.Equal(canDecode, new H264DecoderFactory().GetUnsupportedReason(info.Streams[0]) is null);
             byte[] damaged = info.Streams[0].Configuration.ToArray();

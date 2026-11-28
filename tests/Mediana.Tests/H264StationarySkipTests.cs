@@ -15,7 +15,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(65536);
             VideoFormat format = H264EncoderTests.Format(50, 34);
             using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
-            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, new());
+            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span);
             using H264Picture reference = new(configuration.Sequences[0], allocator, H264SliceKind.P);
             using VideoFrame frame = H264EncoderTests.Frame(format, allocator, 0);
             CopyFrameToReference(frame, reference);
@@ -40,7 +40,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(65536);
             VideoFormat format = H264EncoderTests.Format(32, 32);
             using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
-            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, new());
+            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span);
             using H264Picture reference = new(configuration.Sequences[0], allocator, H264SliceKind.P);
             using VideoFrame frame = H264EncoderTests.Frame(format, allocator, 0);
             CopyFrameToReference(frame, reference);
@@ -70,7 +70,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(65536);
             VideoFormat format = H264EncoderTests.Format(16, 16);
             using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
-            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, new());
+            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span);
             using H264Picture reference = new(configuration.Sequences[0], allocator, H264SliceKind.P);
             using VideoFrame frame = H264EncoderTests.Frame(format, allocator, 0);
             CopyFrameToReference(frame, reference);

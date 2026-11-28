@@ -3,10 +3,18 @@
 
 using System.Buffers.Binary;
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
     internal struct H264NalReader
     {
+        internal static ReadOnlySpan<byte> StartCode => [0, 0, 1];
+
+        internal static bool StartsWithAnnexB(ReadOnlySpan<byte> data)
+        {
+            int start = data.IndexOf(StartCode);
+            return start >= 0 && data[..start].IndexOfAnyExcept((byte)0) < 0;
+        }
+
         private readonly ReadOnlyMemory<byte> data;
         private readonly int lengthSize;
         private readonly int maximumNals;
@@ -47,13 +55,7 @@ namespace Mediana.Codecs.H264
                 throw new InvalidDataException("The AVC NAL length is truncated.");
             }
             ReadOnlySpan<byte> remaining = data.Span[offset..];
-            uint length = lengthSize switch
-            {
-                1 => remaining[0],
-                2 => BinaryPrimitives.ReadUInt16BigEndian(remaining),
-                4 => BinaryPrimitives.ReadUInt32BigEndian(remaining),
-                _ => throw new InvalidOperationException("The AVC NAL length size is invalid.")
-            };
+            uint length = ReadLength(remaining, lengthSize);
             int start = offset + lengthSize;
             if (length == 0 || length > data.Length - start)
             {
@@ -65,9 +67,17 @@ namespace Mediana.Codecs.H264
             return true;
         }
 
+        internal static uint ReadLength(ReadOnlySpan<byte> bytes, int lengthSize) => lengthSize switch
+        {
+            1 => bytes[0],
+            2 => BinaryPrimitives.ReadUInt16BigEndian(bytes),
+            4 => BinaryPrimitives.ReadUInt32BigEndian(bytes),
+            _ => throw new ArgumentOutOfRangeException(nameof(lengthSize))
+        };
+
         private ReadOnlyMemory<byte> ReadAnnexB()
         {
-            ReadOnlySpan<byte> prefix = [0, 0, 1];
+            ReadOnlySpan<byte> prefix = StartCode;
             ReadOnlySpan<byte> remaining = data.Span[offset..];
             int startCode = remaining.IndexOf(prefix);
             if (startCode < 0 || remaining[..startCode].IndexOfAnyExcept((byte)0) >= 0)

@@ -63,7 +63,7 @@ namespace Mediana.Codecs.H264
             options ??= new();
             options.Validate();
             byte[] configuration = H264EncoderConfiguration.Create(format, allocator, options, out int parameterSetBytes);
-            H264Configuration parsed = H264Configuration.Parse(configuration, new H264DecoderOptions());
+            H264Configuration parsed = H264Configuration.Parse(configuration);
             EncodedStreamInfo stream = new(streamIndex, MediaKind.Video, "h264", StreamFormats.Avc, timeBase, configuration, VideoDisplayMatrix.Identity);
             return new(format, stream, parsed.Sequences[0], parsed.Pictures[0], allocator, options, parameterSetBytes);
         }
