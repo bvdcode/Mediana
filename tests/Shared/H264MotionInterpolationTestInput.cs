@@ -19,6 +19,65 @@ namespace Mediana.Tests
             VerifyAverages();
             Verify<byte>(8);
             Verify<ushort>(10);
+            VerifyGroupedDifferences();
+        }
+
+        private static void VerifyGroupedDifferences()
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            H264SequenceParameterSet sequence = new()
+            {
+                WidthInMbs = 2, HeightInMapUnits = 2, FrameMbsOnly = true, Width = 32, Height = 32
+            };
+            using H264Picture picture = new(sequence, allocator, H264SliceKind.P);
+            using H264MotionReference prepared = new(picture, 16, allocator);
+            byte[] reference = new byte[1024];
+            byte[] block = new byte[256];
+            Random random = new(28643);
+            random.NextBytes(reference);
+            random.NextBytes(block);
+            reference.CopyTo(picture.Plane(0));
+            prepared.Prepare(picture, default);
+            foreach ((int x, int y) in new[] { (-15, 31), (16, 16), (31, -15) })
+            {
+                H264LumaNeighborhood neighborhood = new(prepared, x, y);
+                foreach ((int dx, int dy, int step) in new[] { (0, 0, 2), (0, 0, 1), (-2, 2, 1), (2, 0, 1) })
+                {
+                    int LumaDifference(int offsetX, int offsetY)
+                    {
+                        int error = 0;
+                        for (int row = 0; row < 16; row++)
+                        {
+                            for (int col = 0; col < 16; col++)
+                            {
+                                int predicted = Pixel(reference, 4L * (x + col) + dx + offsetX, 4L * (y + row) + dy + offsetY);
+                                error += Math.Abs(block[row * 16 + col] - predicted);
+                            }
+                        }
+                        return error;
+                    }
+
+                    (int left, int right, int above, int below) = (LumaDifference(-step, 0), LumaDifference(step, 0),
+                        LumaDifference(0, -step), LumaDifference(0, step));
+                    int minimum = Math.Min(Math.Min(left, right), Math.Min(above, below));
+                    if (neighborhood.DifferenceCross(block, dx, dy, step, minimum) != (left, right, above, below))
+                    {
+                        throw new InvalidDataException("A grouped luma score differs from scalar convolution.");
+                    }
+                    (int cutoffLeft, int cutoffRight, int cutoffAbove, int cutoffBelow) =
+                        neighborhood.DifferenceCross(block, dx, dy, step, minimum - 1);
+                    if (Math.Min(Math.Min(cutoffLeft, cutoffRight), Math.Min(cutoffAbove, cutoffBelow)) < minimum)
+                    {
+                        throw new InvalidDataException("A grouped luma score passed a rejection limit below its exact error.");
+                    }
+                    if (step == 1 && ((dx ^ dy) & 2) == 0 && neighborhood.DifferenceEight(block, dx, dy) !=
+                        (LumaDifference(-1, -1), above, LumaDifference(1, -1), left, right,
+                            LumaDifference(-1, 1), below, LumaDifference(1, 1)))
+                    {
+                        throw new InvalidDataException("The eight neighbouring luma scores differ from scalar convolution.");
+                    }
+                }
+            }
         }
 
         private static void Verify<TSample>(int bitDepth) where TSample : unmanaged, IBinaryInteger<TSample>

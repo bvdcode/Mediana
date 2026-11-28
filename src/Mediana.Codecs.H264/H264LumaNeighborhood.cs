@@ -90,6 +90,47 @@ namespace Mediana.Codecs.H264
             halfOrigin = (y + reference.Range) * halfStride + x + reference.Range;
         }
 
+        internal (int Left, int Right, int Above, int Below) DifferenceCross(ReadOnlySpan<byte> source,
+            int x, int y, int step, int cutoff)
+        {
+            ReadOnlySpan<byte> left = HalfLattice(x - 2, y, out int horizontalStride);
+            ReadOnlySpan<byte> above = HalfLattice(x, y - 2, out int verticalStride);
+            int centerStride = 0;
+            ReadOnlySpan<byte> center = step == 1 ? HalfLattice(x, y, out centerStride) : [];
+            return H264FractionalCross.Difference(source, left, horizontalStride, above, verticalStride, center, centerStride, cutoff);
+        }
+
+        private ReadOnlySpan<byte> HalfLattice(int x, int y, out int stride)
+        {
+            int row = y >> 2;
+            int column = x >> 2;
+            if (((x | y) & 2) == 0)
+            {
+                stride = sampleStride;
+                return samples[(sampleOrigin + row * sampleStride + column)..];
+            }
+
+            int start = halfOrigin + row * halfStride + column;
+            stride = halfStride;
+            return (x & 2, y & 2) switch
+            {
+                (2, 0) => horizontal[start..],
+                (0, 2) => vertical[start..],
+                (2, 2) => diagonal[start..],
+                _ => throw new InvalidOperationException("The position has no fractional luma samples.")
+            };
+        }
+
+        /// <summary>Scores the quarter-pixel neighbours of an integer or diagonal half-pixel center.</summary>
+        internal (int UpperLeft, int Above, int UpperRight, int Left, int Right, int LowerLeft, int Below, int LowerRight)
+            DifferenceEight(ReadOnlySpan<byte> source, int x, int y)
+        {
+            ReadOnlySpan<byte> left = HalfLattice(x - 2, y, out int horizontalStride);
+            ReadOnlySpan<byte> above = HalfLattice(x, y - 2, out int verticalStride);
+            ReadOnlySpan<byte> center = HalfLattice(x, y, out int centerStride);
+            return H264FractionalEight.Difference(source, left, horizontalStride, above, verticalStride, center, centerStride);
+        }
+
         public H264LumaCandidate Select(int x, int y)
         {
             if (x is < -3 or > 3 || y is < -3 or > 3)
