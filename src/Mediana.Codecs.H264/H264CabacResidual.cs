@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.CompilerServices;
+
 namespace Mediana.Codecs.H264
 {
     /// <summary>Reads frame and field transform coefficients in scan order under H.264 clause 7.3.5.3.3.</summary>
-    internal static class H264CabacResidual
+    internal static partial class H264CabacResidual
     {
+        private const int Frame8x8SignificantBase = 402;
+        private const int Frame8x8LastBase = 417;
+        private const int Frame8x8LevelBase = 426;
+
         // Rec. ITU-T H.264, Table 9-43 (frame-coded 8x8 significance contexts).
         private static ReadOnlySpan<byte> Significant8x8 =>
             [0, 1, 2, 3, 4, 5, 5, 4, 4, 3, 3, 4, 4, 4, 5, 5,
@@ -37,7 +43,7 @@ namespace Mediana.Codecs.H264
         public static int Read(ref H264BitReader bits, H264CabacReader reader,
             H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients, int bitDepth = 8, bool field = false, int? fullResolutionPlane = null)
         {
-            (int count, int significantBase, int lastBase, int levelBase) = FrameContexts(category, coefficients.Length);
+            (int count, int significantBase, int lastBase, int levelBase, int continuationLimit) = FrameContexts(category, coefficients.Length);
             int? codedBase = category == H264ResidualCategory.Luma8x8 ? null : 85 + (int)category * 4;
             if (fullResolutionPlane is int plane)
             {
@@ -89,7 +95,7 @@ namespace Mediana.Codecs.H264
             {
                 return 0;
             }
-            return ReadCoefficients(ref bits, reader, category, count, significantBase, lastBase, levelBase,
+            return ReadCoefficients(ref bits, reader, count, significantBase, lastBase, levelBase, continuationLimit,
                 coefficients, bitDepth, field);
         }
 
@@ -101,26 +107,26 @@ namespace Mediana.Codecs.H264
                 coefficients.Clear();
                 return 0;
             }
-            (int count, int significantBase, int lastBase, int levelBase) = FrameContexts(category, coefficients.Length);
+            (int count, int significantBase, int lastBase, int levelBase, int continuationLimit) = FrameContexts(category, coefficients.Length);
             coefficients.Clear();
-            return ReadCoefficients(ref bits, reader, category, count, significantBase, lastBase, levelBase,
+            return ReadCoefficients(ref bits, reader, count, significantBase, lastBase, levelBase, continuationLimit,
                 coefficients, 8, field: false);
         }
 
-        private static (int Count, int Significant, int Last, int Level) FrameContexts(
+        private static (int Count, int Significant, int Last, int Level, int ContinuationLimit) FrameContexts(
             H264ResidualCategory category, int coefficientCount) => category switch
             {
-                H264ResidualCategory.Intra16LumaDc => (16, 105, 166, 227),
-                H264ResidualCategory.Intra16LumaAc => (15, 120, 181, 237),
-                H264ResidualCategory.Luma4x4 => (16, 134, 195, 247),
-                H264ResidualCategory.ChromaDc when coefficientCount is 4 or 8 => (coefficientCount, 149, 210, 257),
-                H264ResidualCategory.ChromaAc => (15, 152, 213, 266),
-                H264ResidualCategory.Luma8x8 => (64, 402, 417, 426),
+                H264ResidualCategory.Intra16LumaDc => (16, 105, 166, 227, 4),
+                H264ResidualCategory.Intra16LumaAc => (15, 120, 181, 237, 4),
+                H264ResidualCategory.Luma4x4 => (16, 134, 195, 247, 4),
+                H264ResidualCategory.ChromaDc when coefficientCount is 4 or 8 => (coefficientCount, 149, 210, 257, 3),
+                H264ResidualCategory.ChromaAc => (15, 152, 213, 266, 4),
+                H264ResidualCategory.Luma8x8 => (64, Frame8x8SignificantBase, Frame8x8LastBase, Frame8x8LevelBase, 4),
                 _ => throw new ArgumentOutOfRangeException(nameof(category))
             };
 
-        private static int ReadCoefficients(ref H264BitReader bits, H264CabacReader reader, H264ResidualCategory category,
-            int count, int significantBase, int lastBase, int levelBase, scoped Span<int> coefficients, int bitDepth, bool field)
+        private static int ReadCoefficients(ref H264BitReader bits, H264CabacReader reader, int count, int significantBase,
+            int lastBase, int levelBase, int continuationLimit, scoped Span<int> coefficients, int bitDepth, bool field)
         {
             ReadOnlySpan<byte> significance = count switch
             {
@@ -131,62 +137,74 @@ namespace Mediana.Codecs.H264
             ReadOnlySpan<byte> lastSignificance = count == 64 ? Last8x8 : significance;
             Span<byte> positions = stackalloc byte[64];
             int total = 0;
-            for (int index = 0; index < count - 1; index++)
+            int index = 0;
+            for (; index < count - 1; index++)
             {
                 if (reader.Read(ref bits, significantBase + significance[index]))
                 {
                     positions[total++] = (byte)index;
                     if (reader.Read(ref bits, lastBase + lastSignificance[index]))
                     {
-                        return ReadLevels(ref bits, reader, category, levelBase, positions[..total], coefficients, bitDepth);
+                        break;
                     }
                 }
             }
-            positions[total++] = (byte)(count - 1);
-            return ReadLevels(ref bits, reader, category, levelBase, positions[..total], coefficients, bitDepth);
+            if (index == count - 1)
+            {
+                positions[total++] = (byte)index;
+            }
+            return ReadLevels(ref bits, reader, levelBase, continuationLimit, positions[..total], coefficients, bitDepth);
         }
 
-        private static int ReadLevels(ref H264BitReader bits, H264CabacReader reader, H264ResidualCategory category,
-            int levelBase, scoped ReadOnlySpan<byte> positions, scoped Span<int> coefficients, int bitDepth)
+        private static int ReadLevels(ref H264BitReader bits, H264CabacReader reader, int levelBase, int continuationLimit,
+            scoped ReadOnlySpan<byte> positions, scoped Span<int> coefficients, int bitDepth)
         {
             int equalOne = 0;
             int greaterOne = 0;
+            int coefficientBits = bitDepth + 7;
             for (int index = positions.Length - 1; index >= 0; index--)
             {
-                int firstContext = greaterOne == 0 ? Math.Min(4, 1 + equalOne) : 0;
-                int magnitude = 1;
-                if (reader.Read(ref bits, levelBase + firstContext))
-                {
-                    int continuation = levelBase + 5 + Math.Min(category == H264ResidualCategory.ChromaDc ? 3 : 4, greaterOne);
-                    int prefix = 1;
-                    while (prefix < 14 && reader.Read(ref bits, continuation))
-                    {
-                        prefix++;
-                    }
-                    magnitude = prefix + 1;
-                    if (prefix == 14)
-                    {
-                        magnitude += ReadExpGolomb(ref bits, reader, bitDepth + 7);
-                    }
-                }
-                bool negative = reader.Bypass(ref bits);
-                int signed = negative ? -magnitude : magnitude;
-                int magnitudeLimit = 1 << (bitDepth + 7);
-                if (signed < -magnitudeLimit || signed >= magnitudeLimit)
-                {
-                    throw new InvalidDataException("The H.264 CABAC coefficient exceeds the declared transform precision.");
-                }
-                coefficients[positions[index]] = signed;
-                if (magnitude == 1)
-                {
-                    equalOne++;
-                }
-                else
-                {
-                    greaterOne++;
-                }
+                coefficients[positions[index]] = ReadLevel(ref bits, reader, levelBase, continuationLimit,
+                    coefficientBits, ref equalOne, ref greaterOne);
             }
             return positions.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ReadLevel(ref H264BitReader bits, H264CabacReader reader, int levelBase, int continuationLimit,
+            int coefficientBits, ref int equalOne, ref int greaterOne)
+        {
+            int firstContext = greaterOne == 0 ? Math.Min(4, 1 + equalOne) : 0;
+            int magnitude = 1;
+            if (reader.Read(ref bits, levelBase + firstContext))
+            {
+                int continuation = levelBase + 5 + Math.Min(continuationLimit, greaterOne);
+                int prefix = 1;
+                while (prefix < 14 && reader.Read(ref bits, continuation))
+                {
+                    prefix++;
+                }
+                magnitude = prefix + 1;
+                if (prefix == 14)
+                {
+                    magnitude += ReadExpGolomb(ref bits, reader, coefficientBits);
+                }
+            }
+            int signed = reader.Bypass(ref bits) ? -magnitude : magnitude;
+            int magnitudeLimit = 1 << coefficientBits;
+            if (signed < -magnitudeLimit || signed >= magnitudeLimit)
+            {
+                throw new InvalidDataException("The H.264 CABAC coefficient exceeds the declared transform precision.");
+            }
+            if (magnitude == 1)
+            {
+                equalOne++;
+            }
+            else
+            {
+                greaterOne++;
+            }
+            return signed;
         }
 
         private static int ReadExpGolomb(ref H264BitReader bits, H264CabacReader reader, int maximumOrder)
