@@ -240,6 +240,11 @@ namespace Mediana.Codecs.H264
                 }
                 int centerX = motionX;
                 int centerY = motionY;
+                if (!TAnalysis.Enabled && Math.Abs(centerX) <= limit - step && Math.Abs(centerY) <= limit - step)
+                {
+                    CompareFastCross(neighborhood, originX, originY, centerX, centerY, step);
+                    continue;
+                }
                 for (int direction = 0; direction < offsetsX.Length; direction++)
                 {
                     int nextX = centerX + offsetsX[direction] * step;
@@ -251,6 +256,42 @@ namespace Mediana.Codecs.H264
                     }
                 }
             }
+        }
+
+        private void CompareFastCross(scoped H264LumaNeighborhood neighborhood, int originX, int originY,
+            int centerX, int centerY, int step)
+        {
+            int x = centerX - originX;
+            int y = centerY - originY;
+            int left = centerX - step;
+            int right = centerX + step;
+            int above = centerY - step;
+            int below = centerY + step;
+
+            if (step == 1 && ((x ^ y) & 2) == 0)
+            {
+                (int upperLeftCost, int upperCost, int upperRightCost, int westCost, int eastCost,
+                    int lowerLeftCost, int lowerCost, int lowerRightCost) = neighborhood.DifferenceEight(source[..256], x, y);
+                Compare(left, above, upperLeftCost);
+                Compare(centerX, above, upperCost);
+                Compare(right, above, upperRightCost);
+                Compare(left, centerY, westCost);
+                Compare(right, centerY, eastCost);
+                Compare(left, below, lowerLeftCost);
+                Compare(centerX, below, lowerCost);
+                Compare(right, below, lowerRightCost);
+                return;
+            }
+
+            Compare(left, above, neighborhood.Select(x - step, y - step).Difference(source[..256], bestCost));
+            (int leftCost, int rightCost, int aboveCost, int belowCost) = neighborhood.DifferenceCross(source[..256], x, y, step, bestCost);
+            Compare(centerX, above, aboveCost);
+            Compare(right, above, neighborhood.Select(x + step, y - step).Difference(source[..256], bestCost));
+            Compare(left, centerY, leftCost);
+            Compare(right, centerY, rightCost);
+            Compare(left, below, neighborhood.Select(x - step, y + step).Difference(source[..256], bestCost));
+            Compare(centerX, below, belowCost);
+            Compare(right, below, neighborhood.Select(x + step, y + step).Difference(source[..256], bestCost));
         }
 
         private void Evaluate(int nextX, int nextY)
