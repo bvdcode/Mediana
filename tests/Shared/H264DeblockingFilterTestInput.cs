@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Buffers.Binary;
+using System.Runtime.Intrinsics.X86;
 using Mediana.Codecs.H264;
 
 namespace Mediana.Tests
@@ -116,6 +118,7 @@ namespace Mediana.Tests
             int along = vertical ? stride : 1;
             Span<byte> pixels = actual.AsSpan(13, size);
             byte[] expected = (byte[])actual.Clone();
+            byte[]? weak = !chroma && Sse2.IsSupported && !strengths.Contains((byte)4) ? (byte[])actual.Clone() : null;
             int branches = 0;
             for (int index = 0; index < length; index++)
             {
@@ -126,6 +129,15 @@ namespace Mediana.Tests
             if (!actual.AsSpan().SequenceEqual(expected))
             {
                 throw new InvalidDataException($"Deblocking differs from the independent equations: vertical={vertical}, chroma={chroma}, alpha={limits.Alpha}, beta={limits.Beta}.");
+            }
+            if (weak is not null)
+            {
+                H264DeblockingVector.WeakLuma16(weak.AsSpan(13, size), start, stride, vertical,
+                    BinaryPrimitives.ReadUInt32LittleEndian(strengths), limits);
+                if (!weak.AsSpan().SequenceEqual(expected))
+                {
+                    throw new InvalidDataException("Weak luma filtering differs from the independent equations.");
+                }
             }
             return branches;
         }

@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Mediana.Codecs.H264
 {
-    internal static class H264Deblocking
+    internal static partial class H264Deblocking
     {
         // Rec. ITU-T H.264, Tables 8-16 and 8-17 (8-bit samples).
         private static ReadOnlySpan<byte> Alpha =>
@@ -36,13 +36,17 @@ namespace Mediana.Codecs.H264
         {
             foreach (H264SliceRegion slice in slices)
             {
-                ApplyRange(picture, slice.Header, slice.EndMacroblock, cancellationToken, null, null);
+                H264SequenceParameterSet sequence = slice.Header.Sequence;
+                bool progressive420 = sequence.FrameMbsOnly && sequence.ChromaFormat == 1 &&
+                    sequence.LumaBitDepth == 8 && sequence.ChromaBitDepth == 8;
+                ApplyRange(picture, slice.Header, slice.EndMacroblock, cancellationToken, null, null,
+                    progressive420: progressive420);
             }
         }
 
         private static void ApplyRange(H264Picture picture, H264SliceHeader header, int endMacroblock, CancellationToken cancellationToken,
             IReadOnlyList<H264ReferencePicture?>? references, IReadOnlyList<H264ReferencePicture?>? referencesL1,
-            H264PictureIdentity? singleReference = null)
+            H264PictureIdentity? singleReference = null, bool progressive420 = false)
         {
             if (!header.DeblockingEnabled)
             {
@@ -60,6 +64,11 @@ namespace Mediana.Codecs.H264
             if (picture.Layout.MacroblockAdaptiveFrameField)
             {
                 H264AdaptiveDeblocking.Apply(picture, header, endMacroblock, ref context, cancellationToken);
+                return;
+            }
+            if (progressive420)
+            {
+                ApplyProgressive420(picture, header, endMacroblock, firstFilterable, ref context, cancellationToken);
                 return;
             }
             Span<byte> strengths = stackalloc byte[32];
@@ -109,11 +118,13 @@ namespace Mediana.Codecs.H264
             scoped Span<byte> strengths)
         {
             int edgeStep = !picture.Uses8x8Transform(address) || picture.Sequence.ChromaFormat == 2 ? 4 : 8;
-            int firstEdge = (vertical ? x == 0 : y == 0) ||
-                (header.DeblockingIdc == 2 && address - (vertical ? 1 : header.Sequence.WidthInMbs) < header.FirstMacroblock)
-                ? edgeStep : 0;
+            int firstEdge = FirstFilterEdge(header, address, vertical ? x : y,
+                vertical ? 1 : header.Sequence.WidthInMbs, edgeStep);
             context.FillStrengths(x, y, vertical, firstEdge, edgeStep, strengths);
         }
+
+        private static int FirstFilterEdge(H264SliceHeader header, int address, int coordinate, int neighbor, int edgeStep) =>
+            coordinate == 0 || (header.DeblockingIdc == 2 && address - neighbor < header.FirstMacroblock) ? edgeStep : 0;
 
         private static void ApplyEdges(H264Picture picture, H264SliceHeader header, int plane,
             int address, int x, int y, bool vertical, ReadOnlySpan<byte> strengths)
