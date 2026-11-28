@@ -79,7 +79,7 @@ namespace Mediana.Tests
                     throw new InvalidOperationException("The intra encoder did not accept a flat picture.");
                 }
                 using MediaPacket packet = encoder.Receive().Value ?? throw new InvalidDataException("Missing flat picture.");
-                H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, new());
+                H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span);
                 H264BitReader bits = H264Nal.Payload(packet.Data.Span[4..], 5);
                 H264SliceHeaderReader.Read(ref bits, configuration, packet.Data.Span[4]);
                 for (int macroblock = 0; macroblock < 4; macroblock++)

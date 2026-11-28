@@ -21,7 +21,7 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(65536);
             using H264Encoder encoder = H264Encoder.Create(H264EncoderTests.Format(32, 32), new(1, 1000), allocator);
-            H264SequenceParameterSet sequence = H264Configuration.Parse(encoder.Stream.Configuration.Span, new()).Sequences[0];
+            H264SequenceParameterSet sequence = H264Configuration.Parse(encoder.Stream.Configuration.Span).Sequences[0];
             using H264Picture picture = new(sequence, allocator, H264SliceKind.P);
             picture.FirstMacroblock = 3;
             picture.Modes.Fill(42);
@@ -58,7 +58,7 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(65536);
             using H264Encoder encoder = H264Encoder.Create(H264EncoderTests.Format(32, 32), new(1, 1000), allocator);
-            H264SequenceParameterSet sequence = H264Configuration.Parse(encoder.Stream.Configuration.Span, new()).Sequences[0];
+            H264SequenceParameterSet sequence = H264Configuration.Parse(encoder.Stream.Configuration.Span).Sequences[0];
             using H264Picture picture = new(sequence, allocator, H264SliceKind.P);
             picture.Plane(0).Fill(73);
             picture.Plane(1).Fill(101);

@@ -35,7 +35,7 @@ namespace Mediana.Tests
             using (IMediaCodec<MediaPacket, VideoFrame> decoder = new H264DecoderFactory().Create(encoder.Stream, allocator))
             {
                 await using MpegTsWriter writer = MpegTsWriter.Create(transport, [encoder.Stream], allocator);
-                H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, new());
+                H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span);
                 for (int index = 0; index < 5; index++)
                 {
                     using WritableMediaBuffer storage = allocator.Allocate(384);

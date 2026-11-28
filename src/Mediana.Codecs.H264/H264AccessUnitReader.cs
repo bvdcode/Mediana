@@ -54,7 +54,7 @@ namespace Mediana.Codecs.H264
                         }
                         if (type is 7 or 8)
                         {
-                            configuration = configuration.WithParameterSet(nal.Span, options);
+                            configuration = configuration.WithParameterSet(nal.Span, options.HeaderLimits);
                         }
                         else if (type == 6)
                         {

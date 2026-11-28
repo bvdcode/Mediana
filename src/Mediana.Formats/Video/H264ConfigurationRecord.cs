@@ -3,7 +3,7 @@
 
 using System.Buffers.Binary;
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
     internal ref struct H264ConfigurationRecord
     {
@@ -83,6 +83,39 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("The AVC configuration contains unexpected bytes.");
             }
+        }
+
+        internal static byte[] Write(int lengthSize, IReadOnlyCollection<byte[]> sequences, IReadOnlyCollection<byte[]> pictures)
+        {
+            if (lengthSize is not (1 or 2 or 4) || sequences.Count is 0 or > 31 || pictures.Count is 0 or > 255)
+            {
+                throw new InvalidDataException("The AVC configuration cannot represent these parameter sets.");
+            }
+            int length = checked(7 + sequences.Sum(set => set.Length + 2) + pictures.Sum(set => set.Length + 2));
+            if (length > DefaultMaxConfigurationBytes)
+            {
+                throw new NotSupportedException("The AVC configuration exceeds the configured byte limit.");
+            }
+            byte[] result = new byte[length];
+            result[0] = 1;
+            sequences.First().AsSpan(1, 3).CopyTo(result.AsSpan(1));
+            result[4] = (byte)(0xfc | (lengthSize - 1));
+            result[5] = (byte)(0xe0 | sequences.Count);
+            int offset = WriteParameterSets(sequences, result, 6);
+            result[offset++] = (byte)pictures.Count;
+            WriteParameterSets(pictures, result, offset);
+            return result;
+        }
+
+        private static int WriteParameterSets(IReadOnlyCollection<byte[]> sets, Span<byte> output, int offset)
+        {
+            foreach (byte[] set in sets)
+            {
+                BinaryPrimitives.WriteUInt16BigEndian(output[offset..], checked((ushort)set.Length));
+                set.CopyTo(output[(offset + 2)..]);
+                offset += 2 + set.Length;
+            }
+            return offset;
         }
 
         private int ReadByte()

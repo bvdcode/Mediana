@@ -19,7 +19,7 @@ namespace Mediana.Codecs.H264
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 H264BitReader bits = H264Nal.Payload(nal.Span, H264Nal.Type(nal.Span));
-                H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, unit.Configuration, nal.Span[0], options);
+                H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, unit.Configuration, nal.Span[0], options.MaxReferenceOperations);
                 if (first is not null)
                 {
                     ValidatePicture(first, header);

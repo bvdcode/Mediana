@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Runtime.InteropServices;
-
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
     internal record H264WeightTable(int LumaDenominator, int ChromaDenominator, IReadOnlyList<H264PredictionWeight> Entries)
     {
@@ -46,51 +44,6 @@ namespace Mediana.Codecs.H264
                 weights[index] = new H264PredictionWeight(lumaWeight, lumaOffset, cbWeight, cbOffset, crWeight, crOffset);
             }
             return new H264WeightTable(lumaDenominator, chromaDenominator, Array.AsReadOnly(weights));
-        }
-
-        public bool IsIdentity(int reference)
-        {
-            H264PredictionWeight entry = Entries[reference];
-            int chroma = 1 << ChromaDenominator;
-            return entry.LumaWeight == 1 << LumaDenominator && entry.CbWeight == chroma && entry.CrWeight == chroma
-                && (entry.LumaOffset | entry.CbOffset | entry.CrOffset) == 0;
-        }
-
-        public void Apply(int reference, int plane, Span<byte> samples, int bitDepth = 8)
-        {
-            (int weight, int offset, int denominator) = Get(reference, plane);
-            if (bitDepth == 8 && offset == 0 && weight == 1 << denominator)
-            {
-                return;
-            }
-            int rounding = denominator == 0 ? 0 : 1 << (denominator - 1);
-            if (bitDepth > 8)
-            {
-                Span<ushort> pixels = MemoryMarshal.Cast<byte, ushort>(samples);
-                int maximum = (1 << bitDepth) - 1;
-                int scaledOffset = offset << (bitDepth - 8);
-                for (int index = 0; index < pixels.Length; index++)
-                {
-                    pixels[index] = (ushort)Math.Clamp(((weight * pixels[index] + rounding) >> denominator) + scaledOffset, 0, maximum);
-                }
-                return;
-            }
-            for (int index = 0; index < samples.Length; index++)
-            {
-                samples[index] = (byte)Math.Clamp(((weight * samples[index] + rounding) >> denominator) + offset, 0, 255);
-            }
-        }
-
-        public (int Weight, int Offset, int Denominator) Get(int reference, int plane)
-        {
-            H264PredictionWeight entry = Entries[reference];
-            return plane switch
-            {
-                0 => (entry.LumaWeight, entry.LumaOffset, LumaDenominator),
-                1 => (entry.CbWeight, entry.CbOffset, ChromaDenominator),
-                2 => (entry.CrWeight, entry.CrOffset, ChromaDenominator),
-                _ => throw new ArgumentOutOfRangeException(nameof(plane))
-            };
         }
     }
 }

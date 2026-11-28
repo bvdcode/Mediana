@@ -43,7 +43,7 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData("avc.decoder-configuration-record", "avc.annex-b", EncodedPacketBoundary.AccessUnit)]
+        [InlineData("avc.decoder-configuration-record", "avc.unknown-framing", EncodedPacketBoundary.AccessUnit)]
         [InlineData("avc.decoder-configuration-record", "avc.length-prefixed", EncodedPacketBoundary.ArbitraryBytes)]
         [InlineData("avc.parameter-sets", "avc.length-prefixed", EncodedPacketBoundary.AccessUnit)]
         public void VideoAndTransportRequireAllRepresentationComponents(string syntax, string framing, EncodedPacketBoundary boundary)

@@ -11,6 +11,9 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Avc { get; } = new("avc.decoder-configuration-record", "avc.length-prefixed", EncodedPacketBoundary.AccessUnit);
         /// <summary>Annex B byte ranges with optional opening SPS NAL without a start code. Packet boundaries may cut across access units.</summary>
         public static EncodedStreamFormat AvcAnnexB { get; } = new("avc.sequence-parameter-set", "avc.annex-b", EncodedPacketBoundary.ArbitraryBytes);
+        /// <summary>Complete Annex B access units with opening SPS and PPS in an AVC configuration record.</summary>
+        public static EncodedStreamFormat AvcAnnexBAccessUnit { get; } =
+            new(Avc.ConfigurationSyntax, AvcAnnexB.PacketFraming, EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Hevc { get; } = new("hevc.decoder-configuration-record", "hevc.length-prefixed", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Av1 { get; } = new("av1.codec-configuration-record", "av1.low-overhead.access-unit", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Vp9 { get; } = new("none", "vp9.access-unit", EncodedPacketBoundary.AccessUnit);

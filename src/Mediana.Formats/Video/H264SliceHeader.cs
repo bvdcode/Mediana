@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
     internal record H264SliceHeader(H264SequenceParameterSet Sequence, H264PictureParameterSet Picture,
         H264PictureStructure Structure = H264PictureStructure.Frame)

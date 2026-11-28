@@ -12,6 +12,7 @@ namespace Mediana.Codecs.H264
     public class H264RandomAccessInspector : IRandomAccessInspector
     {
         private readonly int streamIndex;
+        private readonly bool hasCompleteAccessUnits;
         private readonly H264Configuration configuration;
         private readonly H264DecoderOptions options;
 
@@ -27,8 +28,18 @@ namespace Mediana.Codecs.H264
             }
             StreamFormats.Avc.Require(stream.Format);
             this.options = options ?? new();
-            configuration = H264Configuration.Parse(stream.Configuration.Span, this.options);
+            this.options.Validate();
+            configuration = H264Configuration.Parse(stream.Configuration.Span, this.options.HeaderLimits);
             streamIndex = stream.StreamIndex;
+            hasCompleteAccessUnits = true;
+        }
+
+        internal H264RandomAccessInspector(EncodedStreamInfo stream, H264Configuration configuration, H264DecoderOptions options)
+        {
+            this.configuration = configuration;
+            this.options = options;
+            streamIndex = stream.StreamIndex;
+            hasCompleteAccessUnits = stream.Format.Boundary == EncodedPacketBoundary.AccessUnit;
         }
 
         /// <summary>Ignores the container key-frame flag. Non-IDR slice headers, including B headers,
@@ -41,6 +52,7 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentException("The packet does not belong to the configured AVC stream.", nameof(packet));
             }
             cancellationToken.ThrowIfCancellationRequested();
+            if (!hasCompleteAccessUnits) { return false; }
             H264AccessUnit unit = H264AccessUnitReader.Read(packet.Data, configuration, options, cancellationToken);
             if (unit.Slices.Count == 0 || H264Nal.Type(unit.Slices[0].Span) != 5)
             {

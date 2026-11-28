@@ -57,7 +57,7 @@ namespace Mediana.Tests
                 new(ColorPrimaries.Bt709, TransferFunction.Bt709, MatrixCoefficients.Bt709, ColorRange.Full, ChromaLocation.Left), new(1, 1));
             H264EncoderOptions options = new() { Quantizer = qp, EntropyCoding = entropy };
             byte[] configuration = H264EncoderConfiguration.Create(format, allocator, options, out _);
-            H264Configuration parsed = H264Configuration.Parse(configuration, new());
+            H264Configuration parsed = H264Configuration.Parse(configuration);
             EncodedStreamInfo stream = new(0, MediaKind.Video, "h264", StreamFormats.Avc, new(1, 24), configuration);
             using MemoryStream transport = new();
             using MemoryStream pixels = new();

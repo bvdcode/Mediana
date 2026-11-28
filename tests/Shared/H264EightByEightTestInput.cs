@@ -32,7 +32,7 @@ namespace Mediana.Tests
                     switch (H264Nal.Type(nal))
                     {
                         case 7 or 8:
-                            configuration = configuration.WithParameterSet(nal, new H264DecoderOptions());
+                            configuration = configuration.WithParameterSet(nal, H264HeaderLimits.Default);
                             break;
                         case 5:
                             DecodeAndVerify(nal, configuration, references, ref order, allocator, reference.AsSpan(frame * 1536, 1536));

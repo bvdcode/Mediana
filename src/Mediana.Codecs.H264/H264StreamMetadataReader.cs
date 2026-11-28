@@ -42,7 +42,10 @@ namespace Mediana.Codecs.H264
                     ? new VideoStreamMetadata([new H264SequenceMetadata(H264SequenceParser.Parse(nal, maxPicturePixels: null))])
                     : null;
             }
-            StreamFormats.Avc.Require(stream.Format);
+            if (stream.Format != StreamFormats.AvcAnnexBAccessUnit)
+            {
+                StreamFormats.Avc.Require(stream.Format);
+            }
             H264ConfigurationRecord record = new(stream.Configuration.Span, options.MaxConfigurationBytes, options.MaxParameterSetBytes);
             Dictionary<int, H264SequenceParameterSet> sequences = [];
             for (int index = 0; index < record.SequenceCount; index++)

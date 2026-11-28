@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
     internal static class H264SliceHeaderReader
     {
         public static H264SliceHeader Read(ref H264BitReader bits, H264Configuration configuration, byte nalHeader,
-            H264DecoderOptions? options = null)
+            int maxReferenceOperations = H264HeaderLimits.DefaultMaxReferenceOperations)
         {
-            H264DecoderOptions limits = options ?? new H264DecoderOptions();
-            limits.Validate();
             int nalType = nalHeader & 31;
             int referenceIndicator = (nalHeader >> 5) & 3;
             bool idr = nalType == 5;
@@ -100,7 +98,7 @@ namespace Mediana.Codecs.H264
                     adaptiveMarking = bits.ReadFlag();
                     if (adaptiveMarking)
                     {
-                        operations = H264ReferenceSyntax.ReadMarking(ref bits, layout.MaximumPictureNumber, limits.MaxReferenceOperations, layout.IsField);
+                        operations = H264ReferenceSyntax.ReadMarking(ref bits, layout.MaximumPictureNumber, maxReferenceOperations, layout.IsField);
                     }
                 }
             }
@@ -179,11 +177,21 @@ namespace Mediana.Codecs.H264
 
         private static void ValidateConfiguration(H264SequenceParameterSet sequence)
         {
-            string? reason = H264Support.GetUnsupportedHeaderReason(sequence);
+            string? reason = GetUnsupportedReason(sequence);
             if (reason is not null)
             {
                 throw new NotSupportedException(reason);
             }
+        }
+
+        public static string? GetUnsupportedReason(H264SequenceParameterSet sequence)
+        {
+            if (sequence.ChromaFormat is not (1 or 2 or 3) || sequence.SeparateColourPlane ||
+                sequence.LumaBitDepth is not (8 or 10) || sequence.ChromaBitDepth != sequence.LumaBitDepth)
+            {
+                return "Slice header parsing currently requires 8-bit or 10-bit 4:2:0, 4:2:2 or 4:4:4 pictures.";
+            }
+            return null;
         }
     }
 }

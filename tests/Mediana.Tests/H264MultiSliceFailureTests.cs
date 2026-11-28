@@ -21,7 +21,7 @@ namespace Mediana.Tests
             await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync(name + ".mp4"));
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, sourceAllocator);
             H264DecoderOptions options = new();
-            H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span, options);
+            H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span, options.HeaderLimits);
             using MediaPacket first = await reader.ReadPacketAtAsync(0, 0);
             using MediaPacket second = await reader.ReadPacketAtAsync(0, 1);
             byte[][] slices = H264AccessUnitReader.Read(first.Data, configuration, options).Slices.Select(nal => nal.ToArray()).ToArray();
@@ -67,7 +67,7 @@ namespace Mediana.Tests
             await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("avc-multislice-cabac.mp4"));
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, packetAllocator);
             using MediaPacket packet = await reader.ReadPacketAtAsync(0, 0);
-            H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span, new());
+            H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span);
             long pictureBytes;
             MediaBufferAllocator measure = new(1024 * 1024);
             using (H264Picture picture = H264Picture.CreateForCoding(configuration.Sequences[0], measure, H264SliceKind.P, packedResiduals: true))
